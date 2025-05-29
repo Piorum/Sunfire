@@ -19,6 +19,7 @@ public class View
     public float HeightPercent = 1.0f; //1.0f == 100%
 
     public BorderStyle BorderStyle = BorderStyle.None;
+    public ConsoleColor BackgroundColor = ConsoleColor.Black;
 
     public List<View> SubViews { get; } = [];
     public View? Container { get; internal set; } = null;
@@ -45,10 +46,32 @@ public class View
         foreach (var level in yLevels)
         {
             availableWidth[level] = SizeX;
+
+            switch (BorderStyle)
+            {
+                case BorderStyle.Full:
+                    availableWidth[level] -= 2;
+                    break;
+                case BorderStyle.Left:
+                case BorderStyle.Right:
+                    availableWidth[level]--;
+                    break;
+            }
         }
         foreach (var level in xLevels)
         {
             availableHeight[level] = SizeY;
+
+            switch (BorderStyle)
+            {
+                case BorderStyle.Full:
+                    availableHeight[level] -= 2;
+                    break;
+                case BorderStyle.Top:
+                case BorderStyle.Bottom:
+                    availableHeight[level]--;
+                    break;
+            }
         }
 
         //Width
@@ -98,8 +121,26 @@ public class View
         }
 
         //Positioning
-        int CursorPosX = OriginX;
-        int CursorPosY = OriginY;
+        int StartCursorPosX = OriginX;
+        int StartCursorPosY = OriginY;
+
+        switch (BorderStyle)
+        {
+            case BorderStyle.Full:
+                StartCursorPosX++;
+                StartCursorPosY++;
+                break;
+            case BorderStyle.Top:
+                StartCursorPosY++;
+                break;
+            case BorderStyle.Left:
+                StartCursorPosX++;
+                break;
+        }
+
+        int CursorPosX = StartCursorPosX;
+        int CursorPosY = StartCursorPosY;
+
         foreach (var yLevel in yLevels)
         {
             int largestY = 0;
@@ -115,7 +156,7 @@ public class View
 
                 if (view.SizeY > largestY) largestY = view.SizeY;
             }
-            CursorPosX = OriginX;
+            CursorPosX = StartCursorPosX;
             CursorPosY += largestY;
         }
 
@@ -136,20 +177,15 @@ public class View
         var value = 0;
         foreach (var view in SubViews)
         {
-            Console.BackgroundColor = value switch
-            {
-                0 => ConsoleColor.White,
-                1 => ConsoleColor.Red,
-                2 => ConsoleColor.Green,
-                3 => ConsoleColor.Blue,
-                4 => ConsoleColor.Yellow,
-                _ => ConsoleColor.Black
-            };
+            Console.BackgroundColor = view.BackgroundColor;
             for (int i = 0; i < view.SizeY; i++)
             {
                 var index = i;
                 Console.SetCursorPosition(view.OriginX, view.OriginY + index);
-                Console.Write(new string(' ', view.SizeX));
+
+                var output = await BuildLineOutput(view, new string(' ', view.SizeX), i);
+
+                Console.Write(output);
             }
             value++;
         }
@@ -160,5 +196,46 @@ public class View
             drawTasks.Add(view.Draw());
         }
         await Task.WhenAll(drawTasks);
+    }
+
+    private static Task<string> BuildLineOutput(View view, string input, int index)
+    {
+        string output = input;
+        switch (view.BorderStyle)
+        {
+            case BorderStyle.Full:
+                if (index == 0)
+                {
+                    output = (char)9484 + new string((char)9472, view.SizeX - 2) + (char)9488;
+                }
+                else if (index == view.SizeY - 1)
+                {
+                    output = (char)9492 + new string((char)9472, view.SizeX - 2) + (char)9496;
+                }
+                else
+                {
+                    output = (char)9474 + input[..(view.SizeX - 2)] + (char)9474;
+                }
+                break;
+            case BorderStyle.Top:
+                if (index == 0)
+                {
+                    output = new string((char)9472, view.SizeX);
+                }
+                break;
+            case BorderStyle.Right:
+                output = input[..(view.SizeX - 1)] + (char)9474;
+                break;
+            case BorderStyle.Bottom:
+                if (index == view.SizeY - 1)
+                {
+                    output = new string((char)9472, view.SizeX);
+                }
+                break;
+            case BorderStyle.Left:
+                output = input[1..] + (char)9474;
+                break;
+        }
+        return Task.FromResult(output);
     }
 }

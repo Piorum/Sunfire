@@ -80,6 +80,7 @@ internal class Program
             Y = 0,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
+            BackgroundColor = ConsoleColor.White
         };
         var testView2 = new View()
         {
@@ -88,14 +89,16 @@ internal class Program
             FillStyleWidth = FillStyle.Percent,
             WidthPercent = 0.125f,
             FillStyleHeight = FillStyle.Max,
+            BorderStyle = BorderStyle.Right
         };
         var testView3 = new View()
         {
             X = 1,
             Y = 1,
             FillStyleWidth = FillStyle.Percent,
-            WidthPercent = 0.375f,
+            WidthPercent = 0.425f,
             FillStyleHeight = FillStyle.Max,
+            BorderStyle = BorderStyle.Right,
         };
         var testView4 = new View()
         {
@@ -118,20 +121,26 @@ internal class Program
         {
             X = 0,
             Y = 0,
-            Z = 0,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
-            LabelText = "Hello"
+            BackgroundColor = ConsoleColor.Green
         };
+        testLabel1.TextFields.Add(new()
+        {
+            Text = "Hello"
+        });
         var testLabel2 = new Label()
         {
             X = 0,
             Y = 1,
-            Z = 0,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
-            LabelText = "Hello"
+            BackgroundColor = ConsoleColor.Blue
         };
+        testLabel2.TextFields.Add(new()
+        {
+            Text = "World"
+        });
         await testView3.AddAsync(testLabel1);
         await testView3.AddAsync(testLabel2);
 

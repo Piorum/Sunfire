@@ -5,11 +5,19 @@ namespace Sunfire.Views;
 
 public class Label : View
 {
-    required public int Z;
+    public readonly List<TextFields> TextFields = [];
 
-    required public string LabelText;
+    public bool Highlighted = false;
+    public bool Bold = false;
+    public ConsoleColor TextColor = ConsoleColor.White;
+}
+
+public class TextFields
+{
+    public int Z = 0;
+
+    required public string Text;
 
     public AlignStyle AlignStyle = AlignStyle.Left;
     public WrapStyle WrapStyle = WrapStyle.Trim;
-    public bool Highlighted = false;
 }
