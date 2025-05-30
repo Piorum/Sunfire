@@ -4,6 +4,8 @@ namespace Sunfire.Views;
 
 public class View
 {
+    public string Tag = "";
+
     required public int X;
     required public int Y;
 
@@ -23,11 +25,10 @@ public class View
     public List<View> SubViews { get; } = [];
     public View? Container { get; internal set; } = null;
 
-    public Task AddAsync(View subView)
+    public void Add(View subView)
     {
         subView.Container = this;
         SubViews.Add(subView);
-        return Task.CompletedTask;
     }
 
     public async Task Arrange(int WidthConstraint, int HeightConstraint)
@@ -35,8 +36,8 @@ public class View
         SizeX = WidthConstraint;
         SizeY = HeightConstraint;
 
-        var xLevels = SubViews.Select(v => v.X).Distinct();
-        var yLevels = SubViews.Select(v => v.Y).Distinct();
+        var xLevels = SubViews.Select(v => v.X).Distinct().Order();
+        var yLevels = SubViews.Select(v => v.Y).Distinct().Order();
 
         Dictionary<int, int> availableWidth = [];
         Dictionary<int, int> availableHeight = [];
@@ -138,6 +139,7 @@ public class View
         int CursorPosX = StartCursorPosX;
         int CursorPosY = StartCursorPosY;
 
+        //var orderedViews = SubViews.OrderBy(sv => sv.X).OrderBy(sv => sv.Y).ToList();
         foreach (var yLevel in yLevels)
         {
             int largestY = 0;

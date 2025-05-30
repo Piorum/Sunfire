@@ -3,7 +3,7 @@ using Sunfire.Views;
 
 namespace Sunfire;
 
-public static class Renderer
+public static class TUIRenderer
 {
     private static readonly SemaphoreSlim _renderLock = new(1);
 
