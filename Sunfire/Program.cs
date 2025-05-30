@@ -56,6 +56,7 @@ internal class Program
 
             await Renderer.ExecuteRenderTasks(RootView);
 
+            _renderSignal.Reset();
         }
         return;
     }
@@ -80,7 +81,6 @@ internal class Program
             Y = 0,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
-            BackgroundColor = ConsoleColor.White
         };
         var testView2 = new View()
         {
@@ -114,6 +114,22 @@ internal class Program
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
         };
+
+        var testLabel0 = new Label()
+        {
+            X = 0,
+            Y = 0,
+            FillStyleWidth = FillStyle.Max,
+            FillStyleHeight = FillStyle.Min,
+            Bold = false,
+            Highlighted = false
+        };
+        testLabel0.TextFields.Add(new()
+        {
+            Text = "Top Bar"
+        });
+        await testView1.AddAsync(testLabel0);
+
         await RootView.AddAsync(testView1);
         await RootView.AddAsync(testView2);
 
@@ -123,11 +139,12 @@ internal class Program
             Y = 0,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
-            BackgroundColor = ConsoleColor.Green
+            Bold = true,
+            Highlighted = true
         };
         testLabel1.TextFields.Add(new()
         {
-            Text = "Hello"
+            Text = "Hellooooooooooooooooooooooooooooo"
         });
         var testLabel2 = new Label()
         {
@@ -135,17 +152,51 @@ internal class Program
             Y = 1,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
-            BackgroundColor = ConsoleColor.Blue
+            Bold = true,
         };
         testLabel2.TextFields.Add(new()
         {
-            Text = "World"
+            Text = "Worldooooooooooooooooooooooooooooo"
+        });
+        var testLabel3 = new Label()
+        {
+            X = 0,
+            Y = 2,
+            FillStyleWidth = FillStyle.Max,
+            FillStyleHeight = FillStyle.Min
+        };
+        testLabel3.TextFields.Add(new()
+        {
+            Text = "Testooooooooooooooooooooooooooooooo"
         });
         await testView3.AddAsync(testLabel1);
         await testView3.AddAsync(testLabel2);
+        await testView3.AddAsync(testLabel3);
 
         await RootView.AddAsync(testView3);
         await RootView.AddAsync(testView4);
+
+        var testLabel5 = new Label()
+        {
+            X = 0,
+            Y = 0,
+            FillStyleWidth = FillStyle.Max,
+            FillStyleHeight = FillStyle.Min,
+            Bold = false,
+            Highlighted = false
+        };
+        testLabel5.TextFields.Add(new()
+        {
+            Text = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        });
+        testLabel5.TextFields.Add(new()
+        {
+            Z = 1,
+            Text = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            AlignSide = AlignSide.Right
+        });
+        await testView5.AddAsync(testLabel5);
+
         await RootView.AddAsync(testView5);
     }
 }

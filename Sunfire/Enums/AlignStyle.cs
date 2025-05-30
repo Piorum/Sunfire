@@ -1,6 +1,6 @@
 namespace Sunfire.Enums;
 
-public enum AlignStyle
+public enum AlignSide
 {
     Left,
     Right

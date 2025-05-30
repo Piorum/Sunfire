@@ -1,4 +1,3 @@
-using System.Numerics;
 using Sunfire.Enums;
 
 namespace Sunfire.Views;
@@ -35,8 +34,6 @@ public class View
     {
         SizeX = WidthConstraint;
         SizeY = HeightConstraint;
-
-        //Console.WriteLine($"WidthConstraint {WidthConstraint}, HeightConstraint {HeightConstraint}");
 
         var xLevels = SubViews.Select(v => v.X).Distinct();
         var yLevels = SubViews.Select(v => v.Y).Distinct();
@@ -160,76 +157,72 @@ public class View
             CursorPosY += largestY;
         }
 
+        await Draw();
+
         List<Task> arrangeTasks = [];
         foreach (var view in SubViews)
         {
             arrangeTasks.Add(view.Arrange(view.SizeX, view.SizeY));
         }
         await Task.WhenAll(arrangeTasks);
-
-        await Draw();
     }
 
-    public async Task Draw()
+    public async virtual Task Draw()
     {
         //await Console.Out.WriteLineAsync($"Origin: ({OriginX},{OriginY}), Size: <{SizeX},{SizeY}>");
 
-        var value = 0;
-        foreach (var view in SubViews)
+        Console.SetCursorPosition(OriginX, OriginY);
+
+        Console.BackgroundColor = BackgroundColor;
+        for (int i = 0; i < SizeY; i++)
         {
-            Console.BackgroundColor = view.BackgroundColor;
-            for (int i = 0; i < view.SizeY; i++)
-            {
-                var index = i;
-                Console.SetCursorPosition(view.OriginX, view.OriginY + index);
+            Console.SetCursorPosition(OriginX, OriginY + i);
 
-                var output = await BuildLineOutput(view, new string(' ', view.SizeX), i);
+            var output = await BuildLineOutput(new string(' ', SizeX), i);
 
-                Console.Write(output);
-            }
-            value++;
+            Console.Write(output);
         }
 
-        List<Task> drawTasks = [];
+        /*List<Task> drawTasks = [];
         foreach (var view in SubViews)
         {
             drawTasks.Add(view.Draw());
         }
-        await Task.WhenAll(drawTasks);
+        await Task.WhenAll(drawTasks);*/
     }
 
-    private static Task<string> BuildLineOutput(View view, string input, int index)
+    private Task<string> BuildLineOutput(string input, int index)
     {
         string output = input;
-        switch (view.BorderStyle)
+        switch (BorderStyle)
         {
             case BorderStyle.Full:
                 if (index == 0)
                 {
-                    output = (char)9484 + new string((char)9472, view.SizeX - 2) + (char)9488;
+                    output = (char)9484 + new string((char)9472, SizeX - 2) + (char)9488;
                 }
-                else if (index == view.SizeY - 1)
+                else if (index == SizeY - 1)
                 {
-                    output = (char)9492 + new string((char)9472, view.SizeX - 2) + (char)9496;
+                    output = (char)9492 + new string((char)9472, SizeX - 2) + (char)9496;
                 }
                 else
                 {
-                    output = (char)9474 + input[..(view.SizeX - 2)] + (char)9474;
+                    output = (char)9474 + input[..(SizeX - 2)] + (char)9474;
                 }
                 break;
             case BorderStyle.Top:
                 if (index == 0)
                 {
-                    output = new string((char)9472, view.SizeX);
+                    output = new string((char)9472, SizeX);
                 }
                 break;
             case BorderStyle.Right:
-                output = input[..(view.SizeX - 1)] + (char)9474;
+                output = input[..(SizeX - 1)] + (char)9474;
                 break;
             case BorderStyle.Bottom:
-                if (index == view.SizeY - 1)
+                if (index == SizeY - 1)
                 {
-                    output = new string((char)9472, view.SizeX);
+                    output = new string((char)9472, SizeX);
                 }
                 break;
             case BorderStyle.Left:
