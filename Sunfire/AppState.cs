@@ -49,6 +49,7 @@ public class AppState
                 newLabels.Add(newLabel);
             }
             CurrentPane.Add(newLabels);
+            CurrentPane.LoadingSignal = false;
             await CurrentPane.Arrange(CurrentPane.SizeX, CurrentPane.SizeY);
         });
     }
@@ -74,9 +75,31 @@ public class AppState
     {
         await CurrentPane.MoveUp();
     }
+    public async Task MoveTop()
+    {
+        await CurrentPane.ToTop();
+    }
+    public async Task MoveBottom()
+    {
+        await CurrentPane.ToBottom();
+    }
     public async Task Select()
     {
         await CurrentPane.SelectCurrent();
+    }
+    public async Task Add(List<TextFields> text)
+    {
+        ViewLabel vl = new()
+        {
+            X = 0,
+            Y = 0,
+            FillStyleHeight = FillStyle.Min,
+            FillStyleWidth = FillStyle.Max,
+        };
+        vl.TextFields.AddRange(text);
+        CurrentPane.Add(vl);
+        //Slowest part of adding an item
+        await CurrentPane.Arrange(CurrentPane.SizeX, CurrentPane.SizeY);
     }
     public async Task Delete()
     {

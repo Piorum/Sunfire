@@ -72,6 +72,7 @@ public static class ViewFactory
             WidthPercent = 0.425f,
             FillStyleHeight = FillStyle.Max,
             BorderStyle = BorderStyle.Right,
+            LoadingSignal = true
         };
 
         return view;

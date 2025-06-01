@@ -14,17 +14,19 @@ public class View
     public int SizeX { internal set; get; } // Width
     public int SizeY { internal set; get; } // Height
 
-    required public FillStyle FillStyleWidth;
-    required public FillStyle FillStyleHeight;
+    required public FillStyle FillStyleWidth = FillStyle.Max;
+    required public FillStyle FillStyleHeight = FillStyle.Min;
     public float WidthPercent = 1.0f; //1.0f == 100%
     public float HeightPercent = 1.0f; //1.0f == 100%
 
     public BorderStyle BorderStyle = BorderStyle.None;
+    public ConsoleColor BorderColor = ConsoleColor.White;
     public ConsoleColor BackgroundColor = ConsoleColor.Black;
 
     public List<View> SubViews { get; } = [];
     public View? Container { get; internal set; } = null;
 
+    //here to avoid recalculating
     public List<int>? xLevels;
     public List<int>? yLevels;
 
@@ -127,27 +129,20 @@ public class View
             await PopulateXYLevels();
 
         //Positioning
-        int StartCursorPosX = OriginX;
-        int StartCursorPosY = OriginY;
-
-        switch (BorderStyle)
+        int StartCursorPosX = BorderStyle switch
         {
-            case BorderStyle.Full:
-                StartCursorPosX++;
-                StartCursorPosY++;
-                break;
-            case BorderStyle.Top:
-                StartCursorPosY++;
-                break;
-            case BorderStyle.Left:
-                StartCursorPosX++;
-                break;
-        }
+            BorderStyle.Full or BorderStyle.Left => OriginX + 1,
+            _ => OriginX
+        };
+        int StartCursorPosY = BorderStyle switch
+        {
+            BorderStyle.Full or BorderStyle.Top => OriginY + 1,
+            _ => OriginY
+        };
 
         int CursorPosX = StartCursorPosX;
         int CursorPosY = StartCursorPosY;
 
-        //var orderedViews = SubViews.OrderBy(sv => sv.X).OrderBy(sv => sv.Y).ToList();
         var subViewGrid = SubViews.ToLookup(sv => (sv.X, sv.Y));
         foreach (var yLevel in yLevels!)
         {
@@ -171,11 +166,10 @@ public class View
 
     public async virtual Task Draw()
     {
-        //await Console.Out.WriteLineAsync($"Origin: ({OriginX},{OriginY}), Size: <{SizeX},{SizeY}>");
-
         Console.SetCursorPosition(OriginX, OriginY);
 
         Console.BackgroundColor = BackgroundColor;
+        Console.ForegroundColor = BorderColor;
         for (int i = 0; i < SizeY; i++)
         {
             Console.SetCursorPosition(OriginX, OriginY + i);
@@ -186,6 +180,7 @@ public class View
         }
     }
 
+    //This is how borders are built, really sucks
     private Task<string> BuildLineOutput(string input, int index)
     {
         string output = input;

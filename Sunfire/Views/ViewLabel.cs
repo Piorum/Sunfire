@@ -4,11 +4,14 @@ namespace Sunfire.Views;
 
 public class ViewLabel : View
 {
+
     public readonly List<TextFields> TextFields = [];
 
+    //these work but annoying to manage
     public bool Selected = false;
     public bool Highlighted = false;
     public bool Bold = false;
+
     public ConsoleColor TextColor = ConsoleColor.White;
 
     public override async Task Arrange(int WidthConstraint, int HeightConstraint)

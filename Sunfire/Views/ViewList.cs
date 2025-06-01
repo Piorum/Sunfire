@@ -2,8 +2,11 @@ using Sunfire.Enums;
 
 namespace Sunfire.Views;
 
+//This whole class is very complex and nearly entirely overrides View
+//Holds all of the logic needed to navigate as well as add, remove, and select items - Should this be moved up to AppState?
 public class ViewList : View
 {
+    //store default labels somewhere else?
     private static readonly ViewLabel Loading = new()
     {
         X = 0,
@@ -12,21 +15,39 @@ public class ViewList : View
         FillStyleWidth = FillStyle.Max,
         SizeY = 1
     };
+    private static readonly ViewLabel Empty = new()
+    {
+        X = 0,
+        Y = 0,
+        FillStyleHeight = FillStyle.Min,
+        FillStyleWidth = FillStyle.Max,
+        SizeY = 1,
+        TextColor = ConsoleColor.DarkGray
+    };
+
+    //works but feels kinda forced
+    public bool LoadingSignal;
 
     private int startIndex = 0;
     private int selectedIndex = 0;
     private readonly List<ViewLabel> visibleLabels = [];
 
     private readonly List<int> selected = [];
-    
+
     static ViewList()
     {
         Loading.TextFields.Add(new()
         {
             Text = "..."
         });
+        Empty.TextFields.Add(new()
+        {
+            Text = "Empty"
+        });
     }
 
+    //potentially optimizable
+    //add function to move more than one at a time
     public async Task MoveUp()
     {
         if ((selectedIndex - 1) >= 0)
@@ -43,7 +64,7 @@ public class ViewList : View
             }
             else
             {
-                if(startIndex > 0) startIndex--;
+                if (startIndex > 0) startIndex--;
                 if (SubViews[selectedIndex] is ViewLabel vl1)
                     vl1.Highlighted = false;
                 selectedIndex--;
@@ -54,6 +75,7 @@ public class ViewList : View
         }
     }
 
+    //should probably be merged with move up
     public async Task MoveDown()
     {
         if ((selectedIndex + 1) < SubViews.Count)
@@ -79,6 +101,20 @@ public class ViewList : View
         {
             await SubViews[selectedIndex].Draw();
         }
+    }
+
+    public async Task ToTop()
+    {
+        selectedIndex = 0;
+        startIndex = 0;
+        await RePositionSubViews();
+    }
+
+    public async Task ToBottom()
+    {
+        selectedIndex = SubViews.Count - 1;
+        startIndex = Math.Max(0, selectedIndex - SizeY + 2);
+        await RePositionSubViews();
     }
 
     public async Task SelectCurrent()
@@ -124,50 +160,46 @@ public class ViewList : View
     {
         if (selected.Count == 0)
         {
-            SubViews.Remove(SubViews[selectedIndex]);
-
-            for (int i = 0; i < SubViews.Count; i++)
-            {
-                SubViews[i].Y = i;
-            }
+            SubViews.RemoveAt(selectedIndex);
         }
         else
         {
-            List<View> selectedViews = [];
-            foreach (var index in selected)
+            var sortedIndices = selected.OrderDescending().ToList();
+            foreach (var index in sortedIndices)
             {
-                selectedViews.Add(SubViews[index]);
+                SubViews.RemoveAt(index);
             }
             selected.Clear();
-            foreach (var view in selectedViews)
-            {
-                SubViews.Remove(view);
-            }
 
-            selectedIndex -= selectedViews.Count;
-
-            for (int i = 0; i < SubViews.Count; i++)
-            {
-                SubViews[i].Y = i;
-            }
+            selectedIndex = Math.Max(0, selectedIndex - sortedIndices.Count);
         }
+
+        for (int i = 0; i < SubViews.Count; i++)
+            SubViews[i].Y = i;
 
         await PopulateXYLevels();
 
-        if (selectedIndex < 0) selectedIndex = 0;
-        else if (!yLevels!.Contains(selectedIndex)) selectedIndex = SubViews.Count - 1;
+        if (selectedIndex < 0)
+            selectedIndex = 0;
+        else if (!yLevels!.Contains(selectedIndex))
+            selectedIndex = Math.Max(0, SubViews.Count - 1);
 
-        if (selectedIndex < startIndex) startIndex = selectedIndex - (int)(0.4f * SizeY);
-        else if (selectedIndex > startIndex + SizeY) startIndex = selectedIndex - (int)(0.6f * SizeY);
+        if (selectedIndex < startIndex)
+            startIndex = selectedIndex - (int)(0.4f * SizeY);
+        else if (selectedIndex > startIndex + SizeY)
+            startIndex = selectedIndex - (int)(0.6f * SizeY);
 
-        await RePositionSubViews();
+        if (SubViews.Count > 0)
+            await RePositionSubViews();
+        else
+            await Arrange(SizeX, SizeY);
     }
 
     public async override Task Arrange(int WidthConstraint, int HeightConstraint)
     {
-        if (SubViews.Count == 0)
+        if (LoadingSignal)
         {
-            await DrawLoading(WidthConstraint, HeightConstraint);
+            await DisplaySingle(Loading, WidthConstraint, HeightConstraint);
             return;
         }
 
@@ -202,23 +234,28 @@ public class ViewList : View
             arrangeTasks.Add(view.Arrange(view.SizeX, view.SizeY));
         }
         await Task.WhenAll(arrangeTasks);
+
+        if (visibleLabels.Count == 0 && !LoadingSignal)
+        {
+            await DisplaySingle(Empty, WidthConstraint, HeightConstraint);
+        }
     }
 
-    private async Task DrawLoading(int WidthConstraint, int HeightConstraint)
+    private async Task DisplaySingle(View view, int WidthConstraint, int HeightConstraint)
     {
-        Loading.OriginX = BorderStyle switch
+        view.OriginX = BorderStyle switch
         {
             BorderStyle.Full or BorderStyle.Left => OriginX + 1,
             _ => OriginX
         };
 
-        Loading.OriginY = BorderStyle switch
+        view.OriginY = BorderStyle switch
         {
             BorderStyle.Full or BorderStyle.Top => OriginY + 1,
             _ => OriginY
         };
 
-        Loading.SizeX = BorderStyle switch
+        view.SizeX = BorderStyle switch
         {
             BorderStyle.Full => WidthConstraint - 2,
             BorderStyle.Left or BorderStyle.Right => WidthConstraint - 1,
@@ -226,7 +263,7 @@ public class ViewList : View
         };
 
         await Draw();
-        await Loading.Arrange(WidthConstraint, HeightConstraint);
+        await view.Arrange(WidthConstraint, HeightConstraint);
     }
 
     protected override async Task Measure(int WidthConstraint, int HeightConstraint)
@@ -343,7 +380,7 @@ public class ViewList : View
         xLevels = [1];
 
         yLevels = [.. Enumerable.Range(0, SubViews.Count)];
-        
+
         return Task.CompletedTask;
     }
 }

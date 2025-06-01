@@ -39,8 +39,15 @@ internal class Program
                 await _appState.UpdateTopLabel("out");
             if (Keybindings.Equals(keyInfo, Keybindings.NavDown))
                 await _appState.MoveDown();
+            /*if (Keybindings.Equals(keyInfo, Keybindings.NavIn))
+                await _appState.UpdateTopLabel("in");*/
+            if (Keybindings.Equals(keyInfo, Keybindings.NavTop))
+                await _appState.MoveTop();
+            if (Keybindings.Equals(keyInfo, Keybindings.NavBottom))
+                await _appState.MoveBottom();
+
             if (Keybindings.Equals(keyInfo, Keybindings.NavIn))
-                await _appState.UpdateTopLabel("in");
+                await _appState.Add([new() { Text = "Test" }]);
 
             if (Keybindings.Equals(keyInfo, Keybindings.Reload))
                 await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);

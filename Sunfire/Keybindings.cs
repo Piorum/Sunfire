@@ -9,6 +9,9 @@ public static class Keybindings
     public static ConsoleKeyInfo NavDown { private set; get; } = new('s', ConsoleKey.S, false, false, false);
     public static ConsoleKeyInfo NavIn { private set; get; } = new('d', ConsoleKey.D, false, false, false);
 
+    public static ConsoleKeyInfo NavTop { private set; get; } = new('g', ConsoleKey.G, false, false, false);
+    public static ConsoleKeyInfo NavBottom { private set; get; } = new('G', ConsoleKey.G, true, false, false);
+
     public static ConsoleKeyInfo Select { private set; get; } = new(' ', ConsoleKey.Spacebar, false, false, false);
 
     public static ConsoleKeyInfo ForceDelete { private set; get; } = new((char)127, ConsoleKey.Delete, true, false, false);
