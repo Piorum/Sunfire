@@ -1,4 +1,3 @@
-
 using Sunfire.Enums;
 
 namespace Sunfire.Views;
@@ -11,7 +10,12 @@ public class ViewLabel : View
     public bool Bold = false;
     public ConsoleColor TextColor = ConsoleColor.White;
 
-    public override async Task Draw()
+    public override async Task Arrange(int WidthConstraint, int HeightConstraint)
+    {
+        await Draw();
+    }
+
+    public override Task Draw()
     {
         //Console.WriteLine($"Origin: ({OriginX},{OriginY}), Size: <{SizeX},{SizeY}>, Text: {TextFields.First().Text}");
 
@@ -36,7 +40,7 @@ public class ViewLabel : View
             int textLen = textField.Text.Length;
             if (availableSize <= 0)
                 break;
-                
+
             switch (textField.AlignSide)
             {
                 case AlignSide.Left:
@@ -73,8 +77,10 @@ public class ViewLabel : View
 
             string finalOutput = Bold ? $"\x1b[1m{baseOutput}\x1b[0m" : baseOutput;
 
-            await Console.Out.WriteAsync($"{finalOutput}");
+            Console.Write($"{finalOutput}");
         }
+
+        return Task.CompletedTask;
     }
 
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Sunfire.Enums;
 
 namespace Sunfire.Views;
@@ -87,7 +88,9 @@ public class ViewList : View
         startIndex = Math.Min(startIndex, maxStartIndex);
 
         visibleLabels.Clear();
+
         await Position();
+
         await Draw();
 
         List<Task> arrangeTasks = [];
@@ -103,35 +106,34 @@ public class ViewList : View
 
     private async Task RePositionSubViews()
     {
-        var filledSpots = visibleLabels.Select(l => l.OriginY).ToList();
+        var filledSpots = visibleLabels.Select(l => l.OriginY).ToHashSet();
+
         visibleLabels.Clear();
         await Position();
-        var newSpots = visibleLabels.Select(l => l.OriginY).ToList();
-        var duplicateSpots = filledSpots.Where(s => !newSpots.Contains(s));
 
-        var availableWidth = SizeX;
-        var leftPos = OriginX;
-        switch (BorderStyle)
+        var newSpots = visibleLabels.Select(l => l.OriginY).ToHashSet();
+
+        var duplicateSpots = filledSpots.Except(newSpots);
+
+        var availableWidth = BorderStyle switch
         {
-            case BorderStyle.Full:
-                availableWidth -= 2;
-                OriginX++;
-                break;
-            case BorderStyle.Left:
-                availableWidth--;
-                OriginX++;
-                break;
-            case BorderStyle.Right:
-                availableWidth--;
-                break;
-        }
+            BorderStyle.Full => SizeX - 2,
+            BorderStyle.Left or BorderStyle.Right => SizeX - 1,
+            _ => SizeX
+        };
+
+        var leftPos = OriginX;
+        if (BorderStyle is BorderStyle.Full or BorderStyle.Left)
+            leftPos++;
+
+        var blankLine = new string(' ', availableWidth);
+        Console.ForegroundColor = ConsoleColor.Black;
+        Console.BackgroundColor = ConsoleColor.Black;
 
         foreach (var spot in duplicateSpots)
         {
             Console.SetCursorPosition(leftPos, spot);
-            Console.ForegroundColor = ConsoleColor.Black;
-            Console.BackgroundColor = ConsoleColor.Black;
-            await Console.Out.WriteAsync(new string(' ', availableWidth));
+            Console.Write(new string(' ', availableWidth));
         }
 
         List<Task> arrangeTasks = [];
@@ -147,9 +149,6 @@ public class ViewList : View
 
     protected override Task Position()
     {
-        var xLevels = SubViews.Select(v => v.X).Distinct().Order();
-        var yLevels = SubViews.Select(v => v.Y).Distinct().Order();
-
         //Positioning
         int StartCursorPosX = OriginX;
         int StartCursorPosY = OriginY;
@@ -171,26 +170,16 @@ public class ViewList : View
         int CursorPosX = StartCursorPosX;
         int CursorPosY = StartCursorPosY;
 
-        foreach (var yLevel in yLevels)
+        var refinedLabels = SubViews.OfType<ViewLabel>().Skip(startIndex).Take(SizeY);
+        foreach (var label in refinedLabels)
         {
-            if (yLevel < startIndex) continue;
+            label.OriginX = CursorPosX;
+            label.OriginY = CursorPosY;
 
-            int largestY = 0;
-            foreach (var xLevel in xLevels)
-            {
-                ViewLabel? view = SubViews.OfType<ViewLabel>().Where(v => v.X == xLevel && v.Y == yLevel).FirstOrDefault();
-                if (view is null) continue;
+            visibleLabels.Add(label);
 
-                view.OriginX = CursorPosX;
-                view.OriginY = CursorPosY;
-
-                CursorPosX += view.SizeX;
-
-                if (view.SizeY > largestY) largestY = view.SizeY;
-                if (view.OriginY < (StartCursorPosY + SizeY)) visibleLabels.Add(view);
-            }
             CursorPosX = StartCursorPosX;
-            CursorPosY += largestY;
+            CursorPosY += 1;
         }
 
         return Task.CompletedTask;

@@ -9,10 +9,10 @@ public class View
     required public int X;
     required public int Y;
 
-    public int OriginX; // Top Left
-    public int OriginY; // Top Left
-    public int SizeX; // Width
-    public int SizeY; // Height
+    public int OriginX { internal set; get; } // Top Left
+    public int OriginY { internal set; get; } // Top Left
+    public int SizeX { internal set; get; } // Width
+    public int SizeY { internal set; get; } // Height
 
     required public FillStyle FillStyleWidth;
     required public FillStyle FillStyleHeight;
@@ -24,6 +24,9 @@ public class View
 
     public List<View> SubViews { get; } = [];
     public View? Container { get; internal set; } = null;
+
+    public List<int>? xLevels;
+    public List<int>? yLevels;
 
     public virtual void Add(View subView)
     {
@@ -45,100 +48,83 @@ public class View
         await Task.WhenAll(arrangeTasks);
     }
 
-    protected virtual Task Measure(int WidthConstraint, int HeightConstraint)
+    protected virtual async Task Measure(int WidthConstraint, int HeightConstraint)
     {
         SizeX = WidthConstraint;
         SizeY = HeightConstraint;
 
-        var xLevels = SubViews.Select(v => v.X).Distinct().Order();
-        var yLevels = SubViews.Select(v => v.Y).Distinct().Order();
+        if(xLevels is null || yLevels is null)
+            await PopulateXYLevels();
 
-        Dictionary<int, int> availableWidth = [];
-        Dictionary<int, int> availableHeight = [];
-        foreach (var level in yLevels)
+        int baseWidth = SizeX - BorderStyle switch
         {
-            availableWidth[level] = SizeX;
-
-            switch (BorderStyle)
-            {
-                case BorderStyle.Full:
-                    availableWidth[level] -= 2;
-                    break;
-                case BorderStyle.Left:
-                case BorderStyle.Right:
-                    availableWidth[level]--;
-                    break;
-            }
-        }
-        foreach (var level in xLevels)
+            BorderStyle.Full => 2,
+            BorderStyle.Left or BorderStyle.Right => 1,
+            _ => 0
+        };
+        int baseHeight = SizeY - BorderStyle switch
         {
-            availableHeight[level] = SizeY;
+            BorderStyle.Full => 2,
+            BorderStyle.Top or BorderStyle.Bottom => 1,
+            _ => 0
+        };
 
-            switch (BorderStyle)
-            {
-                case BorderStyle.Full:
-                    availableHeight[level] -= 2;
-                    break;
-                case BorderStyle.Top:
-                case BorderStyle.Bottom:
-                    availableHeight[level]--;
-                    break;
-            }
-        }
+        Dictionary<int, int> availableWidth = yLevels!.ToDictionary(y => y, _ => baseWidth);
+        Dictionary<int, int> availableHeight = xLevels!.ToDictionary(x => x, _ => baseHeight);
 
         //Width
-        var minViewsW = SubViews.Where(v => v.FillStyleWidth == FillStyle.Min);
-        var perViewsW = SubViews.Where(v => v.FillStyleWidth == FillStyle.Percent);
-        var fillViewsW = SubViews.Where(v => v.FillStyleWidth == FillStyle.Max).ToList();
+        var orderByWidthStyle = SubViews.OrderBy(sv => (int)sv.FillStyleWidth).ToList();
 
-        foreach (var view in minViewsW)
+        foreach (var view in orderByWidthStyle)
         {
-            view.SizeX = 1;
-            availableWidth[view.Y]--;
-        }
-        foreach (var view in perViewsW)
-        {
-            view.SizeX = (int)(availableWidth[view.Y] * view.WidthPercent);
-            availableWidth[view.Y] -= view.SizeX;
-        }
-        foreach (var view in fillViewsW)
-        {
-            view.SizeX = availableWidth[view.Y];
+            switch (view.FillStyleWidth)
+            {
+                case FillStyle.Min:
+                    view.SizeX = 1;
+                    availableWidth[view.Y]--;
+                    break;
+                case FillStyle.Percent:
+                    view.SizeX = (int)(availableWidth[view.Y] * view.WidthPercent);
+                    availableWidth[view.Y] -= view.SizeX;
+                    break;
+                case FillStyle.Max:
+                    view.SizeX = availableWidth[view.Y];
+                    break;
+            }
         }
 
         //Height
-        var minViewsH = SubViews.Where(v => v.FillStyleHeight == FillStyle.Min);
-        var perViewsH = SubViews.Where(v => v.FillStyleHeight == FillStyle.Percent);
-        var fillViewsH = SubViews.Where(v => v.FillStyleHeight == FillStyle.Max).ToList();
+        var orderByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleHeight).ToList();
 
-        foreach (var view in minViewsH)
+        foreach (var view in orderByHeightStyle)
         {
-            view.SizeY = 1;
-            foreach (var xLevel in xLevels)
+            switch (view.FillStyleHeight)
             {
-                availableHeight[xLevel]--;
+                case FillStyle.Min:
+                    view.SizeY = 1;
+                    foreach (var xLevel in xLevels!)
+                    {
+                        availableHeight[xLevel]--;
+                    }
+                    break;
+                case FillStyle.Percent:
+                    view.SizeY = (int)(availableHeight[view.X] * view.HeightPercent);
+                    foreach (var xLevel in xLevels!)
+                    {
+                        availableHeight[xLevel] -= view.SizeY;
+                    }
+                    break;
+                case FillStyle.Max:
+                    view.SizeY = availableHeight[view.X];
+                    break;
             }
         }
-        foreach (var view in perViewsH)
-        {
-            view.SizeY = (int)(availableHeight[view.X] * view.HeightPercent);
-            foreach (var xLevel in xLevels)
-            {
-                availableHeight[xLevel] -= view.SizeY;
-            }
-        }
-        foreach (var view in fillViewsH)
-        {
-            view.SizeY = availableHeight[view.X];
-        }
-
-        return Task.CompletedTask;
     }
 
-    protected virtual Task Position()
+    protected virtual async Task Position()
     {
-        var xLevels = SubViews.Select(v => v.X).Distinct().Order();
-        var yLevels = SubViews.Select(v => v.Y).Distinct().Order();
+        if(xLevels is null || yLevels is null)
+            await PopulateXYLevels();
 
         //Positioning
         int StartCursorPosX = OriginX;
@@ -162,12 +148,13 @@ public class View
         int CursorPosY = StartCursorPosY;
 
         //var orderedViews = SubViews.OrderBy(sv => sv.X).OrderBy(sv => sv.Y).ToList();
-        foreach (var yLevel in yLevels)
+        var subViewGrid = SubViews.ToLookup(sv => (sv.X, sv.Y));
+        foreach (var yLevel in yLevels!)
         {
             int largestY = 0;
-            foreach (var xLevel in xLevels)
+            foreach (var xLevel in xLevels!)
             {
-                View? view = SubViews.Where(v => v.X == xLevel && v.Y == yLevel).FirstOrDefault();
+                View? view = subViewGrid[(xLevel, yLevel)].FirstOrDefault();
                 if (view is null) continue;
 
                 view.OriginX = CursorPosX;
@@ -180,8 +167,6 @@ public class View
             CursorPosX = StartCursorPosX;
             CursorPosY += largestY;
         }
-
-        return Task.CompletedTask;
     }
 
     public async virtual Task Draw()
@@ -197,7 +182,7 @@ public class View
 
             var output = await BuildLineOutput(new string(' ', SizeX), i);
 
-            await Console.Out.WriteAsync(output);
+            Console.Write(output);
         }
     }
 
@@ -240,5 +225,22 @@ public class View
                 break;
         }
         return Task.FromResult(output);
+    }
+
+    protected Task PopulateXYLevels()
+    {
+        HashSet<int> xSet = [];
+        HashSet<int> ySet = [];
+
+        foreach (var view in SubViews)
+        {
+            xSet.Add(view.X);
+            ySet.Add(view.Y);
+        }
+
+        xLevels = [.. xSet.Order()];
+        yLevels = [.. ySet.Order()];
+        
+        return Task.CompletedTask;
     }
 }
