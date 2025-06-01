@@ -17,17 +17,18 @@ public class AppState
 
     public AppState()
     {
-        RootView.Add(ViewFactory.GetTopLabel());
-        RootView.Add(ViewFactory.GetBottomLabel());
-        RootView.Add(ViewFactory.GetContainerPane());
-        RootView.Add(ViewFactory.GetCurrentPane());
-        RootView.Add(ViewFactory.GetPreviewPane());
+        TopLabel = ViewFactory.GetTopLabel();
+        BottomLabel = ViewFactory.GetBottomLabel();
 
-        TopLabel = RootView.SubViews.OfType<ViewLabel>().Where(l => l.Tag == "Top Label").First();
-        BottomLabel = RootView.SubViews.OfType<ViewLabel>().Where(l => l.Tag == "Bottom Label").First();
-        ContainerPane = RootView.SubViews.Where(sv => sv.Tag == "Container Pane").First();
-        CurrentPane = RootView.SubViews.OfType<ViewList>().Where(sv => sv.Tag == "Current Pane").First();
-        PreviewPane = RootView.SubViews.Where(sv => sv.Tag == "Preview Pane").First();
+        ContainerPane = ViewFactory.GetContainerPane();
+        CurrentPane = ViewFactory.GetCurrentPane();
+        PreviewPane = ViewFactory.GetPreviewPane();
+
+        RootView.Add(TopLabel);
+        RootView.Add(BottomLabel);
+        RootView.Add(ContainerPane);
+        RootView.Add(CurrentPane);
+        RootView.Add(PreviewPane);
 
         Task.Run(async () =>
         {
@@ -67,26 +68,18 @@ public class AppState
         await TopLabel.Draw();
     }
 
-    public async Task MoveDown()
-    {
+    public async Task MoveDown() =>
         await CurrentPane.MoveDown();
-    }
-    public async Task MoveUp()
-    {
+    public async Task MoveUp() =>
         await CurrentPane.MoveUp();
-    }
-    public async Task MoveTop()
-    {
+    public async Task MoveTop() =>
         await CurrentPane.ToTop();
-    }
-    public async Task MoveBottom()
-    {
+    public async Task MoveBottom() =>
         await CurrentPane.ToBottom();
-    }
-    public async Task Select()
-    {
+
+    public async Task Select() =>
         await CurrentPane.SelectCurrent();
-    }
+
     public async Task Add(List<TextFields> text)
     {
         ViewLabel vl = new()
@@ -101,9 +94,8 @@ public class AppState
         //Slowest part of adding an item
         await CurrentPane.Arrange(CurrentPane.SizeX, CurrentPane.SizeY);
     }
-    public async Task Delete()
-    {
+
+    public async Task Delete() =>
         await CurrentPane.Remove();
-    }
 
 }

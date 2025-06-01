@@ -13,6 +13,16 @@
         "build": {
           "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
+      },
+      "SunfireFramework/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/SunfireFramework.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SunfireFramework.dll": {}
+        }
       }
     },
     "net9.0/linux-x64": {
@@ -33,6 +43,16 @@
       },
       "runtime.linux-x64.Microsoft.DotNet.ILCompiler/9.0.4": {
         "type": "package"
+      },
+      "SunfireFramework/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/SunfireFramework.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SunfireFramework.dll": {}
+        }
       }
     }
   },
@@ -656,12 +676,18 @@
         "tools/libclrjit_win_x86_x64.so",
         "tools/libjitinterface_x64.so"
       ]
+    },
+    "SunfireFramework/1.0.0": {
+      "type": "project",
+      "path": "../SunfireFramework/SunfireFramework.csproj",
+      "msbuildProject": "../SunfireFramework/SunfireFramework.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net9.0": [
       "Microsoft.DotNet.ILCompiler >= 9.0.4",
-      "Microsoft.NET.ILLink.Tasks >= 9.0.4"
+      "Microsoft.NET.ILLink.Tasks >= 9.0.4",
+      "SunfireFramework >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -688,7 +714,11 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/home/username/Documents/Singularity/Sunfire/SunfireFramework/SunfireFramework.csproj": {
+              "projectPath": "/home/username/Documents/Singularity/Sunfire/SunfireFramework/SunfireFramework.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

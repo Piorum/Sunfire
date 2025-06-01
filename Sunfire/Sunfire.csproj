@@ -11,4 +11,8 @@
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../SunfireFramework/SunfireFramework.csproj" />
+  </ItemGroup>
+
 </Project>

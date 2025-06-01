@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sunfire", "Sunfire\Sunfire.csproj", "{F03E012C-A50F-40DB-B8ED-B1138673EF2E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunfireFramework", "SunfireFramework\SunfireFramework.csproj", "{AA946136-6574-425B-80E3-68B0A1BA611D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

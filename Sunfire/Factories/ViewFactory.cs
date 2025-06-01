@@ -5,7 +5,7 @@ namespace Sunfire.Factories;
 
 public static class ViewFactory
 {
-    public static View GetTopLabel()
+    public static ViewLabel GetTopLabel()
     {
         var topLabel = new ViewLabel()
         {
@@ -23,7 +23,7 @@ public static class ViewFactory
 
         return topLabel;
     }
-    public static View GetBottomLabel()
+    public static ViewLabel GetBottomLabel()
     {
         var bottomLabel = new ViewLabel()
         {

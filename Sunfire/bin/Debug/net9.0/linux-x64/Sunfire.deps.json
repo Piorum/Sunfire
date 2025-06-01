@@ -10,7 +10,8 @@
       "Sunfire/1.0.0": {
         "dependencies": {
           "Microsoft.DotNet.ILCompiler": "9.0.4",
-          "Microsoft.NET.ILLink.Tasks": "9.0.4"
+          "Microsoft.NET.ILLink.Tasks": "9.0.4",
+          "SunfireFramework": "1.0.0"
         },
         "runtime": {
           "Sunfire.dll": {}
@@ -22,7 +23,15 @@
         }
       },
       "Microsoft.NET.ILLink.Tasks/9.0.4": {},
-      "runtime.linux-x64.Microsoft.DotNet.ILCompiler/9.0.4": {}
+      "runtime.linux-x64.Microsoft.DotNet.ILCompiler/9.0.4": {},
+      "SunfireFramework/1.0.0": {
+        "runtime": {
+          "SunfireFramework.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
     }
   },
   "libraries": {
@@ -51,6 +60,11 @@
       "sha512": "sha512-IunB0CvtWbzEZ1M9Br3g39aRV2AMakOO3UcWEphLsBFFwRD4k7S3dzDxB4G3Q2TTo0pPwAgY3gC3XE0ZWZWUZw==",
       "path": "runtime.linux-x64.microsoft.dotnet.ilcompiler/9.0.4",
       "hashPath": "runtime.linux-x64.microsoft.dotnet.ilcompiler.9.0.4.nupkg.sha512"
+    },
+    "SunfireFramework/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }

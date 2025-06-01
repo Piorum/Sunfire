@@ -1,4 +1,6 @@
 ﻿using Sunfire.Enums;
+using SunfireFramework.TextBoxes;
+using SunfireFramework.Views;
 using System.Runtime.InteropServices;
 
 namespace Sunfire;
@@ -16,6 +18,38 @@ internal class Program
     {
         Console.CursorVisible = false;
         Console.Clear();
+        
+        ListSV testList = new();
+
+        for (int i = 0; i < 10; i++)
+        {
+            testList.Labels.Add(new()
+            {
+                TextFields =
+                [
+                    new TextField()
+                    {
+                        Text = $"{i}"
+                    }
+                ]
+            });
+        }
+
+        RootSV rootSV = new()
+        {
+            RootPane = new()
+            {
+                SubViews =
+                [
+                    testList
+                ]
+            }
+        };
+
+        await rootSV.Arrange();
+        await rootSV.Draw();
+
+        await Task.Delay(-1);
 
         var inputTask = Task.Run(InputLoop);
         var renderTask = Task.Run(RenderLoop);

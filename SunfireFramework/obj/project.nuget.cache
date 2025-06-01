@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "KQRSA9YycY0=",
+  "success": true,
+  "projectFilePath": "/home/username/Documents/Singularity/Sunfire/SunfireFramework/SunfireFramework.csproj",
+  "expectedPackageFiles": [
+    "/home/username/.nuget/packages/microsoft.aspnetcore.app.ref/9.0.4/microsoft.aspnetcore.app.ref.9.0.4.nupkg.sha512"
+  ],
+  "logs": []
+}
