@@ -7,16 +7,7 @@ public static class ViewFactory
 {
     public static View GetTopLabel()
     {
-        var view = new View()
-        {
-            Tag = "Top Pane",
-            X = 0,
-            Y = 0,
-            FillStyleWidth = FillStyle.Max,
-            FillStyleHeight = FillStyle.Min,
-        };
-
-        var topLabel = new Label()
+        var topLabel = new ViewLabel()
         {
             Tag = "Top Label",
             X = 0,
@@ -28,26 +19,16 @@ public static class ViewFactory
         {
             Text = "Top Bar"
         });
-        view.Add(topLabel);
 
-        return view;
+        return topLabel;
     }
     public static View GetBottomLabel()
     {
-        var view = new View()
-        {
-            Tag = "Bottom Pane",
-            X = 0,
-            Y = 2,
-            FillStyleWidth = FillStyle.Max,
-            FillStyleHeight = FillStyle.Min,
-        };
-
-        var bottomLabel = new Label()
+        var bottomLabel = new ViewLabel()
         {
             Tag = "Bottom Label",
             X = 0,
-            Y = 0,
+            Y = 2,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
         };
@@ -61,9 +42,8 @@ public static class ViewFactory
             Text = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
             AlignSide = AlignSide.Right
         });
-        view.Add(bottomLabel);
 
-        return view;
+        return bottomLabel;
     }
     public static View GetContainerPane()
     {
@@ -79,9 +59,9 @@ public static class ViewFactory
         };
         return view;
     }
-    public static View GetCurrentPane()
+    public static ViewList GetCurrentPane()
     {
-        var view = new View()
+        var view = new ViewList()
         {
             Tag = "Current Pane",
             X = 1,
@@ -91,6 +71,23 @@ public static class ViewFactory
             FillStyleHeight = FillStyle.Max,
             BorderStyle = BorderStyle.Right,
         };
+
+        for (int i = 0; i < 1000; i++)
+        {
+            var newLabel = new ViewLabel()
+            {
+                X = 0,
+                Y = 0,
+                FillStyleWidth = FillStyle.Max,
+                FillStyleHeight = FillStyle.Min
+            };
+            newLabel.TextFields.Add(new()
+            {
+                Text = $"{i}"
+            });
+            view.Add(newLabel);
+        }
+
         return view;
     }
     public static View GetPreviewPane()

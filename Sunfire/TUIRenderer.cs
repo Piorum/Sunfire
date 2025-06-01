@@ -23,7 +23,6 @@ public static class TUIRenderer
                 Console.Clear();
                 await rootView.Arrange(Console.BufferWidth, Console.BufferHeight);
             }),
-            //RenderAction.FullRedraw => rootView.Draw(),
             _ => throw new NotImplementedException("Render action had no specified case.")
         };
         await task;

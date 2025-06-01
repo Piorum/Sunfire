@@ -3,7 +3,7 @@ using Sunfire.Enums;
 
 namespace Sunfire.Views;
 
-public class Label : View
+public class ViewLabel : View
 {
     public readonly List<TextFields> TextFields = [];
 
@@ -11,7 +11,7 @@ public class Label : View
     public bool Bold = false;
     public ConsoleColor TextColor = ConsoleColor.White;
 
-    public override Task Draw()
+    public override async Task Draw()
     {
         //Console.WriteLine($"Origin: ({OriginX},{OriginY}), Size: <{SizeX},{SizeY}>, Text: {TextFields.First().Text}");
 
@@ -73,10 +73,8 @@ public class Label : View
 
             string finalOutput = Bold ? $"\x1b[1m{baseOutput}\x1b[0m" : baseOutput;
 
-            Console.Write($"{finalOutput}");
+            await Console.Out.WriteAsync($"{finalOutput}");
         }
-
-        return Task.CompletedTask;
     }
 
 }

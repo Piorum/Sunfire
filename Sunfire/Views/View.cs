@@ -25,13 +25,27 @@ public class View
     public List<View> SubViews { get; } = [];
     public View? Container { get; internal set; } = null;
 
-    public void Add(View subView)
+    public virtual void Add(View subView)
     {
         subView.Container = this;
         SubViews.Add(subView);
     }
 
-    public async Task Arrange(int WidthConstraint, int HeightConstraint)
+    public async virtual Task Arrange(int WidthConstraint, int HeightConstraint)
+    {
+        await Measure(WidthConstraint, HeightConstraint);
+        await Position();
+        await Draw();
+
+        List<Task> arrangeTasks = [];
+        foreach (var view in SubViews)
+        {
+            arrangeTasks.Add(view.Arrange(view.SizeX, view.SizeY));
+        }
+        await Task.WhenAll(arrangeTasks);
+    }
+
+    protected virtual Task Measure(int WidthConstraint, int HeightConstraint)
     {
         SizeX = WidthConstraint;
         SizeY = HeightConstraint;
@@ -118,6 +132,14 @@ public class View
             view.SizeY = availableHeight[view.X];
         }
 
+        return Task.CompletedTask;
+    }
+
+    protected virtual Task Position()
+    {
+        var xLevels = SubViews.Select(v => v.X).Distinct().Order();
+        var yLevels = SubViews.Select(v => v.Y).Distinct().Order();
+
         //Positioning
         int StartCursorPosX = OriginX;
         int StartCursorPosY = OriginY;
@@ -159,14 +181,7 @@ public class View
             CursorPosY += largestY;
         }
 
-        await Draw();
-
-        List<Task> arrangeTasks = [];
-        foreach (var view in SubViews)
-        {
-            arrangeTasks.Add(view.Arrange(view.SizeX, view.SizeY));
-        }
-        await Task.WhenAll(arrangeTasks);
+        return Task.CompletedTask;
     }
 
     public async virtual Task Draw()
@@ -182,15 +197,8 @@ public class View
 
             var output = await BuildLineOutput(new string(' ', SizeX), i);
 
-            Console.Write(output);
+            await Console.Out.WriteAsync(output);
         }
-
-        /*List<Task> drawTasks = [];
-        foreach (var view in SubViews)
-        {
-            drawTasks.Add(view.Draw());
-        }
-        await Task.WhenAll(drawTasks);*/
     }
 
     private Task<string> BuildLineOutput(string input, int index)

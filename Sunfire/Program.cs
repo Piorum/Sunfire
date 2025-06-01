@@ -1,5 +1,4 @@
-﻿using Sunfire.Views;
-using Sunfire.Enums;
+﻿using Sunfire.Enums;
 using System.Runtime.InteropServices;
 
 namespace Sunfire;
@@ -9,6 +8,7 @@ internal class Program
 {
     public static readonly CancellationTokenSource _cts = new();
     public static readonly ManualResetEventSlim _renderSignal = new();
+    public static PosixSignalRegistration? sigwinchRegistration;
 
     public static AppState _appState = new();
 
@@ -25,7 +25,7 @@ internal class Program
         Console.Clear();
     }
 
-    private static Task InputLoop()
+    private async static Task InputLoop()
     {
         while (!_cts.Token.IsCancellationRequested)
         {
@@ -34,15 +34,17 @@ internal class Program
                 _cts.Cancel();
 
             if (Keybindings.Equals(keyInfo, Keybindings.NavUp))
-                _appState.UpdateTopLabel("up");
+                await _appState.MoveUp();
             if (Keybindings.Equals(keyInfo, Keybindings.NavOut))
-                _appState.UpdateTopLabel("out");
+                await _appState.UpdateTopLabel("out");
             if (Keybindings.Equals(keyInfo, Keybindings.NavDown))
-                _appState.UpdateTopLabel("down");
+                await _appState.MoveDown();
             if (Keybindings.Equals(keyInfo, Keybindings.NavIn))
-                _appState.UpdateTopLabel("in");
+                await _appState.UpdateTopLabel("in");
+
+            if (Keybindings.Equals(keyInfo, Keybindings.Reload))
+                await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
         }
-        return Task.CompletedTask;
     }
 
     private static async Task RenderLoop()
@@ -70,11 +72,18 @@ internal class Program
 
     private static Task RegisterResizeEvent()
     {
-        PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
+        sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
         {
             Task.Run(async () =>
             {
-                await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
+                try
+                {
+                    await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
+                }
+                catch ( Exception ex )
+                {
+                    Console.Error.WriteLine($"{ex}");
+                }
             });
         });
         return Task.CompletedTask;

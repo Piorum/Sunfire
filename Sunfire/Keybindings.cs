@@ -9,6 +9,8 @@ public static class Keybindings
     public static ConsoleKeyInfo NavDown { private set; get; } = new('s', ConsoleKey.S, false, false, false);
     public static ConsoleKeyInfo NavIn { private set; get; } = new('d', ConsoleKey.D, false, false, false);
 
+    public static ConsoleKeyInfo Reload { private set; get; } = new('r', ConsoleKey.R, false, true, true);
+
     public static bool Equals(ConsoleKeyInfo key1, ConsoleKeyInfo key2) =>
         key1.Key == key2.Key && key1.Modifiers == key2.Modifiers;
 }

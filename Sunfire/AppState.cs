@@ -8,11 +8,11 @@ public class AppState
 {
     public View RootView { private set; get; } = new() { X = 0, Y = 0, FillStyleWidth = FillStyle.Max, FillStyleHeight = FillStyle.Max };
 
-    private readonly Label TopLabel;
-    private readonly Label BottomLabel;
+    private readonly ViewLabel TopLabel;
+    private readonly ViewLabel BottomLabel;
 
     private readonly View ContainerPane;
-    private readonly View CurrentPane;
+    private readonly ViewList CurrentPane;
     private readonly View PreviewPane;
 
     public AppState()
@@ -23,14 +23,14 @@ public class AppState
         RootView.Add(ViewFactory.GetCurrentPane());
         RootView.Add(ViewFactory.GetPreviewPane());
 
-        TopLabel = RootView.SubViews.Where(sv => sv.Tag == "Top Pane").First().SubViews.OfType<Label>().Where(l => l.Tag == "Top Label").First();
-        BottomLabel = RootView.SubViews.Where(sv => sv.Tag == "Bottom Pane").First().SubViews.OfType<Label>().Where(l => l.Tag == "Bottom Label").First();
+        TopLabel = RootView.SubViews.OfType<ViewLabel>().Where(l => l.Tag == "Top Label").First();
+        BottomLabel = RootView.SubViews.OfType<ViewLabel>().Where(l => l.Tag == "Bottom Label").First();
         ContainerPane = RootView.SubViews.Where(sv => sv.Tag == "Container Pane").First();
-        CurrentPane = RootView.SubViews.Where(sv => sv.Tag == "Current Pane").First();
+        CurrentPane = RootView.SubViews.OfType<ViewList>().Where(sv => sv.Tag == "Current Pane").First();
         PreviewPane = RootView.SubViews.Where(sv => sv.Tag == "Preview Pane").First();
     }
 
-    public Task UpdateTopLabel(string text, bool? highlight = null, bool? bold = null)
+    public async Task UpdateTopLabel(string text, bool? highlight = null, bool? bold = null)
     {
         var textField = TopLabel.TextFields.First();
         textField.Text = text;
@@ -40,9 +40,16 @@ public class AppState
         if (bold is not null)
             TopLabel.Bold = (bool)bold;
 
-        TopLabel.Draw();
+        await TopLabel.Draw();
+    }
 
-        return Task.CompletedTask;
+    public async Task MoveDown()
+    {
+        await CurrentPane.MoveDown();
+    }
+    public async Task MoveUp()
+    {
+        await CurrentPane.MoveUp();
     }
 
 }
