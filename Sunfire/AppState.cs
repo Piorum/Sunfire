@@ -32,14 +32,15 @@ public class AppState
         Task.Run(async () =>
         {
             List<ViewLabel> newLabels = [];
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 var newLabel = new ViewLabel()
                 {
                     X = 0,
                     Y = 0,
                     FillStyleWidth = FillStyle.Max,
-                    FillStyleHeight = FillStyle.Min
+                    FillStyleHeight = FillStyle.Min,
+                    Bold = true
                 };
                 newLabel.TextFields.Add(new()
                 {
@@ -72,6 +73,14 @@ public class AppState
     public async Task MoveUp()
     {
         await CurrentPane.MoveUp();
+    }
+    public async Task Select()
+    {
+        await CurrentPane.SelectCurrent();
+    }
+    public async Task Delete()
+    {
+        await CurrentPane.Remove();
     }
 
 }

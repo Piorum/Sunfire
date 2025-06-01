@@ -6,6 +6,7 @@ public class ViewLabel : View
 {
     public readonly List<TextFields> TextFields = [];
 
+    public bool Selected = false;
     public bool Highlighted = false;
     public bool Bold = false;
     public ConsoleColor TextColor = ConsoleColor.White;
@@ -31,7 +32,8 @@ public class ViewLabel : View
         }
 
         var totalSize = SizeX * SizeY;
-
+        if (Selected) totalSize--;
+        
         var fullText = new string(' ', totalSize);
         var availableSize = totalSize;
 
@@ -67,6 +69,8 @@ public class ViewLabel : View
                     break;
             }
         }
+
+        if (Selected) fullText = ' ' + fullText;
 
         string[] output = [.. fullText.Chunk(SizeX).Select(x => new string(x))];
         for (int i = 0; i < SizeY; i++)

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Sunfire.Enums;
 
 namespace Sunfire.Views;
@@ -17,6 +16,8 @@ public class ViewList : View
     private int startIndex = 0;
     private int selectedIndex = 0;
     private readonly List<ViewLabel> visibleLabels = [];
+
+    private readonly List<int> selected = [];
     
     static ViewList()
     {
@@ -69,15 +70,33 @@ public class ViewList : View
             }
             else
             {
-                if(startIndex < SubViews.Count - SizeY + 1) startIndex++;
-                if (SubViews[selectedIndex] is ViewLabel vl1)
-                    vl1.Highlighted = false;
+                if (startIndex < SubViews.Count - SizeY + 1) startIndex++;
                 selectedIndex++;
-                if (SubViews[selectedIndex] is ViewLabel vl2)
-                    vl2.Highlighted = true;
                 await RePositionSubViews();
             }
         }
+        else if (selectedIndex == SubViews.Count - 1)
+        {
+            await SubViews[selectedIndex].Draw();
+        }
+    }
+
+    public async Task SelectCurrent()
+    {
+        if (SubViews[selectedIndex] is ViewLabel vl)
+        {
+            if (vl.Selected)
+            {
+                vl.Selected = false;
+                selected.Remove(selectedIndex);
+            }
+            else
+            {
+                vl.Selected = true;
+                selected.Add(selectedIndex);
+            }
+        }
+        await MoveDown();
     }
 
     public override void Add(View subView)
@@ -99,6 +118,49 @@ public class ViewList : View
             iterations++;
         }
         SubViews.AddRange(subViews);
+    }
+
+    public async Task Remove()
+    {
+        if (selected.Count == 0)
+        {
+            SubViews.Remove(SubViews[selectedIndex]);
+
+            for (int i = 0; i < SubViews.Count; i++)
+            {
+                SubViews[i].Y = i;
+            }
+        }
+        else
+        {
+            List<View> selectedViews = [];
+            foreach (var index in selected)
+            {
+                selectedViews.Add(SubViews[index]);
+            }
+            selected.Clear();
+            foreach (var view in selectedViews)
+            {
+                SubViews.Remove(view);
+            }
+
+            selectedIndex -= selectedViews.Count;
+
+            for (int i = 0; i < SubViews.Count; i++)
+            {
+                SubViews[i].Y = i;
+            }
+        }
+
+        await PopulateXYLevels();
+
+        if (selectedIndex < 0) selectedIndex = 0;
+        else if (!yLevels!.Contains(selectedIndex)) selectedIndex = SubViews.Count - 1;
+
+        if (selectedIndex < startIndex) startIndex = selectedIndex - (int)(0.4f * SizeY);
+        else if (selectedIndex > startIndex + SizeY) startIndex = selectedIndex - (int)(0.6f * SizeY);
+
+        await RePositionSubViews();
     }
 
     public async override Task Arrange(int WidthConstraint, int HeightConstraint)

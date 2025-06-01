@@ -4,5 +4,5 @@ public enum FillStyle
 {
     Min,
     Percent,
-    Max
+    Max,
 }

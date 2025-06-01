@@ -13,7 +13,8 @@ public static class ViewFactory
             X = 0,
             Y = 0,
             FillStyleWidth = FillStyle.Max,
-            FillStyleHeight = FillStyle.Min
+            FillStyleHeight = FillStyle.Min,
+            Bold = true
         };
         topLabel.TextFields.Add(new()
         {
@@ -31,6 +32,7 @@ public static class ViewFactory
             Y = 2,
             FillStyleWidth = FillStyle.Max,
             FillStyleHeight = FillStyle.Min,
+            Bold = true
         };
         bottomLabel.TextFields.Add(new()
         {

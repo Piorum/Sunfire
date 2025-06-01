@@ -44,6 +44,12 @@ internal class Program
 
             if (Keybindings.Equals(keyInfo, Keybindings.Reload))
                 await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
+
+            if (Keybindings.Equals(keyInfo, Keybindings.Select))
+                await _appState.Select();
+
+            if (Keybindings.Equals(keyInfo, Keybindings.ForceDelete))
+                await _appState.Delete();
         }
     }
 
