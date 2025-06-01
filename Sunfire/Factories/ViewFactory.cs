@@ -72,22 +72,6 @@ public static class ViewFactory
             BorderStyle = BorderStyle.Right,
         };
 
-        for (int i = 0; i < 10000; i++)
-        {
-            var newLabel = new ViewLabel()
-            {
-                X = 0,
-                Y = 0,
-                FillStyleWidth = FillStyle.Max,
-                FillStyleHeight = FillStyle.Min
-            };
-            newLabel.TextFields.Add(new()
-            {
-                Text = $"{i}"
-            });
-            view.Add(newLabel);
-        }
-
         return view;
     }
     public static View GetPreviewPane()

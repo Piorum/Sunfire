@@ -5,9 +5,26 @@ namespace Sunfire.Views;
 
 public class ViewList : View
 {
+    private static readonly ViewLabel Loading = new()
+    {
+        X = 0,
+        Y = 0,
+        FillStyleHeight = FillStyle.Min,
+        FillStyleWidth = FillStyle.Max,
+        SizeY = 1
+    };
+
     private int startIndex = 0;
     private int selectedIndex = 0;
     private readonly List<ViewLabel> visibleLabels = [];
+    
+    static ViewList()
+    {
+        Loading.TextFields.Add(new()
+        {
+            Text = "..."
+        });
+    }
 
     public async Task MoveUp()
     {
@@ -72,8 +89,26 @@ public class ViewList : View
         base.Add(subView);
     }
 
+    public void Add(List<ViewLabel> subViews)
+    {
+        int iterations = 0;
+        foreach (var view in subViews)
+        {
+            view.Y = SubViews.Count + iterations;
+            view.Container = this;
+            iterations++;
+        }
+        SubViews.AddRange(subViews);
+    }
+
     public async override Task Arrange(int WidthConstraint, int HeightConstraint)
     {
+        if (SubViews.Count == 0)
+        {
+            await DrawLoading(WidthConstraint, HeightConstraint);
+            return;
+        }
+
         await Measure(WidthConstraint, HeightConstraint);
 
         var diff = selectedIndex - startIndex;
@@ -107,12 +142,37 @@ public class ViewList : View
         await Task.WhenAll(arrangeTasks);
     }
 
+    private async Task DrawLoading(int WidthConstraint, int HeightConstraint)
+    {
+        Loading.OriginX = BorderStyle switch
+        {
+            BorderStyle.Full or BorderStyle.Left => OriginX + 1,
+            _ => OriginX
+        };
+
+        Loading.OriginY = BorderStyle switch
+        {
+            BorderStyle.Full or BorderStyle.Top => OriginY + 1,
+            _ => OriginY
+        };
+
+        Loading.SizeX = BorderStyle switch
+        {
+            BorderStyle.Full => WidthConstraint - 2,
+            BorderStyle.Left or BorderStyle.Right => WidthConstraint - 1,
+            _ => WidthConstraint
+        };
+
+        await Draw();
+        await Loading.Arrange(WidthConstraint, HeightConstraint);
+    }
+
     protected override async Task Measure(int WidthConstraint, int HeightConstraint)
     {
         SizeX = WidthConstraint;
         SizeY = HeightConstraint;
 
-        if(xLevels is null || yLevels is null)
+        if (xLevels is null || yLevels is null)
             await PopulateXYLevels();
 
         int baseWidth = SizeX - BorderStyle switch

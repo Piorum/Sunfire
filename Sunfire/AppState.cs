@@ -28,6 +28,28 @@ public class AppState
         ContainerPane = RootView.SubViews.Where(sv => sv.Tag == "Container Pane").First();
         CurrentPane = RootView.SubViews.OfType<ViewList>().Where(sv => sv.Tag == "Current Pane").First();
         PreviewPane = RootView.SubViews.Where(sv => sv.Tag == "Preview Pane").First();
+
+        Task.Run(async () =>
+        {
+            List<ViewLabel> newLabels = [];
+            for (int i = 0; i < 100; i++)
+            {
+                var newLabel = new ViewLabel()
+                {
+                    X = 0,
+                    Y = 0,
+                    FillStyleWidth = FillStyle.Max,
+                    FillStyleHeight = FillStyle.Min
+                };
+                newLabel.TextFields.Add(new()
+                {
+                    Text = $"{i}"
+                });
+                newLabels.Add(newLabel);
+            }
+            CurrentPane.Add(newLabels);
+            await CurrentPane.Arrange(CurrentPane.SizeX, CurrentPane.SizeY);
+        });
     }
 
     public async Task UpdateTopLabel(string text, bool? highlight = null, bool? bold = null)
