@@ -65,6 +65,9 @@ public class ViewList : View
 
     public override void Add(View subView)
     {
+        if (subView is not ViewLabel)
+            throw new Exception("View other than ViewLabel was added to a ViewList");
+
         subView.Y = SubViews.Count;
         base.Add(subView);
     }
@@ -102,6 +105,34 @@ public class ViewList : View
             arrangeTasks.Add(view.Arrange(view.SizeX, view.SizeY));
         }
         await Task.WhenAll(arrangeTasks);
+    }
+
+    protected override async Task Measure(int WidthConstraint, int HeightConstraint)
+    {
+        SizeX = WidthConstraint;
+        SizeY = HeightConstraint;
+
+        if(xLevels is null || yLevels is null)
+            await PopulateXYLevels();
+
+        int baseWidth = SizeX - BorderStyle switch
+        {
+            BorderStyle.Full => 2,
+            BorderStyle.Left or BorderStyle.Right => 1,
+            _ => 0
+        };
+
+        //Width
+        foreach (var view in SubViews)
+        {
+            view.SizeX = baseWidth;
+        }
+
+        //Height
+        foreach (var view in SubViews)
+        {
+            view.SizeY = 1;
+        }
     }
 
     private async Task RePositionSubViews()
@@ -182,6 +213,15 @@ public class ViewList : View
             CursorPosY += 1;
         }
 
+        return Task.CompletedTask;
+    }
+
+    protected override Task PopulateXYLevels()
+    {
+        xLevels = [1];
+
+        yLevels = [.. Enumerable.Range(0, SubViews.Count)];
+        
         return Task.CompletedTask;
     }
 }

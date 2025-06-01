@@ -227,7 +227,7 @@ public class View
         return Task.FromResult(output);
     }
 
-    protected Task PopulateXYLevels()
+    protected virtual Task PopulateXYLevels()
     {
         HashSet<int> xSet = [];
         HashSet<int> ySet = [];
