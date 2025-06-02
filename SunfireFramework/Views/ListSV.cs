@@ -20,8 +20,17 @@ public class ListSV : IRelativeSunfireView
 
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
 
-    private readonly List<SVLabel> VisibleLabels = [];
-    public readonly List<SVLabel> Labels = [];
+    private List<SVLabel> VisibleLabels = [];
+    private readonly List<SVLabel> Labels = [];
+
+    private string blankString = "";
+
+    public Task AddLabel(SVLabel label)
+    {
+        label.SizeY = 1;
+        Labels.Add(label);
+        return Task.CompletedTask;
+    }
 
     //Should be called when Labels is updated
     public async Task Arrange()
@@ -39,50 +48,43 @@ public class ListSV : IRelativeSunfireView
             return;
         }
 
-        await Task.WhenAll(Setup(), PositionStartIndex(), UpdateVisibleLabels());
-    }
+        blankString = new string(' ', SizeX);
 
-    public Task Setup()
-    {
-        foreach (var label in Labels)
-        {
-            label.SizeX = SizeX;
-            label.SizeY = 1;
-            label.Highlighted = false; // Test code
-        }
-        Labels[selectedIndex].Highlighted = true; // Test code
-        return Task.CompletedTask;
+        await PositionStartIndex();
+        await UpdateVisibleLabels();
+
+        //await Task.WhenAll(Setup(), PositionStartIndex(), UpdateVisibleLabels());
     }
 
     public Task PositionStartIndex()
     {
         var diff = selectedIndex - startIndex;
-        var maxDiff = 0.6f * SizeY;
-        var minDiff = 0.4f * SizeY;
+        var maxDiff = (int)(0.6f * SizeY);
+        var minDiff = (int)(0.4f * SizeY);
         var maxStartIndex = Labels.Count - SizeY + 1;
+
         //startIndex above where it should me
         if (diff > maxDiff)
         {
-            startIndex = selectedIndex - (int)maxDiff;
+            startIndex = Math.Min(selectedIndex - maxDiff, maxStartIndex);
         }
         //startIndex below where it should be
         else if (diff < minDiff)
         {
-            startIndex = selectedIndex - (int)minDiff;
+            startIndex = Math.Max(selectedIndex - minDiff, 0);
         }
-        startIndex = Math.Min(startIndex, maxStartIndex);
 
         return Task.CompletedTask;
     }
 
     public Task UpdateVisibleLabels()
     {
-        VisibleLabels.Clear();
-        VisibleLabels.AddRange(Labels.Skip(startIndex).Take(SizeY));
+        VisibleLabels = [.. Labels.Skip(startIndex).Take(SizeY)];
         for (int i = 0; i < VisibleLabels.Count; i++)
         {
-            var index = i;
-            VisibleLabels[index].OriginY = OriginY + index;
+            VisibleLabels[i].OriginX = OriginX;
+            VisibleLabels[i].OriginY = OriginY + i;
+            VisibleLabels[i].SizeX = SizeX;
         }
         return Task.CompletedTask;
     }
@@ -93,26 +95,25 @@ public class ListSV : IRelativeSunfireView
         throw new NotImplementedException();
     }
 
-    //Should be called when list background needs to be redrawn
+    //Should be called when list needs to be redrawn
     public async Task Draw()
     {
-        var blankString = new string(' ', SizeX);
-
-        Console.BackgroundColor = BackgroundColor;
-
-        for (int i = 0; i < SizeY; i++)
+        for (int i = 0; i < VisibleLabels.Count; i++)
         {
-            Console.SetCursorPosition(OriginX, OriginY + i);
-            Console.Write(blankString);
+            await VisibleLabels[i].Draw();
         }
 
-        await DrawLabels();
-    }
-
-    //Should be called when list items need to be redrawn
-    public async Task DrawLabels()
-    {
-        await Task.WhenAll(VisibleLabels.Select(v => v.Draw()));
+        List<ConsoleOutput> outputs = [];
+        for (int i = VisibleLabels.Count; i < SizeY; i++)
+        {
+            outputs.Add(new()
+            {
+                X = OriginX,
+                Y = OriginY + i,
+                Output = blankString
+            });
+        }
+        await ConsoleWriter.WriteAsync(outputs, backgroundColor: BackgroundColor);
     }
 
 }

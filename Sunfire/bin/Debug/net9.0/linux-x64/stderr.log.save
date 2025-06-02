@@ -1,0 +1,10 @@
+x-20Unhandled exception. System.ArgumentOutOfRangeException: ArgumentOutOfRange_IndexMustBeLess Arg_ParamName_Name, index
+   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at SunfireFramework.Views.ListSV.UpdateVisibleLabels() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/ListSV.cs:line 81
+   at SunfireFramework.Views.ListSV.Arrange() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/ListSV.cs:line 49
+   at SunfireFramework.Views.PaneSV.Arrange() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/PaneSV.cs:line 39
+   at SunfireFramework.Views.BorderSV.Arrange() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/BorderSV.cs:line 49
+   at SunfireFramework.Views.PaneSV.Arrange() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/PaneSV.cs:line 39
+   at SunfireFramework.Views.RootSV.Arrange() in /home/username/Documents/Singularity/Sunfire/SunfireFramework/Views/RootSV.cs:line 22
+   at Sunfire.Program.Main() in /home/username/Documents/Singularity/Sunfire/Sunfire/Program.cs:line 93
+   at Sunfire.Program.<Main>()

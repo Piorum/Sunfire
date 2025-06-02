@@ -27,10 +27,12 @@ public class RootSV : ISunfireView
         await RootPane.Draw();
     }
 
-    public Task UpdateSize()
+    public async Task ReSize()
     {
         SizeX = Console.BufferWidth;
         SizeY = Console.BufferHeight;
-        return Task.CompletedTask;
+
+        await Arrange();
+        await Draw();
     }
 }

@@ -1,6 +1,8 @@
 ﻿using Sunfire.Enums;
 using SunfireFramework.TextBoxes;
 using SunfireFramework.Views;
+using SunfireFramework.Enums;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Sunfire;
@@ -16,24 +18,12 @@ internal class Program
 
     public static async Task Main()
     {
+        var inputTask = Task.Run(InputLoop);
+
         Console.CursorVisible = false;
         Console.Clear();
-        
-        ListSV testList = new();
 
-        for (int i = 0; i < 10; i++)
-        {
-            testList.Labels.Add(new()
-            {
-                TextFields =
-                [
-                    new TextField()
-                    {
-                        Text = $"{i}"
-                    }
-                ]
-            });
-        }
+        ListSV testList = new();
 
         RootSV rootSV = new()
         {
@@ -41,25 +31,59 @@ internal class Program
             {
                 SubViews =
                 [
-                    testList
+                    new BorderSV()
+                    {
+                        SVBorderStyle = SVBorderStyle.Right,
+                        SubPane = new()
+                        {
+                            SubViews =
+                            [
+                                testList
+                            ]
+                        }
+                    }
                 ]
             }
         };
 
+        for (int i = 0; i < 10; i++)
+        {
+            await testList.AddLabel(new()
+            {
+                TextFields =
+                [
+                    new()
+                    {
+                        Text = $"{i}"
+                    }
+                ],
+                Properties =
+                [
+                    TextProperty.Bold
+                ]
+            });
+        }
+
+        Stopwatch sw = new();
+        sw.Restart();
         await rootSV.Arrange();
         await rootSV.Draw();
+        sw.Stop();
+        await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
 
-        await Task.Delay(-1);
+        //await testList.Arrange();
+        //await testList.Draw();
 
-        var inputTask = Task.Run(InputLoop);
-        var renderTask = Task.Run(RenderLoop);
+        //var renderTask = Task.Run(RenderLoop);
 
-        await Task.WhenAll(inputTask, renderTask);
+        //await Task.WhenAll(inputTask, renderTask);
+        await inputTask;
+        //await Task.Delay(-1);
 
         Console.Clear();
     }
 
-    private async static Task InputLoop()
+    private static Task InputLoop()
     {
         while (!_cts.Token.IsCancellationRequested)
         {
@@ -67,14 +91,14 @@ internal class Program
             if (Keybindings.Equals(keyInfo, Keybindings.ExitKey))
                 _cts.Cancel();
 
-            if (Keybindings.Equals(keyInfo, Keybindings.NavUp))
+            /*if (Keybindings.Equals(keyInfo, Keybindings.NavUp))
                 await _appState.MoveUp();
             if (Keybindings.Equals(keyInfo, Keybindings.NavOut))
                 await _appState.UpdateTopLabel("out");
             if (Keybindings.Equals(keyInfo, Keybindings.NavDown))
                 await _appState.MoveDown();
-            /*if (Keybindings.Equals(keyInfo, Keybindings.NavIn))
-                await _appState.UpdateTopLabel("in");*/
+            if (Keybindings.Equals(keyInfo, Keybindings.NavIn))
+                await _appState.UpdateTopLabel("in");
             if (Keybindings.Equals(keyInfo, Keybindings.NavTop))
                 await _appState.MoveTop();
             if (Keybindings.Equals(keyInfo, Keybindings.NavBottom))
@@ -90,14 +114,20 @@ internal class Program
                 await _appState.Select();
 
             if (Keybindings.Equals(keyInfo, Keybindings.ForceDelete))
-                await _appState.Delete();
+                await _appState.Delete();*/
         }
+        return Task.CompletedTask;
     }
 
     private static async Task RenderLoop()
     {
         await RegisterResizeEvent();
+
+        //Stopwatch sw = new();
+        //sw.Restart();
         await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
+        //sw.Stop();
+        //await Console.Error.WriteLineAsync($"TUIRenderer {sw.ElapsedMilliseconds}ms");
 
         while (!_cts.Token.IsCancellationRequested)
         {

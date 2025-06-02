@@ -7,5 +7,4 @@ public class TextField
     public string Text = "";
 
     public TextAlign Alignment = TextAlign.Left;
-    public TextWrap WrapMode = TextWrap.Trim;
 }

@@ -1,3 +1,5 @@
+using SunfireFramework.Enums;
+
 namespace SunfireFramework.TextBoxes;
 
 public class SVLabel : ISunfireView
@@ -7,12 +9,9 @@ public class SVLabel : ISunfireView
     public int SizeX { set; get; }
     public int SizeY { set; get; }
 
-    public bool Bold = false;
-    public bool Selected = false;
-    public bool Underlined = false;
-    public bool Highlighted = false;
+    required public HashSet<TextProperty> Properties = [];
 
-    private string CompiledText = "";
+    //private string CompiledText = "";
 
     public ConsoleColor TextColor = ConsoleColor.White;
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
@@ -25,27 +24,23 @@ public class SVLabel : ISunfireView
         return Task.CompletedTask;
     }
 
-    public Task Draw()
+    public async Task Draw()
     {
         //Output Compiled Text
 
         //Test code
-        if (Highlighted)
-        {
-            Console.ForegroundColor = BackgroundColor;
-            Console.BackgroundColor = TextColor;
-        }
-        else
-        {
-            Console.ForegroundColor = TextColor;
-            Console.BackgroundColor = BackgroundColor;
-        }
-
         var textField = TextFields.First();
 
-        Console.SetCursorPosition(OriginX, OriginY);
-        Console.Write(textField.Text);
+        var output = new ConsoleOutput()
+        {
+            X = OriginX,
+            Y = OriginY,
+            Output = textField.Text
+        };
 
-        return Task.CompletedTask;
+        if (Properties.Contains(TextProperty.Highlighted))
+            await ConsoleWriter.WriteAsync(output, backgroundColor: TextColor, foregroundColor: BackgroundColor);
+        else
+            await ConsoleWriter.WriteAsync(output, backgroundColor: BackgroundColor, foregroundColor: TextColor);
     }
 }

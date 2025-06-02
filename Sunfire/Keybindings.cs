@@ -2,7 +2,7 @@ namespace Sunfire;
 
 public static class Keybindings
 {
-    public static ConsoleKeyInfo ExitKey { private set; get; } = new('q', ConsoleKey.Q, false, false, true);
+    public static ConsoleKeyInfo ExitKey { private set; get; } = new('q', ConsoleKey.Q, false, false, false);
 
     public static ConsoleKeyInfo NavUp { private set; get; } = new('w', ConsoleKey.W, false, false, false);
     public static ConsoleKeyInfo NavOut { private set; get; } = new('a', ConsoleKey.A, false, false, false);

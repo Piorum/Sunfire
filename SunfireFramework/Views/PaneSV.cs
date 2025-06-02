@@ -16,6 +16,8 @@ public class PaneSV : IRelativeSunfireView
 
     public SVFillStyle FillStyleX = SVFillStyle.Max;
     public SVFillStyle FillStyleY = SVFillStyle.Max;
+    public int StaticX = 1; //1 = 1 Cell
+    public int StaticY = 1; //1 = 1 Cell
     public float PercentX = 1.0f; //1.0f == 100%
     public float PercentY = 1.0f; //1.0f == 100%
 
@@ -29,8 +31,8 @@ public class PaneSV : IRelativeSunfireView
         //Measure, Position
 
         var test = SubViews.First();
-        test.OriginX = 0;
-        test.OriginY = 0;
+        test.OriginX = OriginX;
+        test.OriginY = OriginY;
         test.SizeX = SizeX;
         test.SizeY = SizeY;
 
@@ -39,8 +41,6 @@ public class PaneSV : IRelativeSunfireView
 
     public async Task Draw()
     {
-        //Draw blank background here
-
         await Task.WhenAll(SubViews.Select(v => v.Draw()));
     }
 }

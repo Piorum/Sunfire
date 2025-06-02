@@ -5,5 +5,5 @@ public enum SVFillStyle
     Min,
     Max,
     Percent,
-    Content
+    Static
 }
