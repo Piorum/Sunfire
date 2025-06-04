@@ -1,6 +1,8 @@
 ﻿using SunfireFramework.Enums;
 using System.Runtime.InteropServices;
 using Sunfire.Factories;
+using System.Diagnostics;
+using SunfireFramework;
 
 namespace Sunfire;
 
@@ -27,6 +29,7 @@ internal class Program
         await Task.WhenAll(inputTask, renderTask);
 
         Console.Clear();
+        await ConsoleWriter.OutputErrorLog();
     }
 
     private static Task InputLoop()
@@ -99,7 +102,12 @@ internal class Program
             {
                 try
                 {
-                    await SVFactory.GetRootSV().ReSize();
+                    var rootSV = SVFactory.GetRootSV();
+
+                    //tight loop until buffer size is updated
+                    while (Console.BufferHeight == rootSV.SizeY & Console.BufferWidth == rootSV.SizeX) { }
+
+                    await rootSV.ReSize();
                 }
                 catch (Exception ex)
                 {
