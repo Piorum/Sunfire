@@ -1,4 +1,5 @@
 using SunfireFramework.TextBoxes;
+using SunfireFramework.Enums;
 
 namespace SunfireFramework.Views;
 
@@ -85,7 +86,9 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].OriginX = OriginX;
             VisibleLabels[i].OriginY = OriginY + i;
             VisibleLabels[i].SizeX = SizeX;
+            VisibleLabels[i].Properties.Remove(TextProperty.Highlighted);
         }
+        Labels[selectedIndex].Properties.Add(TextProperty.Highlighted);
         return Task.CompletedTask;
     }
 

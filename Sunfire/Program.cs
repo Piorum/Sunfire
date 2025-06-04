@@ -64,12 +64,12 @@ internal class Program
             });
         }
 
-        Stopwatch sw = new();
-        sw.Restart();
+        //Stopwatch sw = new();
+        //sw.Restart();
         await rootSV.Arrange();
         await rootSV.Draw();
-        sw.Stop();
-        await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
+        //sw.Stop();
+        //await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
 
         //await testList.Arrange();
         //await testList.Draw();
