@@ -18,6 +18,8 @@ internal class Program
 
     public static async Task Main()
     {
+        Stopwatch sw = new();
+        sw.Restart();
         var inputTask = Task.Run(InputLoop);
 
         Console.CursorVisible = false;
@@ -31,8 +33,37 @@ internal class Program
             {
                 SubViews =
                 [
+                    new SVLabel()
+                    {
+                        X = 0,
+                        Y = 0,
+                        Properties = [ TextProperty.Bold ],
+                        TextFields =
+                        [
+                            new()
+                            {
+                                Text = "Hello World!"
+                            }
+                        ]
+                    },
                     new BorderSV()
                     {
+                        X = 0,
+                        Y = 1,
+                        FillStyleX = SVFillStyle.Percent,
+                        PercentX = 0.125f,
+                        SVBorderStyle = SVBorderStyle.Right,
+                        SubPane = new()
+                        {
+                            SubViews = []
+                        }
+                    },
+                    new BorderSV()
+                    {
+                        X = 1,
+                        Y = 1,
+                        FillStyleX = SVFillStyle.Percent,
+                        PercentX = 0.425f,
                         SVBorderStyle = SVBorderStyle.Right,
                         SubPane = new()
                         {
@@ -41,10 +72,37 @@ internal class Program
                                 testList
                             ]
                         }
-                    }
+                    },
+                    new PaneSV()
+                    {
+                        X = 2,
+                        Y = 1,
+                        SubViews = []
+                    },
+                    new SVLabel()
+                    {
+                        X = 0,
+                        Y = 2,
+                        Properties = [ TextProperty.Bold ],
+                        TextFields =
+                        [
+                            new()
+                            {
+                                Text = "Bottom Label"
+                            }
+                        ]
+                    },
+
                 ]
             }
         };
+
+        await rootSV.Arrange();
+        await rootSV.Draw();
+        sw.Stop();
+        //grey values because this isn't being written though framework consolewriter
+        await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
+
 
         for (int i = 0; i < 10; i++)
         {
@@ -64,15 +122,8 @@ internal class Program
             });
         }
 
-        //Stopwatch sw = new();
-        //sw.Restart();
-        await rootSV.Arrange();
-        await rootSV.Draw();
-        //sw.Stop();
-        //await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
-
-        //await testList.Arrange();
-        //await testList.Draw();
+        await testList.Arrange();
+        await testList.Draw();
 
         //var renderTask = Task.Run(RenderLoop);
 

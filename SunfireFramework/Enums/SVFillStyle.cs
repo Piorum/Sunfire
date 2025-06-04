@@ -2,8 +2,8 @@ namespace SunfireFramework.Enums;
 
 public enum SVFillStyle
 {
+    Static,
     Min,
-    Max,
     Percent,
-    Static
+    Max
 }

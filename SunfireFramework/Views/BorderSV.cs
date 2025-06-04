@@ -8,6 +8,13 @@ public class BorderSV : IRelativeSunfireView
     public int Y { get; set; }
     public int Z { get; set; }
 
+    public SVFillStyle FillStyleX  { set; get; } = SVFillStyle.Max;
+    public SVFillStyle FillStyleY  { set; get; } = SVFillStyle.Max;
+    public int StaticX  { set; get; } = 1; //1 = 1 Cell
+    public int StaticY  { set; get; } = 1; //1 = 1 Cell
+    public float PercentX  { set; get; } = 1.0f; //1.0f == 100%
+    public float PercentY  { set; get; } = 1.0f; //1.0f == 100%
+
     public int OriginX { set; get; }
     public int OriginY { set; get; }
     public int SizeX { set; get; }

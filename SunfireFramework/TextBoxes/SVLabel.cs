@@ -2,45 +2,16 @@ using SunfireFramework.Enums;
 
 namespace SunfireFramework.TextBoxes;
 
-public class SVLabel : ISunfireView
+public class SVLabel : SVLabelSlim, IRelativeSunfireView
 {
-    public int OriginX { set; get; }
-    public int OriginY { set; get; }
-    public int SizeX { set; get; }
-    public int SizeY { set; get; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Z { get; set; }
 
-    required public HashSet<TextProperty> Properties = [];
-
-    //private string CompiledText = "";
-
-    public ConsoleColor TextColor = ConsoleColor.White;
-    public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
-
-    required public List<TextField> TextFields = [];
-
-    public Task Arrange()
-    {
-        //Compile text from TextFields
-        return Task.CompletedTask;
-    }
-
-    public async Task Draw()
-    {
-        //Output Compiled Text
-
-        //Test code
-        var textField = TextFields.First();
-
-        var output = new ConsoleOutput()
-        {
-            X = OriginX,
-            Y = OriginY,
-            Output = textField.Text
-        };
-
-        if (Properties.Contains(TextProperty.Highlighted))
-            await ConsoleWriter.WriteAsync(output, backgroundColor: TextColor, foregroundColor: BackgroundColor);
-        else
-            await ConsoleWriter.WriteAsync(output, backgroundColor: BackgroundColor, foregroundColor: TextColor);
-    }
+    public SVFillStyle FillStyleX { set; get; } = SVFillStyle.Max;
+    public SVFillStyle FillStyleY { set; get; } = SVFillStyle.Min;
+    public int StaticX { set; get; } = 1; //1 = 1 Cell
+    public int StaticY { set; get; } = 1; //1 = 1 Cell
+    public float PercentX { set; get; } = 1.0f; //1.0f == 100%
+    public float PercentY { set; get; } = 1.0f; //1.0f == 100%
 }

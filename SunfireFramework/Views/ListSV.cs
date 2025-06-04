@@ -9,6 +9,13 @@ public class ListSV : IRelativeSunfireView
     public int Y { get; set; }
     public int Z { get; set; }
 
+    public SVFillStyle FillStyleX  { set; get; } = SVFillStyle.Max;
+    public SVFillStyle FillStyleY  { set; get; } = SVFillStyle.Max;
+    public int StaticX  { set; get; } = 1; //1 = 1 Cell
+    public int StaticY  { set; get; } = 1; //1 = 1 Cell
+    public float PercentX  { set; get; } = 1.0f; //1.0f == 100%
+    public float PercentY  { set; get; } = 1.0f; //1.0f == 100%
+
     public int OriginX { set; get; }
     public int OriginY { set; get; }
     public int SizeX { set; get; }
@@ -21,12 +28,12 @@ public class ListSV : IRelativeSunfireView
 
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
 
-    private List<SVLabel> VisibleLabels = [];
-    private readonly List<SVLabel> Labels = [];
+    private List<SVLabelSlim> VisibleLabels = [];
+    private readonly List<SVLabelSlim> Labels = [];
 
     private string blankString = "";
 
-    public Task AddLabel(SVLabel label)
+    public Task AddLabel(SVLabelSlim label)
     {
         label.SizeY = 1;
         Labels.Add(label);
