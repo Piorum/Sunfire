@@ -1,9 +1,6 @@
-﻿using Sunfire.Enums;
-using SunfireFramework.TextBoxes;
-using SunfireFramework.Views;
-using SunfireFramework.Enums;
-using System.Diagnostics;
+﻿using SunfireFramework.Enums;
 using System.Runtime.InteropServices;
+using Sunfire.Factories;
 
 namespace Sunfire;
 
@@ -13,8 +10,6 @@ internal class Program
     public static readonly CancellationTokenSource _cts = new();
     public static readonly ManualResetEventSlim _renderSignal = new();
     public static PosixSignalRegistration? sigwinchRegistration;
-
-    public static AppState _appState = new();
 
     public static async Task Main()
     {
@@ -26,133 +21,10 @@ internal class Program
             Console.Clear();
         });
 
-        ListSV currentList = new();
-        ListSV containerList = new();
-        PaneSV previewPane = new()
-        {
-            X = 2,
-            Y = 1,
-            SubViews = []
-        };
-        LabelSV topLabel = new()
-        {
-            X = 0,
-            Y = 0,
-            Properties = [],
-            TextFields = []
-        };
-        LabelSV bottomLabel = new()
-        {
-            X = 0,
-            Y = 2,
-            Properties = [],
-            TextFields = []
-        };
-
-        RootSV rootSV = new()
-        {
-            RootPane = new()
-            {
-                SubViews =
-                [
-                    topLabel,
-                    new BorderSV()
-                    {
-                        X = 0,
-                        Y = 1,
-                        FillStyleX = SVFillStyle.Percent,
-                        PercentX = 0.125f,
-                        SVBorderStyle = SVBorderStyle.Right,
-                        SubPane = new()
-                        {
-                            SubViews =
-                            [
-                                containerList
-                            ]
-                        }
-                    },
-                    new BorderSV()
-                    {
-                        X = 1,
-                        Y = 1,
-                        FillStyleX = SVFillStyle.Percent,
-                        PercentX = 0.425f,
-                        SVBorderStyle = SVBorderStyle.Right,
-                        SubPane = new()
-                        {
-                            SubViews =
-                            [
-                                currentList
-                            ]
-                        }
-                    },
-                    previewPane,
-                    bottomLabel,
-
-                ]
-            }
-        };
-
         await setupTask;
 
-        await rootSV.Arrange();
-        await rootSV.Draw();
-
-        var currentListTask = Task.Run(async () =>
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                await currentList.AddLabel(new()
-                {
-                    TextFields =
-                    [
-                        new()
-                    {
-                        Text = $"{i}"
-                    }
-                    ],
-                    Properties =
-                    [
-                        TextProperty.Bold
-                    ]
-                });
-            }
-
-            await currentList.Arrange();
-            await currentList.Draw();
-        });
-
-        var topLabelTask = Task.Run(async () =>
-        {
-            topLabel.TextFields.Add(new()
-            {
-                Text = "Top Label"
-            });
-            topLabel.Properties.Add(TextProperty.Bold);
-
-            await topLabel.Arrange();
-            await topLabel.Draw();
-        });
-
-        var bottomLabelTask = Task.Run(async () =>
-        {
-            bottomLabel.TextFields.Add(new()
-            {
-                Text = "Bottom Label"
-            });
-            bottomLabel.Properties.Add(TextProperty.Bold);
-
-            await bottomLabel.Arrange();
-            await bottomLabel.Draw();
-        });
-
-        await Task.WhenAll(currentListTask, topLabelTask, bottomLabelTask);
-
-        //var renderTask = Task.Run(RenderLoop);
-
-        //await Task.WhenAll(inputTask, renderTask);
-        await inputTask;
-        //await Task.Delay(-1);
+        var renderTask = Task.Run(RenderLoop);
+        await Task.WhenAll(inputTask, renderTask);
 
         Console.Clear();
     }
@@ -197,11 +69,11 @@ internal class Program
     {
         await RegisterResizeEvent();
 
-        //Stopwatch sw = new();
-        //sw.Restart();
-        await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
-        //sw.Stop();
-        //await Console.Error.WriteLineAsync($"TUIRenderer {sw.ElapsedMilliseconds}ms");
+        //Initial Draw
+        var rootSv = SVFactory.GetRootSV();
+        await rootSv.Arrange();
+        await rootSv.Draw();
+        await PopulateFields();
 
         while (!_cts.Token.IsCancellationRequested)
         {
@@ -213,8 +85,6 @@ internal class Program
             {
                 return;
             }
-
-            //await TUIRenderer.ExecuteRenderTasks(_appState.RootView);
 
             _renderSignal.Reset();
         }
@@ -229,15 +99,71 @@ internal class Program
             {
                 try
                 {
-                    await TUIRenderer.ExecuteRenderAction(_appState.RootView, RenderAction.Arrange);
+                    await SVFactory.GetRootSV().ReSize();
                 }
-                catch ( Exception ex )
+                catch (Exception ex)
                 {
                     Console.Error.WriteLine($"{ex}");
                 }
             });
         });
         return Task.CompletedTask;
+    }
+
+    private static async Task PopulateFields()
+    {
+        var currentListTask = Task.Run(async () =>
+        {
+            var currentList = SVFactory.GetCurrentList();
+            for (int i = 0; i < 10; i++)
+            {
+                await currentList.AddLabel(new()
+                {
+                    TextFields =
+                    [
+                        new()
+                    {
+                        Text = $"{i}"
+                    }
+                    ],
+                    Properties =
+                    [
+                        TextProperty.Bold
+                    ]
+                });
+            }
+
+            await currentList.Arrange();
+            await currentList.Draw();
+        });
+
+        var topLabelTask = Task.Run(async () =>
+        {
+            var topLabel = SVFactory.GetTopLabel();
+            topLabel.TextFields.Add(new()
+            {
+                Text = "Top Label"
+            });
+            topLabel.Properties.Add(TextProperty.Bold);
+
+            await topLabel.Arrange();
+            await topLabel.Draw();
+        });
+
+        var bottomLabelTask = Task.Run(async () =>
+        {
+            var bottomLabel = SVFactory.GetBottomLabel();
+            bottomLabel.TextFields.Add(new()
+            {
+                Text = "Bottom Label"
+            });
+            bottomLabel.Properties.Add(TextProperty.Bold);
+
+            await bottomLabel.Arrange();
+            await bottomLabel.Draw();
+        });
+
+        await Task.WhenAll(currentListTask, topLabelTask, bottomLabelTask);
     }
 
 }
