@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using SunfireFramework.Enums;
 
 namespace SunfireFramework.Views;
@@ -34,77 +35,71 @@ public class PaneSV : IRelativeSunfireView
         await PopulateXYZLevels();
 
         //Measurement
-        foreach (var zLevel in zLevels!)
+        var orderByWidthStyle = SubViews.OrderBy(sv => sv.FillStyleX).ToList();
+        var orderByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
+
+        Parallel.ForEach(zLevels!, async zLevel =>
         {
-            int baseWidth = SizeX;
-            int baseHeight = SizeY;
-
-            Dictionary<int, int> availableWidth = yLevels!.ToDictionary(y => y, _ => baseWidth);
-            Dictionary<int, int> availableHeight = xLevels!.ToDictionary(x => x, _ => baseHeight);
-
             //Width
-            var orderByWidthStyle = SubViews.OrderBy(sv => (int)sv.FillStyleX).ToList();
-
-            foreach (var view in orderByWidthStyle)
+            var widthTask = Task.Run(() =>
             {
-                switch (view.FillStyleX)
+                int[] availableWidth = new int[yLevels!.Count];
+                Array.Fill(availableWidth, SizeX);
+                foreach (var view in orderByWidthStyle)
                 {
-                    case SVFillStyle.Static:
-                        var sizeStatic = Math.Min(availableWidth[view.Y], StaticX);
-                        view.SizeX = sizeStatic;
-                        availableWidth[view.Y] -= sizeStatic;
-                        break;
-                    case SVFillStyle.Min:
-                        var sizeMin = Math.Min(availableWidth[view.Y], 1);
-                        view.SizeX = sizeMin;
-                        availableWidth[view.Y] -= sizeMin;
-                        break;
-                    case SVFillStyle.Percent:
-                        view.SizeX = (int)(availableWidth[view.Y] * view.PercentX);
+                    if (view.Z != zLevel) continue;
+
+                    switch (view.FillStyleX)
+                    {
+                        case SVFillStyle.Static:
+                            view.SizeX = Math.Min(availableWidth[view.Y], StaticX);
+                            break;
+                        case SVFillStyle.Min:
+                            view.SizeX = availableWidth[view.Y] > 0 ? 1 : 0;
+                            break;
+                        case SVFillStyle.Percent:
+                            view.SizeX = (int)(availableWidth[view.Y] * view.PercentX);
+                            break;
+                        case SVFillStyle.Max:
+                            view.SizeX = availableWidth[view.Y];
+                            break;
+                    }
+                    if (view.FillStyleX != SVFillStyle.Max)
                         availableWidth[view.Y] -= view.SizeX;
-                        break;
-                    case SVFillStyle.Max:
-                        view.SizeX = availableWidth[view.Y];
-                        break;
                 }
-            }
+            });
 
             //Height
-            var orderByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
-
-            foreach (var view in orderByHeightStyle)
+            var heightTask = Task.Run(() =>
             {
-                switch (view.FillStyleY)
+                int[] availableHeight = new int[xLevels!.Count];
+                Array.Fill(availableHeight, SizeY);
+                foreach (var view in orderByHeightStyle)
                 {
-                    case SVFillStyle.Static:
-                        var sizeStatic = Math.Min(availableHeight[view.X], StaticY);
-                        view.SizeY = sizeStatic;
-                        foreach (var xLevel in xLevels!)
-                        {
-                            availableHeight[xLevel] -= sizeStatic;
-                        }
-                        break;
-                    case SVFillStyle.Min:
-                        var sizeMin = Math.Min(availableHeight[view.X], 1);
-                        view.SizeY = sizeMin;
-                        foreach (var xLevel in xLevels!)
-                        {
-                            availableHeight[xLevel] -= sizeMin;
-                        }
-                        break;
-                    case SVFillStyle.Percent:
-                        view.SizeY = (int)(availableHeight[view.X] * view.PercentY);
-                        foreach (var xLevel in xLevels!)
-                        {
-                            availableHeight[xLevel] -= view.SizeY;
-                        }
-                        break;
-                    case SVFillStyle.Max:
-                        view.SizeY = availableHeight[view.X];
-                        break;
+                    if (view.Z != zLevel) continue;
+
+                    switch (view.FillStyleY)
+                    {
+                        case SVFillStyle.Static:
+                            view.SizeY = Math.Min(availableHeight[view.X], StaticY);
+                            break;
+                        case SVFillStyle.Min:
+                            view.SizeY = availableHeight[view.X] > 0 ? 1 : 0;
+                            break;
+                        case SVFillStyle.Percent:
+                            view.SizeY = (int)(availableHeight[view.X] * view.PercentY);
+                            break;
+                        case SVFillStyle.Max:
+                            view.SizeY = availableHeight[view.X];
+                            break;
+                    }
+                    if (view.FillStyleY != SVFillStyle.Max)
+                        availableHeight[view.X] -= view.SizeY;
                 }
-            }
-        }
+            });
+
+            await Task.WhenAll(widthTask, heightTask);
+        });
 
         //Positioning
         var subViewGrid = SubViews.ToLookup(sv => (sv.X, sv.Y, sv.Z));
@@ -132,15 +127,24 @@ public class PaneSV : IRelativeSunfireView
                 CursorY += largestY;
             }
         }
-        //Order by z so they are drawn in the right order
-        SubViews = [.. SubViews.OrderBy(sv => sv.Z)];
 
         await Task.WhenAll(SubViews.Select(v => v.Arrange()));
     }
 
     public async Task Draw()
     {
-        await Task.WhenAll(SubViews.Select(v => v.Draw()));
+        if (zLevels!.Count == 1)
+        {
+            await Task.WhenAll(SubViews.Select(v => v.Draw()));
+
+        }
+        else
+        {
+            Parallel.ForEach(zLevels, async zLevel =>
+            {
+                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw()));
+            });
+        }
     }
 
     protected Task PopulateXYZLevels()
@@ -161,11 +165,5 @@ public class PaneSV : IRelativeSunfireView
         zLevels = [.. zSet.Order()];
 
         return Task.CompletedTask;
-    }
-
-    protected class SVSize
-    {
-        public int Width;
-        public int Height;
     }
 }

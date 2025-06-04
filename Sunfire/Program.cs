@@ -18,14 +18,36 @@ internal class Program
 
     public static async Task Main()
     {
-        Stopwatch sw = new();
-        sw.Restart();
         var inputTask = Task.Run(InputLoop);
 
-        Console.CursorVisible = false;
-        Console.Clear();
+        var setupTask = Task.Run(() =>
+        {
+            Console.CursorVisible = false;
+            Console.Clear();
+        });
 
-        ListSV testList = new();
+        ListSV currentList = new();
+        ListSV containerList = new();
+        PaneSV previewPane = new()
+        {
+            X = 2,
+            Y = 1,
+            SubViews = []
+        };
+        LabelSV topLabel = new()
+        {
+            X = 0,
+            Y = 0,
+            Properties = [],
+            TextFields = []
+        };
+        LabelSV bottomLabel = new()
+        {
+            X = 0,
+            Y = 2,
+            Properties = [],
+            TextFields = []
+        };
 
         RootSV rootSV = new()
         {
@@ -33,19 +55,7 @@ internal class Program
             {
                 SubViews =
                 [
-                    new SVLabel()
-                    {
-                        X = 0,
-                        Y = 0,
-                        Properties = [ TextProperty.Bold ],
-                        TextFields =
-                        [
-                            new()
-                            {
-                                Text = "Hello World!"
-                            }
-                        ]
-                    },
+                    topLabel,
                     new BorderSV()
                     {
                         X = 0,
@@ -55,7 +65,10 @@ internal class Program
                         SVBorderStyle = SVBorderStyle.Right,
                         SubPane = new()
                         {
-                            SubViews = []
+                            SubViews =
+                            [
+                                containerList
+                            ]
                         }
                     },
                     new BorderSV()
@@ -69,61 +82,71 @@ internal class Program
                         {
                             SubViews =
                             [
-                                testList
+                                currentList
                             ]
                         }
                     },
-                    new PaneSV()
-                    {
-                        X = 2,
-                        Y = 1,
-                        SubViews = []
-                    },
-                    new SVLabel()
-                    {
-                        X = 0,
-                        Y = 2,
-                        Properties = [ TextProperty.Bold ],
-                        TextFields =
-                        [
-                            new()
-                            {
-                                Text = "Bottom Label"
-                            }
-                        ]
-                    },
+                    previewPane,
+                    bottomLabel,
 
                 ]
             }
         };
 
+        await setupTask;
+
         await rootSV.Arrange();
         await rootSV.Draw();
-        sw.Stop();
-        //grey values because this isn't being written though framework consolewriter
-        await Console.Error.WriteLineAsync($"{sw.Elapsed.Seconds}s {sw.Elapsed.Milliseconds}ms {sw.Elapsed.Microseconds}μs");
 
-
-        for (int i = 0; i < 10; i++)
+        var currentListTask = Task.Run(async () =>
         {
-            await testList.AddLabel(new()
+            for (int i = 0; i < 10; i++)
             {
-                TextFields =
-                [
-                    new()
+                await currentList.AddLabel(new()
+                {
+                    TextFields =
+                    [
+                        new()
                     {
                         Text = $"{i}"
                     }
-                ],
-                Properties =
-                [
-                    TextProperty.Bold
-                ]
-            });
-        }
+                    ],
+                    Properties =
+                    [
+                        TextProperty.Bold
+                    ]
+                });
+            }
 
-        await testList.Arrange();
-        await testList.Draw();
+            await currentList.Arrange();
+            await currentList.Draw();
+        });
+
+        var topLabelTask = Task.Run(async () =>
+        {
+            topLabel.TextFields.Add(new()
+            {
+                Text = "Top Label"
+            });
+            topLabel.Properties.Add(TextProperty.Bold);
+
+            await topLabel.Arrange();
+            await topLabel.Draw();
+        });
+
+        var bottomLabelTask = Task.Run(async () =>
+        {
+            bottomLabel.TextFields.Add(new()
+            {
+                Text = "Bottom Label"
+            });
+            bottomLabel.Properties.Add(TextProperty.Bold);
+
+            await bottomLabel.Arrange();
+            await bottomLabel.Draw();
+        });
+
+        await Task.WhenAll(currentListTask, topLabelTask, bottomLabelTask);
 
         //var renderTask = Task.Run(RenderLoop);
 

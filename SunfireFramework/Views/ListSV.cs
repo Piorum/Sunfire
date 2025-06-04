@@ -28,12 +28,12 @@ public class ListSV : IRelativeSunfireView
 
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
 
-    private List<SVLabelSlim> VisibleLabels = [];
-    private readonly List<SVLabelSlim> Labels = [];
+    private List<LabelSVSlim> VisibleLabels = [];
+    private readonly List<LabelSVSlim> Labels = [];
 
     private string blankString = "";
 
-    public Task AddLabel(SVLabelSlim label)
+    public Task AddLabel(LabelSVSlim label)
     {
         label.SizeY = 1;
         Labels.Add(label);

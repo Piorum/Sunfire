@@ -2,7 +2,7 @@ using SunfireFramework.Enums;
 
 namespace SunfireFramework.TextBoxes;
 
-public class SVLabelSlim : ISunfireView
+public class LabelSVSlim : ISunfireView
 {
     public int OriginX { set; get; }
     public int OriginY { set; get; }
@@ -29,7 +29,8 @@ public class SVLabelSlim : ISunfireView
         //Output Compiled Text
 
         //Test code
-        var textField = TextFields.First();
+        var textField = TextFields.FirstOrDefault();
+        if(textField is null) return;
 
         var output = new ConsoleOutput()
         {

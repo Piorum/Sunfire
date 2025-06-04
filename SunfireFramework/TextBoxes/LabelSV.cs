@@ -2,7 +2,7 @@ using SunfireFramework.Enums;
 
 namespace SunfireFramework.TextBoxes;
 
-public class SVLabel : SVLabelSlim, IRelativeSunfireView
+public class LabelSV : LabelSVSlim, IRelativeSunfireView
 {
     public int X { get; set; }
     public int Y { get; set; }
