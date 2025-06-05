@@ -3,9 +3,9 @@ using SunfireFramework.TextBoxes;
 using SunfireFramework.Enums;
 using System.Runtime.CompilerServices;
 
-namespace Sunfire.Factories;
+namespace Sunfire.Registries;
 
-public static class SVFactory
+public static class SVRegistry
 {
     private static RootSV? rootSV;
 
