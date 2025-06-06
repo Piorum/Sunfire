@@ -1,6 +1,6 @@
 using SunfireFramework.Enums;
 
-namespace SunfireFramework.TextBoxes;
+namespace SunfireFramework.Views.TextBoxes;
 
 public class LabelSV : LabelSVSlim, IRelativeSunfireView
 {

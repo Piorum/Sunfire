@@ -1,5 +1,6 @@
-using SunfireFramework.TextBoxes;
+using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
+using SunfireFramework.Terminal;
 
 namespace SunfireFramework.Views;
 
@@ -113,7 +114,7 @@ public class ListSV : IRelativeSunfireView
             await VisibleLabels[i].Draw();
         }
 
-        List<ConsoleOutput> outputs = [];
+        List<TerminalOutput> outputs = [];
         for (int i = VisibleLabels.Count; i < SizeY; i++)
         {
             outputs.Add(new()
@@ -123,7 +124,7 @@ public class ListSV : IRelativeSunfireView
                 Output = blankString
             });
         }
-        await ConsoleWriter.WriteAsync(outputs, backgroundColor: BackgroundColor);
+        await TerminalWriter.WriteAsync(outputs, backgroundColor: BackgroundColor);
     }
 
 }

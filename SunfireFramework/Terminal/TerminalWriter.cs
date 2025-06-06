@@ -1,13 +1,13 @@
 using System.Text;
 
-namespace SunfireFramework;
+namespace SunfireFramework.Terminal;
 
-public static class ConsoleWriter
+public static class TerminalWriter
 {
     private static readonly Lock ConsoleWriterLock = new();
     private static readonly StringBuilder _errorLog = new();
 
-    public static Task WriteAsync(ConsoleOutput output, ConsoleColor? foregroundColor = null, ConsoleColor? backgroundColor = null)
+    public static Task WriteAsync(TerminalOutput output, ConsoleColor? foregroundColor = null, ConsoleColor? backgroundColor = null)
     {
         lock (ConsoleWriterLock)
         {
@@ -26,7 +26,7 @@ public static class ConsoleWriter
         return Task.CompletedTask;
     }
 
-    public static Task WriteAsync(List<ConsoleOutput> outputs, ConsoleColor? foregroundColor = null, ConsoleColor? backgroundColor = null)
+    public static Task WriteAsync(List<TerminalOutput> outputs, ConsoleColor? foregroundColor = null, ConsoleColor? backgroundColor = null)
     {
         lock (ConsoleWriterLock)
         {

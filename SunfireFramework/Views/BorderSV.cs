@@ -1,4 +1,5 @@
 using SunfireFramework.Enums;
+using SunfireFramework.Terminal;
 
 namespace SunfireFramework.Views;
 
@@ -107,7 +108,7 @@ public class BorderSV : IRelativeSunfireView
                 break;
         }
 
-        List<ConsoleOutput> outputs = [];
+        List<TerminalOutput> outputs = [];
         for (int i = 0; i < SizeY; i++)
         {
             outputs.Add(new()
@@ -117,7 +118,7 @@ public class BorderSV : IRelativeSunfireView
                 Output = border[i]
             });
         }
-        await ConsoleWriter.WriteAsync(outputs, foregroundColor: BorderColor, backgroundColor: BackgroundColor);
+        await TerminalWriter.WriteAsync(outputs, foregroundColor: BorderColor, backgroundColor: BackgroundColor);
 
         await SubPane.Draw();
     }

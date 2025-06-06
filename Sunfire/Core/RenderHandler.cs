@@ -1,23 +1,17 @@
-using System.Runtime.InteropServices;
 using Sunfire.Registries;
 using SunfireFramework.Enums;
 
 namespace Sunfire.Core;
 
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class RenderHandler
 {
     public static readonly ManualResetEventSlim _renderSignal = new();
 
-#pragma warning disable IDE0052
-    //Static store for sigwinch registration so it doesn't get garbage collected
-    private static PosixSignalRegistration? sigwinchRegistration;
-#pragma warning restore IDE0052
-
     public static async Task RenderLoop(CancellationToken token)
     {
-        await RegisterResizeEvent();
-
         //Initial Draw
         var rootSv = SVRegistry.GetRootSV();
         await rootSv.Arrange();
@@ -38,30 +32,6 @@ public static class RenderHandler
             _renderSignal.Reset();
         }
         return;
-    }
-
-    private static Task RegisterResizeEvent()
-    {
-        sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
-        {
-            Task.Run(async () =>
-            {
-                try
-                {
-                    var rootSV = SVRegistry.GetRootSV();
-
-                    //tight loop until buffer size is updated
-                    while (Console.BufferHeight == rootSV.SizeY & Console.BufferWidth == rootSV.SizeX) { }
-
-                    await rootSV.ReSize();
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"{ex}");
-                }
-            });
-        });
-        return Task.CompletedTask;
     }
     
     private static async Task PopulateFields()

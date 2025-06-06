@@ -1,10 +1,13 @@
 using SunfireFramework.Views;
-using SunfireFramework.TextBoxes;
+using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
 using System.Runtime.CompilerServices;
 
 namespace Sunfire.Registries;
 
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class SVRegistry
 {
     private static RootSV? rootSV;

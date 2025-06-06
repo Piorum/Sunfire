@@ -1,6 +1,6 @@
 ﻿using SunfireFramework.Enums;
 
-namespace SunfireFramework;
+namespace SunfireFramework.Views;
 
 public interface IRelativeSunfireView : ISunfireView
 {

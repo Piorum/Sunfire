@@ -1,6 +1,7 @@
 using SunfireFramework.Enums;
+using SunfireFramework.Terminal;
 
-namespace SunfireFramework.TextBoxes;
+namespace SunfireFramework.Views.TextBoxes;
 
 public class LabelSVSlim : ISunfireView
 {
@@ -32,7 +33,7 @@ public class LabelSVSlim : ISunfireView
         var textField = TextFields.FirstOrDefault();
         if(textField is null) return;
 
-        var output = new ConsoleOutput()
+        var output = new TerminalOutput()
         {
             X = OriginX,
             Y = OriginY,
@@ -40,8 +41,8 @@ public class LabelSVSlim : ISunfireView
         };
 
         if (Properties.Contains(TextProperty.Highlighted))
-            await ConsoleWriter.WriteAsync(output, backgroundColor: TextColor, foregroundColor: BackgroundColor);
+            await TerminalWriter.WriteAsync(output, backgroundColor: TextColor, foregroundColor: BackgroundColor);
         else
-            await ConsoleWriter.WriteAsync(output, backgroundColor: BackgroundColor, foregroundColor: TextColor);
+            await TerminalWriter.WriteAsync(output, backgroundColor: BackgroundColor, foregroundColor: TextColor);
     }
 }

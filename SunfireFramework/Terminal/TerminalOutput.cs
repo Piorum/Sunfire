@@ -1,6 +1,6 @@
-namespace SunfireFramework;
+namespace SunfireFramework.Terminal;
 
-public class ConsoleOutput
+public class TerminalOutput
 {
     required public string Output;
     required public int X;

@@ -1,9 +1,11 @@
 ﻿using Sunfire.Core;
-using SunfireFramework;
+using SunfireFramework.Terminal;
 
 namespace Sunfire;
 
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class Program
 {
     public static readonly CancellationTokenSource _cts = new();
@@ -20,6 +22,6 @@ internal class Program
         await Task.WhenAll(inputTask, renderTask);
 
         Console.Clear();
-        await ConsoleWriter.OutputLog();
+        await TerminalWriter.OutputLog();
     }
 }

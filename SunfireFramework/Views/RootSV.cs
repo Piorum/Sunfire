@@ -1,5 +1,10 @@
+using SunfireFramework.Terminal;
+
 namespace SunfireFramework.Views;
 
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
 {
     public int OriginX { set; get; } = 0;
@@ -10,9 +15,12 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
 
     required public PaneSV RootPane;
+    private readonly IWindowResizer windowResizer = WindowResizerFactory.Create();
 
     public async Task Arrange()
     {
+        await windowResizer.RegisterResizeEvent(this);
+
         RootPane.OriginX = 0;
         RootPane.OriginY = 0;
 
