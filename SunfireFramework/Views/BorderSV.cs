@@ -58,12 +58,19 @@ public class BorderSV : IRelativeSunfireView
 
     public async Task Draw()
     {
-        const char TopLeft = (char)9484;
-        const char TopRight = (char)9488;
-        const char BottomLeft = (char)9492;
-        const char BottomRight = (char)9496;
-        const char Horizontal = (char)9472;
-        const char Vertical = (char)9474;
+        //Square
+        //const char TopLeft = (char)9484;
+        //const char TopRight = (char)9488;
+        //const char BottomLeft = (char)9492;
+        //const char BottomRight = (char)9496;
+        //const char TopLeft = (char)9484;
+        //Rounded
+        const char TopLeft = '╭';
+        const char TopRight = '╮';
+        const char BottomLeft = '╰';
+        const char BottomRight = '╯';
+        const char Horizontal = '─';
+        const char Vertical = '│';
 
         string[] border = new string[SizeY];
         switch (SVBorderStyle)

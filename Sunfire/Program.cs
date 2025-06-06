@@ -20,6 +20,6 @@ internal class Program
         await Task.WhenAll(inputTask, renderTask);
 
         Console.Clear();
-        await ConsoleWriter.OutputErrorLog();
+        await ConsoleWriter.OutputLog();
     }
 }

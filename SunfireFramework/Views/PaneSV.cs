@@ -1,5 +1,3 @@
-
-using System.Diagnostics;
 using SunfireFramework.Enums;
 
 namespace SunfireFramework.Views;

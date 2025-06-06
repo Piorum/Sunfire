@@ -1,4 +1,3 @@
-
 using System.Text;
 
 namespace SunfireFramework;
@@ -49,13 +48,13 @@ public static class ConsoleWriter
         return Task.CompletedTask;
     }
 
-    public static Task LogError(string errorMessage)
+    public static Task LogMessage(string errorMessage)
     {
         _errorLog.AppendLine(errorMessage);
         return Task.CompletedTask;
     }
 
-    public static async Task OutputErrorLog()
+    public static async Task OutputLog()
     {
         await Console.Error.WriteAsync($"{_errorLog}");
     }

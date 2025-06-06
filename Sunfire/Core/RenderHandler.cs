@@ -10,7 +10,7 @@ public static class RenderHandler
     public static readonly ManualResetEventSlim _renderSignal = new();
 
 #pragma warning disable IDE0052
-    //Static store for sigwinch so it doesn't get garbage collected
+    //Static store for sigwinch registration so it doesn't get garbage collected
     private static PosixSignalRegistration? sigwinchRegistration;
 #pragma warning restore IDE0052
 

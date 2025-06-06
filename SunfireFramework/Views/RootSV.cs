@@ -1,11 +1,11 @@
 namespace SunfireFramework.Views;
 
-public class RootSV : ISunfireView
+public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
 {
     public int OriginX { set; get; } = 0;
     public int OriginY { set; get; } = 0;
-    public int SizeX { set; get; } = Console.BufferWidth;
-    public int SizeY { set; get; } = Console.BufferHeight;
+    public int SizeX { set; get; } = sizeX ?? Console.BufferWidth;
+    public int SizeY { set; get; } = sizeY ?? Console.BufferHeight;
 
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
 
