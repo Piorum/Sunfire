@@ -55,7 +55,7 @@ public static class SVRegistry
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.125f,
-                        SVBorderStyle = SVBorderStyle.Full,
+                        SVBorderStyle = SVBorderStyle.Right,
                         SubPane = new()
                         {
                             SubViews =
@@ -70,25 +70,12 @@ public static class SVRegistry
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.425f,
-                        SVBorderStyle = SVBorderStyle.Full,
+                        SVBorderStyle = SVBorderStyle.Right,
                         SubPane = new()
                         {
                             SubViews =
                             [
                                 currentList
-                            ]
-                        }
-                    },
-                    new BorderSV()
-                    {
-                        X = 2,
-                        Y = 1,
-                        SVBorderStyle = SVBorderStyle.Full,
-                        SubPane = new()
-                        {
-                            SubViews =
-                            [
-                                previewPane
                             ]
                         }
                     },

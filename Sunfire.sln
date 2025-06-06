@@ -7,22 +7,29 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sunfire", "Sunfire\Sunfire.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunfireFramework", "SunfireFramework\SunfireFramework.csproj", "{AA946136-6574-425B-80E3-68B0A1BA611D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunfireInputParser", "SunfireInputParser\SunfireInputParser.csproj", "{3BF9186E-3E72-4674-9610-BBB5E06ABBD9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Release-Linux|Any CPU = Release-Linux|Any CPU
+		Release-Linux-KeyboardOnly|Any CPU = Release-Linux-KeyboardOnly|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AA946136-6574-425B-80E3-68B0A1BA611D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AA946136-6574-425B-80E3-68B0A1BA611D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release-Linux|Any CPU.ActiveCfg = Release-Linux|Any CPU
+		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release-Linux|Any CPU.Build.0 = Release-Linux|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release-Linux|Any CPU.ActiveCfg = Release-Linux|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release-Linux|Any CPU.Build.0 = Release-Linux|Any CPU
+		{3BF9186E-3E72-4674-9610-BBB5E06ABBD9}.Release-Linux|Any CPU.ActiveCfg = Release-Linux|Any CPU
+		{3BF9186E-3E72-4674-9610-BBB5E06ABBD9}.Release-Linux|Any CPU.Build.0 = Release-Linux|Any CPU
+
+		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release-Linux-KeyboardOnly|Any CPU.ActiveCfg = Release-Linux-KeyboardOnly|Any CPU
+		{F03E012C-A50F-40DB-B8ED-B1138673EF2E}.Release-Linux-KeyboardOnly|Any CPU.Build.0 = Release-Linux-KeyboardOnly|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release-Linux-KeyboardOnly|Any CPU.ActiveCfg = Release-Linux-KeyboardOnly|Any CPU
+		{AA946136-6574-425B-80E3-68B0A1BA611D}.Release-Linux-KeyboardOnly|Any CPU.Build.0 = Release-Linux-KeyboardOnly|Any CPU
+		{3BF9186E-3E72-4674-9610-BBB5E06ABBD9}.Release-Linux-KeyboardOnly|Any CPU.ActiveCfg = Release-Linux-KeyboardOnly|Any CPU
+		{3BF9186E-3E72-4674-9610-BBB5E06ABBD9}.Release-Linux-KeyboardOnly|Any CPU.Build.0 = Release-Linux-KeyboardOnly|Any CPU
 	EndGlobalSection
 EndGlobal
