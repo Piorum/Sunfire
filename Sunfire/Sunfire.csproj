@@ -11,21 +11,12 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release-Linux'">
-    <InputParserConditionalDefines>MOUSE_SUPPORT</InputParserConditionalDefines>
-    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release-Linux-KeyboardOnly'">
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../SunfireFramework/SunfireFramework.csproj" />
-    <ProjectReference Include="../SunfireInputParser/SunfireInputParser.csproj">
-      <AdditionalProperties>
-        DefineConstants=$(InputParserConditionalDefines)
-      </AdditionalProperties>
-    </ProjectReference>
+    <ProjectReference Include="../SunfireInputParser/SunfireInputParser.csproj" />
   </ItemGroup>
 
 </Project>

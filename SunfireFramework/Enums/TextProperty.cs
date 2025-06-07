@@ -1,10 +1,12 @@
 namespace SunfireFramework.Enums;
 
+[Flags]
 public enum TextProperty
 {
-    Bold,
-    Underlined,
-    Selected,
-    Highlighted,
-    Trimmed
+    None = 0,
+    Bold = 1,
+    Underlined = 2,
+    Selected = 4,
+    Highlighted = 8,
+    Trimmed = 16
 }

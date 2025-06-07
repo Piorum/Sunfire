@@ -1,18 +1,20 @@
 ﻿using Sunfire.Core;
+using SunfireInputParser;
 using SunfireFramework.Terminal;
 
 namespace Sunfire;
 
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class Program
 {
     public static readonly CancellationTokenSource _cts = new();
 
     public static async Task Main()
     {
-        var inputTask = Task.Run(() => InputHandler.InputLoop(_cts));
+        var inputTask = Task.Run(async () =>
+        {
+            var inputHandler = new InputHandler();
+            await inputHandler.Start(_cts);
+        });
 
         Console.CursorVisible = false;
         Console.Clear();

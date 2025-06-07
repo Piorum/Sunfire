@@ -2,9 +2,6 @@ using SunfireFramework.Terminal;
 
 namespace SunfireFramework.Views;
 
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
 {
     public int OriginX { set; get; } = 0;

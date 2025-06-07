@@ -8,9 +8,6 @@ public interface IWindowResizer
     Task RegisterResizeEvent(RootSV root);
 }
 
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal static class WindowResizerFactory
 {
     public static IWindowResizer Create()

@@ -3,9 +3,6 @@ using SunfireFramework.Enums;
 
 namespace Sunfire.Core;
 
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class RenderHandler
 {
     public static readonly ManualResetEventSlim _renderSignal = new();
