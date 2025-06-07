@@ -12,7 +12,9 @@ public static class SVRegistry
     private static ListSV? currentList;
     private static ListSV? containerList;
     private static PaneSV? previewPane;
-    private static LabelSV? topLabel;
+    private static PaneSV? topPane;
+    private static LabelSV? topLeftLabel;
+    private static LabelSV? topRightLabel;
     private static LabelSV? bottomLabel;
 
     [ModuleInitializer]
@@ -26,20 +28,36 @@ public static class SVRegistry
             SubViews = []
         };
 
-        topLabel = new()
+        topLeftLabel = new()
         {
             X = 0,
             Y = 0,
-            Properties = [],
-            TextFields = []
         };
+        topRightLabel = new()
+        {
+            X = 1,
+            Y = 0,
+            FillStyleX = SVFillStyle.Static,
+            Text = "Test"
+        };
+        topRightLabel.StaticX = topRightLabel.Text.Length;
+        topPane = new()
+        {
+            X = 0,
+            Y = 0,
+            FillStyleY = SVFillStyle.Min,
+            SubViews =
+            [
+                topLeftLabel,
+                topRightLabel
+            ]
+        };
+
 
         bottomLabel = new()
         {
             X = 0,
             Y = 2,
-            Properties = [],
-            TextFields = []
         };
 
         rootSV = new()
@@ -48,7 +66,7 @@ public static class SVRegistry
             {
                 SubViews =
                 [
-                    topLabel,
+                    topPane,
                     new BorderSV()
                     {
                         X = 0,
@@ -96,8 +114,12 @@ public static class SVRegistry
         containerList!;
     public static PaneSV GetPreviewPane() =>
         previewPane!;
-    public static LabelSV GetTopLabel() =>
-        topLabel!;
+    public static PaneSV GetTopPane() =>
+        topPane!;
+    public static LabelSV GetTopLeftLabel() =>
+        topLeftLabel!;
+    public static LabelSV GetTopRightLabel() =>
+        topRightLabel!;
     public static LabelSV GetBottomLabel() =>
         bottomLabel!;
 }

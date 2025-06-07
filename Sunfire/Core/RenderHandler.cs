@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using Sunfire.Registries;
 using SunfireFramework.Enums;
+using SunfireFramework.Terminal;
+using SunfireFramework.Views.TextBoxes;
 
 namespace Sunfire.Core;
 
@@ -36,23 +39,17 @@ public static class RenderHandler
         var currentListTask = Task.Run(async () =>
         {
             var currentList = SVRegistry.GetCurrentList();
+            
             for (int i = 0; i < 10; i++)
             {
-                await currentList.AddLabel(new()
+                var newLabel = new LabelSVSlim()
                 {
-                    TextFields =
-                    [
-                        new()
-                    {
-                        Text = $"{i}"
-                    }
-                    ],
-                    Properties =
-                    [
-                        TextProperty.Bold
-                    ]
-                });
+                    Text = $"{i}"
+                };
+                await currentList.AddLabel(newLabel);
             }
+
+            currentList.selectedIndex = 5;
 
             await currentList.Arrange();
             await currentList.Draw();
@@ -60,25 +57,19 @@ public static class RenderHandler
 
         var topLabelTask = Task.Run(async () =>
         {
-            var topLabel = SVRegistry.GetTopLabel();
-            topLabel.TextFields.Add(new()
-            {
-                Text = "Top Label"
-            });
-            topLabel.Properties.Add(TextProperty.Bold);
+            var topLeftLabel = SVRegistry.GetTopLeftLabel();
+            topLeftLabel.Text = "Top Label";
+            topLeftLabel.Properties |= TextProperty.Bold;
 
-            await topLabel.Arrange();
-            await topLabel.Draw();
+            await topLeftLabel.Arrange();
+            await topLeftLabel.Draw();
         });
 
         var bottomLabelTask = Task.Run(async () =>
         {
             var bottomLabel = SVRegistry.GetBottomLabel();
-            bottomLabel.TextFields.Add(new()
-            {
-                Text = "Bottom Label"
-            });
-            bottomLabel.Properties.Add(TextProperty.Bold);
+            bottomLabel.Text = "Bottom Label";
+            bottomLabel.Properties |= TextProperty.Bold;
 
             await bottomLabel.Arrange();
             await bottomLabel.Draw();

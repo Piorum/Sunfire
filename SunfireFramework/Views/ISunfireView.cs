@@ -11,7 +11,7 @@ public interface IRelativeSunfireView : ISunfireView
     SVFillStyle FillStyleX { set; get; }
     SVFillStyle FillStyleY { set; get; }
     int StaticX { set; get; } //1 = 1 Cell
-    int StaticY  { set; get; } //1 = 1 Cell
+    int StaticY { set; get; } //1 = 1 Cell
     float PercentX { set; get; } //1.0f == 100%
     float PercentY { set; get; } //1.0f == 100%
 }

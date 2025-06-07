@@ -54,7 +54,7 @@ public class PaneSV : IRelativeSunfireView
                         switch (view.FillStyleX)
                         {
                             case SVFillStyle.Static:
-                                view.SizeX = Math.Min(availableWidth[view.Y], StaticX);
+                                view.SizeX = Math.Min(availableWidth[view.Y], view.StaticX);
                                 break;
                             case SVFillStyle.Min:
                                 view.SizeX = availableWidth[view.Y] > 0 ? 1 : 0;
@@ -83,7 +83,7 @@ public class PaneSV : IRelativeSunfireView
                         switch (view.FillStyleY)
                         {
                             case SVFillStyle.Static:
-                                view.SizeY = Math.Min(availableHeight[view.X], StaticY);
+                                view.SizeY = Math.Min(availableHeight[view.X], view.StaticY);
                                 break;
                             case SVFillStyle.Min:
                                 view.SizeY = availableHeight[view.X] > 0 ? 1 : 0;
@@ -96,8 +96,7 @@ public class PaneSV : IRelativeSunfireView
                                 break;
                         }
                         if (view.FillStyleY != SVFillStyle.Max)
-                            for (int i = 0; i < availableHeight.Length; i++)
-                                availableHeight[i] -= view.SizeY;
+                            availableHeight[X] -= view.SizeY;
                     }
                 });
 

@@ -86,7 +86,7 @@ public class ListSV : IRelativeSunfireView
         return Task.CompletedTask;
     }
 
-    public Task UpdateVisibleLabels()
+    public async Task UpdateVisibleLabels()
     {
         VisibleLabels = [.. Labels.Skip(startIndex).Take(SizeY)];
         for (int i = 0; i < VisibleLabels.Count; i++)
@@ -94,10 +94,11 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].OriginX = OriginX;
             VisibleLabels[i].OriginY = OriginY + i;
             VisibleLabels[i].SizeX = SizeX;
-            VisibleLabels[i].Properties.Remove(TextProperty.Highlighted);
+            VisibleLabels[i].Properties &= ~TextProperty.Highlighted;
         }
-        Labels[selectedIndex].Properties.Add(TextProperty.Highlighted);
-        return Task.CompletedTask;
+        Labels[selectedIndex].Properties |= TextProperty.Highlighted;
+
+        await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));
     }
 
     //Should be called when selectedIndex is updated
