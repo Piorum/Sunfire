@@ -61,7 +61,7 @@ public static class SVRegistry
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.125f,
-                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
                         SubPane = new()
                         {
                             SubViews =
@@ -76,7 +76,7 @@ public static class SVRegistry
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.425f,
-                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
                         SubPane = new()
                         {
                             SubViews =
@@ -89,7 +89,7 @@ public static class SVRegistry
                     {
                         X = 2,
                         Y = 1,
-                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left | SVBorderStyle.Right,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left | Direction.Right,
                         SubPane = new()
                         {
                             SubViews =

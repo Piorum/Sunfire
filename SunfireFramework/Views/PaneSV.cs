@@ -52,19 +52,19 @@ public class PaneSV : IRelativeSunfireView
                     {
                         if (viewCoordinates.Contains((view.X, view.Y - 1)))
                         {
-                            view.BorderConnections |= SVBorderConnection.Top;
+                            view.BorderConnections |= Direction.Top;
                         }
                         if (viewCoordinates.Contains((view.X, view.Y + 1)))
                         {
-                            view.BorderConnections |= SVBorderConnection.Bottom;
+                            view.BorderConnections |= Direction.Bottom;
                         }
                         if (viewCoordinates.Contains((view.X - 1, view.Y)))
                         {
-                            view.BorderConnections |= SVBorderConnection.Left;
+                            view.BorderConnections |= Direction.Left;
                         }
                         if (viewCoordinates.Contains((view.X + 1, view.Y)))
                         {
-                            view.BorderConnections |= SVBorderConnection.Right;
+                            view.BorderConnections |= Direction.Right;
                         }
                     }
                 });

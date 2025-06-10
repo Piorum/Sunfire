@@ -21,8 +21,8 @@ public class BorderSV : IRelativeSunfireView
     public int SizeX { set; get; }
     public int SizeY { set; get; }
 
-    public SVBorderStyle BorderStyle = SVBorderStyle.None;
-    public SVBorderConnection BorderConnections = SVBorderConnection.None;
+    public Direction BorderSides = Direction.None;
+    public Direction BorderConnections = Direction.None;
 
     public ConsoleColor BorderColor = ConsoleColor.White;
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
@@ -31,8 +31,14 @@ public class BorderSV : IRelativeSunfireView
 
     //Border buffer
     private string[] borderBuffer = [];
-    
+
     //Box building characters
+    //Squared
+    //private const char TopLeft = (char)9484;
+    //private const char TopRight = (char)9488;
+    //private const char BottomLeft = (char)9492;
+    //private const char BottomRight = (char)9496;
+    //Rounded
     private const char TopLeft = '╭';
     private const char TopRight = '╮';
     private const char BottomLeft = '╰';
@@ -48,118 +54,113 @@ public class BorderSV : IRelativeSunfireView
     private const char VerticalAndRight = '├';
 
     //Box building lookup tables
-    //Connections, Borderstyle, ProperCornerChar
-    private static readonly Dictionary<(SVBorderConnection, SVBorderStyle), char> topLeftMap =
+    //Connections, BorderSide, ProperCornerChar
+    private static readonly Dictionary<(Direction, Direction), char> topLeftMap =
     new()
     {
-        { (SVBorderConnection.Top | SVBorderConnection.Left, SVBorderStyle.Top | SVBorderStyle.Left), HorizontalAndVertical },
-        { (SVBorderConnection.Top | SVBorderConnection.Left, SVBorderStyle.Top),  HorizontalAndUp },
-        { (SVBorderConnection.Top | SVBorderConnection.Left, SVBorderStyle.Left), VerticalAndLeft },
+        { (Direction.Top | Direction.Left, Direction.Top | Direction.Left), HorizontalAndVertical },
+        { (Direction.Top | Direction.Left, Direction.Top),  HorizontalAndUp },
+        { (Direction.Top | Direction.Left, Direction.Left), VerticalAndLeft },
 
-        { (SVBorderConnection.Top,  SVBorderStyle.Top | SVBorderStyle.Left), VerticalAndRight },
-        { (SVBorderConnection.Top,  SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.Top,  SVBorderStyle.Left), Vertical },
+        { (Direction.Top, Direction.Top | Direction.Left), VerticalAndRight },
+        { (Direction.Top, Direction.Top),  Horizontal },
+        { (Direction.Top, Direction.Left), Vertical },
 
-        { (SVBorderConnection.Left, SVBorderStyle.Top | SVBorderStyle.Left), HorizontalAndDown },
-        { (SVBorderConnection.Left, SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.Left, SVBorderStyle.Left), Vertical },
+        { (Direction.Left, Direction.Top | Direction.Left), HorizontalAndDown },
+        { (Direction.Left, Direction.Top),  Horizontal },
+        { (Direction.Left, Direction.Left), Vertical },
 
-        { (SVBorderConnection.None, SVBorderStyle.Top | SVBorderStyle.Left), TopLeft },
-        { (SVBorderConnection.None, SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.None, SVBorderStyle.Left), Vertical },
+        { (Direction.None, Direction.Top | Direction.Left), TopLeft },
+        { (Direction.None, Direction.Top),  Horizontal },
+        { (Direction.None, Direction.Left), Vertical },
     };
-    private static readonly Dictionary<(SVBorderConnection, SVBorderStyle), char> topRightMap =
+    private static readonly Dictionary<(Direction, Direction), char> topRightMap =
     new()
     {
-        { (SVBorderConnection.Top | SVBorderConnection.Right, SVBorderStyle.Top | SVBorderStyle.Right), HorizontalAndVertical },
-        { (SVBorderConnection.Top | SVBorderConnection.Right, SVBorderStyle.Top),  HorizontalAndUp },
-        { (SVBorderConnection.Top | SVBorderConnection.Right, SVBorderStyle.Right), VerticalAndRight },
+        { (Direction.Top | Direction.Right, Direction.Top | Direction.Right), HorizontalAndVertical },
+        { (Direction.Top | Direction.Right, Direction.Top),  HorizontalAndUp },
+        { (Direction.Top | Direction.Right, Direction.Right), VerticalAndRight },
 
-        { (SVBorderConnection.Top,  SVBorderStyle.Top | SVBorderStyle.Right), VerticalAndLeft },
-        { (SVBorderConnection.Top,  SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.Top,  SVBorderStyle.Right), Vertical },
+        { (Direction.Top,  Direction.Top | Direction.Right), VerticalAndLeft },
+        { (Direction.Top,  Direction.Top),  Horizontal },
+        { (Direction.Top,  Direction.Right), Vertical },
 
-        { (SVBorderConnection.Right, SVBorderStyle.Top | SVBorderStyle.Right), HorizontalAndDown },
-        { (SVBorderConnection.Right, SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.Right, SVBorderStyle.Right), Vertical },
+        { (Direction.Right, Direction.Top | Direction.Right), HorizontalAndDown },
+        { (Direction.Right, Direction.Top),  Horizontal },
+        { (Direction.Right, Direction.Right), Vertical },
 
-        { (SVBorderConnection.None, SVBorderStyle.Top | SVBorderStyle.Right), TopRight },
-        { (SVBorderConnection.None, SVBorderStyle.Top),  Horizontal },
-        { (SVBorderConnection.None, SVBorderStyle.Right), Vertical },
+        { (Direction.None, Direction.Top | Direction.Right), TopRight },
+        { (Direction.None, Direction.Top),  Horizontal },
+        { (Direction.None, Direction.Right), Vertical },
     };
-    private static readonly Dictionary<(SVBorderConnection, SVBorderStyle), char> bottomLeftMap =
+    private static readonly Dictionary<(Direction, Direction), char> bottomLeftMap =
     new()
     {
-        { (SVBorderConnection.Bottom | SVBorderConnection.Left, SVBorderStyle.Bottom | SVBorderStyle.Left), HorizontalAndVertical },
-        { (SVBorderConnection.Bottom | SVBorderConnection.Left, SVBorderStyle.Bottom),  HorizontalAndDown },
-        { (SVBorderConnection.Bottom | SVBorderConnection.Left, SVBorderStyle.Left), VerticalAndLeft },
+        { (Direction.Bottom | Direction.Left, Direction.Bottom | Direction.Left), HorizontalAndVertical },
+        { (Direction.Bottom | Direction.Left, Direction.Bottom),  HorizontalAndDown },
+        { (Direction.Bottom | Direction.Left, Direction.Left), VerticalAndLeft },
 
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Bottom | SVBorderStyle.Left), VerticalAndRight },
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Left), Vertical },
+        { (Direction.Bottom,  Direction.Bottom | Direction.Left), VerticalAndRight },
+        { (Direction.Bottom,  Direction.Bottom),  Horizontal },
+        { (Direction.Bottom,  Direction.Left), Vertical },
 
-        { (SVBorderConnection.Left, SVBorderStyle.Bottom | SVBorderStyle.Left), HorizontalAndUp },
-        { (SVBorderConnection.Left, SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.Left, SVBorderStyle.Left), Vertical },
+        { (Direction.Left, Direction.Bottom | Direction.Left), HorizontalAndUp },
+        { (Direction.Left, Direction.Bottom),  Horizontal },
+        { (Direction.Left, Direction.Left), Vertical },
 
-        { (SVBorderConnection.None, SVBorderStyle.Bottom | SVBorderStyle.Left), BottomLeft },
-        { (SVBorderConnection.None, SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.None, SVBorderStyle.Left), Vertical },
+        { (Direction.None, Direction.Bottom | Direction.Left), BottomLeft },
+        { (Direction.None, Direction.Bottom),  Horizontal },
+        { (Direction.None, Direction.Left), Vertical },
     };
-    private static readonly Dictionary<(SVBorderConnection, SVBorderStyle), char> bottomRightMap =
+    private static readonly Dictionary<(Direction, Direction), char> bottomRightMap =
     new()
     {
-        { (SVBorderConnection.Bottom | SVBorderConnection.Right, SVBorderStyle.Bottom | SVBorderStyle.Right), HorizontalAndVertical },
-        { (SVBorderConnection.Bottom | SVBorderConnection.Right, SVBorderStyle.Bottom),  HorizontalAndDown },
-        { (SVBorderConnection.Bottom | SVBorderConnection.Right, SVBorderStyle.Right), VerticalAndRight },
+        { (Direction.Bottom | Direction.Right, Direction.Bottom | Direction.Right), HorizontalAndVertical },
+        { (Direction.Bottom | Direction.Right, Direction.Bottom),  HorizontalAndDown },
+        { (Direction.Bottom | Direction.Right, Direction.Right), VerticalAndRight },
 
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Bottom | SVBorderStyle.Right), VerticalAndLeft },
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.Bottom,  SVBorderStyle.Right), Vertical },
+        { (Direction.Bottom,  Direction.Bottom | Direction.Right), VerticalAndLeft },
+        { (Direction.Bottom,  Direction.Bottom),  Horizontal },
+        { (Direction.Bottom,  Direction.Right), Vertical },
 
-        { (SVBorderConnection.Right, SVBorderStyle.Bottom | SVBorderStyle.Right), HorizontalAndUp },
-        { (SVBorderConnection.Right, SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.Right, SVBorderStyle.Right), Vertical },
+        { (Direction.Right, Direction.Bottom | Direction.Right), HorizontalAndUp },
+        { (Direction.Right, Direction.Bottom),  Horizontal },
+        { (Direction.Right, Direction.Right), Vertical },
 
-        { (SVBorderConnection.None, SVBorderStyle.Bottom | SVBorderStyle.Right), BottomRight },
-        { (SVBorderConnection.None, SVBorderStyle.Bottom),  Horizontal },
-        { (SVBorderConnection.None, SVBorderStyle.Right), Vertical },
+        { (Direction.None, Direction.Bottom | Direction.Right), BottomRight },
+        { (Direction.None, Direction.Bottom),  Horizontal },
+        { (Direction.None, Direction.Right), Vertical },
     };
 
     public async Task Arrange()
     {
         //Populating border buffer
         //Square
-        //const char TopLeft = (char)9484;
-        //const char TopRight = (char)9488;
-        //const char BottomLeft = (char)9492;
-        //const char BottomRight = (char)9496;
-        //const char TopLeft = (char)9484;
         //Rounded
 
         var width = Math.Max(SizeX - 2, 0);
-        string topString = BorderStyle.HasFlag(SVBorderStyle.Top) ? new string(Horizontal, SizeX) : new string(' ', width);
-        string bottomString = BorderStyle.HasFlag(SVBorderStyle.Bottom) ? new string(Horizontal, SizeX) : new string(' ', width);
+        string topString = BorderSides.HasFlag(Direction.Top) ? new string(Horizontal, SizeX) : new string(' ', width);
+        string bottomString = BorderSides.HasFlag(Direction.Bottom) ? new string(Horizontal, SizeX) : new string(' ', width);
 
-        string middleString = new string(' ', SizeX);
+        string middleString = new(' ', SizeX);
         if (middleString.Length > 0)
         {
-            if (BorderStyle.HasFlag(SVBorderStyle.Right))
+            if (BorderSides.HasFlag(Direction.Right))
                 middleString = middleString[0..^1] + Vertical;
-            if (BorderStyle.HasFlag(SVBorderStyle.Left))
+            if (BorderSides.HasFlag(Direction.Left))
                 middleString = Vertical + middleString[1..];
         }
 
-        var topLeftKey = (BorderConnections & (SVBorderConnection.Top | SVBorderConnection.Left), BorderStyle & (SVBorderStyle.Top | SVBorderStyle.Left));
+        var topLeftKey = (BorderConnections & (Direction.Top | Direction.Left), BorderSides & (Direction.Top | Direction.Left));
         char topLeftChar = topLeftMap.TryGetValue(topLeftKey, out char foundTLChar) ? foundTLChar : '@';
 
-        var topRightKey = (BorderConnections & (SVBorderConnection.Top | SVBorderConnection.Right), BorderStyle & (SVBorderStyle.Top | SVBorderStyle.Right));
+        var topRightKey = (BorderConnections & (Direction.Top | Direction.Right), BorderSides & (Direction.Top | Direction.Right));
         var topRightChar = topRightMap.TryGetValue(topRightKey, out char foundTRChar) ? foundTRChar : '@';
 
-        var bottomLeftKey = (BorderConnections & (SVBorderConnection.Bottom | SVBorderConnection.Left), BorderStyle & (SVBorderStyle.Bottom | SVBorderStyle.Left));
+        var bottomLeftKey = (BorderConnections & (Direction.Bottom | Direction.Left), BorderSides & (Direction.Bottom | Direction.Left));
         var bottomLeftChar = bottomLeftMap.TryGetValue(bottomLeftKey, out char foundBLChar) ? foundBLChar : '@';
 
-        var bottomRightKey = (BorderConnections & (SVBorderConnection.Bottom | SVBorderConnection.Right), BorderStyle & (SVBorderStyle.Bottom | SVBorderStyle.Right));
+        var bottomRightKey = (BorderConnections & (Direction.Bottom | Direction.Right), BorderSides & (Direction.Bottom | Direction.Right));
         var bottomRightChar = bottomRightMap.TryGetValue(bottomRightKey, out char foundBRChar) ? foundBRChar : '@';
 
         if (topString.Length > 1)
@@ -187,20 +188,20 @@ public class BorderSV : IRelativeSunfireView
         SubPane.OriginX = OriginX;
         SubPane.OriginY = OriginY;
 
-        if (BorderStyle.HasFlag(SVBorderStyle.Top))
+        if (BorderSides.HasFlag(Direction.Top))
         {
             SubPane.SizeY--;
             SubPane.OriginY++;
         }
-        if (BorderStyle.HasFlag(SVBorderStyle.Right))
+        if (BorderSides.HasFlag(Direction.Right))
         {
             SubPane.SizeX--;
         }
-        if (BorderStyle.HasFlag(SVBorderStyle.Bottom))
+        if (BorderSides.HasFlag(Direction.Bottom))
         {
             SubPane.SizeY--;
         }
-        if (BorderStyle.HasFlag(SVBorderStyle.Left))
+        if (BorderSides.HasFlag(Direction.Left))
         {
             SubPane.SizeX--;
             SubPane.OriginX++;

@@ -1,7 +1,7 @@
 namespace SunfireFramework.Enums;
 
 [Flags]
-public enum SVBorderConnection
+public enum Direction
 {
     None = 0,
     Top = 1,
