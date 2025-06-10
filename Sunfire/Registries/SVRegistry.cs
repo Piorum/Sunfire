@@ -12,7 +12,6 @@ public static class SVRegistry
     private static ListSV? currentList;
     private static ListSV? containerList;
     private static PaneSV? previewPane;
-    private static PaneSV? topPane;
     private static LabelSV? topLeftLabel;
     private static LabelSV? topRightLabel;
     private static LabelSV? bottomLabel;
@@ -41,18 +40,6 @@ public static class SVRegistry
             Text = "Test"
         };
         topRightLabel.StaticX = topRightLabel.Text.Length;
-        topPane = new()
-        {
-            X = 0,
-            Y = 0,
-            FillStyleY = SVFillStyle.Min,
-            SubViews =
-            [
-                topLeftLabel,
-                topRightLabel
-            ]
-        };
-
 
         bottomLabel = new()
         {
@@ -66,14 +53,15 @@ public static class SVRegistry
             {
                 SubViews =
                 [
-                    topPane,
+                    topLeftLabel,
+                    topRightLabel,
                     new BorderSV()
                     {
                         X = 0,
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.125f,
-                        SVBorderStyle = SVBorderStyle.Right,
+                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left,
                         SubPane = new()
                         {
                             SubViews =
@@ -88,7 +76,7 @@ public static class SVRegistry
                         Y = 1,
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.425f,
-                        SVBorderStyle = SVBorderStyle.Right,
+                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left,
                         SubPane = new()
                         {
                             SubViews =
@@ -97,7 +85,19 @@ public static class SVRegistry
                             ]
                         }
                     },
-                    previewPane,
+                    new BorderSV()
+                    {
+                        X = 2,
+                        Y = 1,
+                        BorderStyle = SVBorderStyle.Top | SVBorderStyle.Bottom | SVBorderStyle.Left | SVBorderStyle.Right,
+                        SubPane = new()
+                        {
+                            SubViews =
+                            [
+                                previewPane
+                            ]
+                        }
+                    },
                     bottomLabel,
 
                 ]
@@ -114,8 +114,6 @@ public static class SVRegistry
         containerList!;
     public static PaneSV GetPreviewPane() =>
         previewPane!;
-    public static PaneSV GetTopPane() =>
-        topPane!;
     public static LabelSV GetTopLeftLabel() =>
         topLeftLabel!;
     public static LabelSV GetTopRightLabel() =>

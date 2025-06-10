@@ -33,8 +33,8 @@ public class PaneSV : IRelativeSunfireView
         await PopulateXYZLevels();
 
         //Measurement
-        var orderByWidthStyle = SubViews.OrderBy(sv => sv.FillStyleX).ToList();
-        var orderByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
+        var orderedByWidthStyle = SubViews.OrderBy(sv => sv.FillStyleX).ToList();
+        var orderedByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
 
         List<Task> measureTasks = [];
         foreach (var zLevel in zLevels!)
@@ -42,12 +42,39 @@ public class PaneSV : IRelativeSunfireView
             var zIndex = zLevel;
             measureTasks.Add(Task.Run(async () =>
             {
+                //Border Connection Task
+                var connectionsTask = Task.Run(() =>
+                {
+                    var borderViews = SubViews.OfType<BorderSV>().ToList();
+                    var viewCoordinates = borderViews.Select(v => (v.X, v.Y)).ToHashSet();
+
+                    foreach (var view in borderViews)
+                    {
+                        if (viewCoordinates.Contains((view.X, view.Y - 1)))
+                        {
+                            view.BorderConnections |= SVBorderConnection.Top;
+                        }
+                        if (viewCoordinates.Contains((view.X, view.Y + 1)))
+                        {
+                            view.BorderConnections |= SVBorderConnection.Bottom;
+                        }
+                        if (viewCoordinates.Contains((view.X - 1, view.Y)))
+                        {
+                            view.BorderConnections |= SVBorderConnection.Left;
+                        }
+                        if (viewCoordinates.Contains((view.X + 1, view.Y)))
+                        {
+                            view.BorderConnections |= SVBorderConnection.Right;
+                        }
+                    }
+                });
+                
                 //Width
                 var widthTask = Task.Run(() =>
                 {
                     int[] availableWidth = new int[yLevels!.Count];
                     Array.Fill(availableWidth, SizeX);
-                    foreach (var view in orderByWidthStyle)
+                    foreach (var view in orderedByWidthStyle)
                     {
                         if (view.Z != zIndex) continue;
 
@@ -76,7 +103,10 @@ public class PaneSV : IRelativeSunfireView
                 {
                     int[] availableHeight = new int[xLevels!.Count];
                     Array.Fill(availableHeight, SizeY);
-                    foreach (var view in orderByHeightStyle)
+
+                    int[] largestAtY = new int[yLevels!.Count];
+
+                    foreach (var view in orderedByHeightStyle)
                     {
                         if (view.Z != zIndex) continue;
 
@@ -95,12 +125,18 @@ public class PaneSV : IRelativeSunfireView
                                 view.SizeY = availableHeight[view.X];
                                 break;
                         }
-                        if (view.FillStyleY != SVFillStyle.Max)
-                            availableHeight[X] -= view.SizeY;
+
+                        if (view.SizeY > largestAtY[view.Y])
+                        {
+                            if (view.FillStyleY != SVFillStyle.Max)
+                                for (int i = 0; i < availableHeight.Length; i++)
+                                    availableHeight[i] -= view.SizeY - largestAtY[view.Y];
+                            largestAtY[view.Y] = view.SizeY;
+                        }
                     }
                 });
 
-                await Task.WhenAll(widthTask, heightTask);
+                await Task.WhenAll(connectionsTask, widthTask, heightTask);
             }));
         }
         await Task.WhenAll(measureTasks);
