@@ -12,7 +12,14 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
     private Func<InputData, Task>? binding;
     private List<TContextEnum>? context;
 
+    private bool sequenceIndifferent = false;
+
     private bool validated = false;
+
+    private static string _noBindingError = "Must provide binding.";
+    private static string _noKeybindingError = "Atleast one keybind must be set.";
+    private static string _noContextError = "Context must be set for bind.";
+    private static string _indifferentWithSequenceError = "Indfferent binds cannot contain more than one node.";
 
     public KeybindBuilder<TContextEnum> WithSequence(Key key)
     {
@@ -43,17 +50,26 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
         return this;
     }
 
+    public KeybindBuilder<TContextEnum> AsIndifferent()
+    {
+        sequenceIndifferent = true;
+        return this;
+    }
+
     public Task<(string? error, bool valid)> Validate()
     {
         if (binding is null)
-            return Task.FromResult<(string?, bool)>(("Must provide binding.", false));
+            return Task.FromResult<(string?, bool)>((_noBindingError, validated));
         if (firstKey is null)
-            return Task.FromResult<(string?, bool)>(("Atleast one bind must be set.", false));
+            return Task.FromResult<(string?, bool)>((_noKeybindingError, validated));
         if (context is null)
-            return Task.FromResult<(string?, bool)>(("Context must be set for bind.", false));
+            return Task.FromResult<(string?, bool)>((_noContextError, validated));
+
+        if (sequenceIndifferent && firstNode != lastNode)
+            return Task.FromResult<(string?, bool)>((_indifferentWithSequenceError, validated));
 
         validated = true;
-        return Task.FromResult<(string?, bool)>((null, true));
+        return Task.FromResult<(string?, bool)>((null, validated));
     }
 
     public Task RegisterBind(InputHandler<TContextEnum> inputHandler)
@@ -61,17 +77,32 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
         if (!validated)
         {
             if (binding is null)
-                throw new InvalidOperationException("Must provide binding.");
+                throw new InvalidOperationException(_noBindingError);
             if (firstKey is null)
-                throw new InvalidOperationException("Atleast one bind must be set.");
+                throw new InvalidOperationException(_noKeybindingError);
             if (context is null)
-                throw new InvalidOperationException("Context must be set for bind.");
+                throw new InvalidOperationException(_noContextError);
+
+            if (sequenceIndifferent && firstNode != lastNode)
+                throw new InvalidOperationException(_indifferentWithSequenceError);
         }
 
-        foreach (var ctx in context!)
-            lastNode!.Bindings.Add(ctx, binding!);
+        if (sequenceIndifferent)
+        {
+            Bind bind = new(binding!);
+            foreach (var ctx in context!)
+            {
+                inputHandler.indifferentBinds.Add(((Key)firstKey!, ctx), bind);
+            }
+        }
+        else
+        {
+            Bind bind = new(binding!);
+            foreach (var ctx in context!)
+                    lastNode!.Bindings.Add(ctx, bind);
 
-        inputHandler.bindingRootNode.Children.Add((Key)firstKey!, firstNode!);
+            inputHandler.sequenceBindsRoot.Children.Add((Key)firstKey!, firstNode!);
+        }
 
         return Task.CompletedTask;
     }

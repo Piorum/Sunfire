@@ -22,6 +22,14 @@ public class LinuxInputTranslator : IInputTranslator
                 }
                 catch (OperationCanceledException) { }
             }
+            else
+            {
+                try
+                {
+                    await Task.Delay(10, token);
+                }
+                catch (OperationCanceledException) { }
+            }
         }
     }
 

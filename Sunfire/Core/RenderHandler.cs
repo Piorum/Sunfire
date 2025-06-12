@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using Sunfire.Registries;
 using SunfireFramework.Enums;
-using SunfireFramework.Terminal;
 using SunfireFramework.Views.TextBoxes;
 
 namespace Sunfire.Core;
@@ -10,7 +8,7 @@ public static class RenderHandler
 {
     public static readonly ManualResetEventSlim _renderSignal = new();
 
-    public static async Task RenderLoop(CancellationToken token)
+    public static async Task Start(CancellationToken token)
     {
         //Initial Draw
         var rootSv = SVRegistry.GetRootSV();
@@ -18,19 +16,15 @@ public static class RenderHandler
         await rootSv.Draw();
         await PopulateFields();
 
-        while (!token.IsCancellationRequested)
-        {
-            try
-            {
-                _renderSignal.Wait(token);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
+        var bottomLabel = SVRegistry.GetBottomLabel();
 
-            _renderSignal.Reset();
-        }
+        /*while (!token.IsCancellationRequested)
+        {
+            bottomLabel.Text = $"({await Program.InputHandler!.SequenceText()})";
+            await bottomLabel.Arrange();
+            await bottomLabel.Draw();
+        }*/
+
         return;
     }
     
