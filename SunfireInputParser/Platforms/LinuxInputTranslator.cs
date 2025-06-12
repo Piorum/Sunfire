@@ -1,7 +1,8 @@
 using System.Threading.Channels;
 using SunfireInputParser.Enums;
+using SunfireInputParser.Types;
 
-namespace SunfireInputParser.Input.Platforms;
+namespace SunfireInputParser.Platforms;
 
 public class LinuxInputTranslator : IInputTranslator
 {
@@ -19,22 +20,14 @@ public class LinuxInputTranslator : IInputTranslator
                 {
                     await writer.WriteAsync(inputEvent, token);
                 }
-                catch (OperationCanceledException) {}
+                catch (OperationCanceledException) { }
             }
         }
     }
 
     private static Task<TerminalInput> Translate(ConsoleKeyInfo keyInfo)
     {
-        var terminalInput = new TerminalInput
-        {
-            Type = InputType.Keyboard,
-            CreationTime = DateTime.Now,
-
-            Key = keyInfo.Key,
-            Char = keyInfo.KeyChar,
-            Modifiers = (Modifier)keyInfo.Modifiers
-        };
+        var terminalInput = TerminalInput.KeyboardInput(keyInfo.Key, keyInfo.KeyChar, (Modifier)keyInfo.Modifiers);
 
         return Task.FromResult(terminalInput);
     }

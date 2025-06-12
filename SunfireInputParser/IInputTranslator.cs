@@ -1,7 +1,8 @@
 using System.Threading.Channels;
-using SunfireInputParser.Input.Platforms;
+using SunfireInputParser.Platforms;
+using SunfireInputParser.Types;
 
-namespace SunfireInputParser.Input;
+namespace SunfireInputParser;
 
 public interface IInputTranslator
 {

@@ -35,40 +35,41 @@ public class PaneSV : IRelativeSunfireView
         //Measurement
         var orderedByWidthStyle = SubViews.OrderBy(sv => sv.FillStyleX).ToList();
         var orderedByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
+        var subViewGrid = SubViews.ToLookup(sv => (sv.X, sv.Y, sv.Z));
 
-        List<Task> measureTasks = [];
+        //Border Connections Task
+        var borderConnectionsTask = Task.Run(() =>
+        {
+            var borderViews = SubViews.OfType<BorderSV>().ToList();
+            var viewCoordinates = borderViews.Select(v => (v.X, v.Y)).ToHashSet();
+
+            foreach (var view in borderViews)
+            {
+                if (viewCoordinates.Contains((view.X, view.Y - 1)))
+                {
+                    view.BorderConnections |= Direction.Top;
+                }
+                if (viewCoordinates.Contains((view.X, view.Y + 1)))
+                {
+                    view.BorderConnections |= Direction.Bottom;
+                }
+                if (viewCoordinates.Contains((view.X - 1, view.Y)))
+                {
+                    view.BorderConnections |= Direction.Left;
+                }
+                if (viewCoordinates.Contains((view.X + 1, view.Y)))
+                {
+                    view.BorderConnections |= Direction.Right;
+                }
+            }
+        });
+
+        List<Task> measureAndPostionTasks = [];
         foreach (var zLevel in zLevels!)
         {
             var zIndex = zLevel;
-            measureTasks.Add(Task.Run(async () =>
+            measureAndPostionTasks.Add(Task.Run(async () =>
             {
-                //Border Connection Task
-                var connectionsTask = Task.Run(() =>
-                {
-                    var borderViews = SubViews.OfType<BorderSV>().ToList();
-                    var viewCoordinates = borderViews.Select(v => (v.X, v.Y)).ToHashSet();
-
-                    foreach (var view in borderViews)
-                    {
-                        if (viewCoordinates.Contains((view.X, view.Y - 1)))
-                        {
-                            view.BorderConnections |= Direction.Top;
-                        }
-                        if (viewCoordinates.Contains((view.X, view.Y + 1)))
-                        {
-                            view.BorderConnections |= Direction.Bottom;
-                        }
-                        if (viewCoordinates.Contains((view.X - 1, view.Y)))
-                        {
-                            view.BorderConnections |= Direction.Left;
-                        }
-                        if (viewCoordinates.Contains((view.X + 1, view.Y)))
-                        {
-                            view.BorderConnections |= Direction.Right;
-                        }
-                    }
-                });
-                
                 //Width
                 var widthTask = Task.Run(() =>
                 {
@@ -136,38 +137,34 @@ public class PaneSV : IRelativeSunfireView
                     }
                 });
 
-                await Task.WhenAll(connectionsTask, widthTask, heightTask);
+                await Task.WhenAll(widthTask, heightTask);
+
+                //Positioning
+                var CursorX = OriginX;
+                var CursorY = OriginY;
+                foreach (var yLevel in yLevels!)
+                {
+                    var largestY = 0;
+                    foreach (var xLevel in xLevels!)
+                    {
+                        IRelativeSunfireView? subView = subViewGrid[(xLevel, yLevel, zLevel)].FirstOrDefault();
+                        if (subView is null || subView.Z != zLevel) continue;
+
+                        subView.OriginX = CursorX;
+                        subView.OriginY = CursorY;
+
+                        CursorX += subView.SizeX;
+
+                        largestY = subView.SizeY > largestY ? subView.SizeY : largestY;
+                    }
+                    CursorX = OriginX;
+                    CursorY += largestY;
+                }
             }));
         }
-        await Task.WhenAll(measureTasks);
 
-        //Positioning
-        var subViewGrid = SubViews.ToLookup(sv => (sv.X, sv.Y, sv.Z));
-
-        foreach (var zLevel in zLevels!)
-        {
-            var CursorX = OriginX;
-            var CursorY = OriginY;
-            foreach (var yLevel in yLevels!)
-            {
-                var largestY = 0;
-                foreach (var xLevel in xLevels!)
-                {
-                    IRelativeSunfireView? subView = subViewGrid[(xLevel, yLevel, zLevel)].FirstOrDefault();
-                    if (subView is null) continue;
-
-                    subView.OriginX = CursorX;
-                    subView.OriginY = CursorY;
-
-                    CursorX += subView.SizeX;
-
-                    largestY = subView.SizeY > largestY ? subView.SizeY : largestY;
-                }
-                CursorX = OriginX;
-                CursorY += largestY;
-            }
-        }
-
+        await Task.WhenAll(Task.WhenAll(measureAndPostionTasks), borderConnectionsTask);
+        
         await Task.WhenAll(SubViews.Select(v => v.Arrange()));
     }
 
