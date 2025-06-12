@@ -3,8 +3,10 @@ using SunfireInputParser.Types;
 
 namespace SunfireInputParser.Builders;
 
-public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
+public class KeybindBuilder<TContextEnum>(InputHandler<TContextEnum> _inputHandler) where TContextEnum : struct, Enum
 {
+    private InputHandler<TContextEnum> inputHandler = _inputHandler;
+
     private Key? firstKey;
     private TrieNode<TContextEnum>? firstNode;
     private TrieNode<TContextEnum>? lastNode;
@@ -16,10 +18,10 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
 
     private bool validated = false;
 
-    private static string _noBindingError = "Must provide binding.";
-    private static string _noKeybindingError = "Atleast one keybind must be set.";
-    private static string _noContextError = "Context must be set for bind.";
-    private static string _indifferentWithSequenceError = "Indfferent binds cannot contain more than one node.";
+    private const string _noBindingError = "Must provide binding.";
+    private const string _noKeybindingError = "Atleast one keybind must be set.";
+    private const string _noContextError = "Context must be set for bind.";
+    private const string _indifferentWithSequenceError = "Indfferent binds cannot contain more than one node.";
 
     public KeybindBuilder<TContextEnum> WithSequence(Key key)
     {
@@ -72,7 +74,7 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
         return Task.FromResult<(string?, bool)>((null, validated));
     }
 
-    public Task RegisterBind(InputHandler<TContextEnum> inputHandler)
+    public Task RegisterBind()
     {
         if (!validated)
         {

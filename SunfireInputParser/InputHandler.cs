@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using SunfireInputParser.Types;
 using SunfireInputParser.DataStructures;
 using System.Text;
+using SunfireInputParser.Builders;
 
 namespace SunfireInputParser;
 
@@ -35,6 +36,11 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
 
         sequenceTimeoutTimer.AutoReset = true;
         sequenceTimeoutTimer.Enabled = true;
+    }
+
+    public KeybindBuilder<TContextEnum> CreateBinding()
+    {
+        return new(this);
     }
 
     public async Task Start(CancellationTokenSource? cts = default)

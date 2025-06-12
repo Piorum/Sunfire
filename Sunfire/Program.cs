@@ -2,7 +2,6 @@
 using SunfireInputParser;
 using SunfireFramework.Terminal;
 using Sunfire.Enums;
-using SunfireInputParser.Builders;
 using SunfireInputParser.Types;
 
 namespace Sunfire;
@@ -20,13 +19,12 @@ internal class Program
             InputHandler = new InputHandler<InputContext>();
             InputHandler.Context.Add(InputContext.Global);
 
-            KeybindBuilder<InputContext> keybindBuilder = new();
-            await keybindBuilder
+            await InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Q, SunfireInputParser.Enums.Modifier.Ctrl))
                 .WithContext([InputContext.Global])
                 .WithBind((inputData) => { _cts.Cancel(); return Task.CompletedTask; })
-                .RegisterBind(InputHandler);
+                .RegisterBind();
 
             await InputHandler.Start(_cts);
         });
