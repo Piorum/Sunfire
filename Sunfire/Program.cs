@@ -1,7 +1,7 @@
 ﻿using Sunfire.Core;
-using SunfireInputParser;
-using SunfireFramework.Terminal;
 using Sunfire.Enums;
+using SunfireFramework.Terminal;
+using SunfireInputParser;
 using SunfireInputParser.Types;
 
 namespace Sunfire;

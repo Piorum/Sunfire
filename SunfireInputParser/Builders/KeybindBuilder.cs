@@ -3,9 +3,9 @@ using SunfireInputParser.Types;
 
 namespace SunfireInputParser.Builders;
 
-public class KeybindBuilder<TContextEnum>(InputHandler<TContextEnum> _inputHandler) where TContextEnum : struct, Enum
+public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
 {
-    private InputHandler<TContextEnum> inputHandler = _inputHandler;
+    private readonly InputHandler<TContextEnum> inputHandler;
 
     private Key? firstKey;
     private TrieNode<TContextEnum>? firstNode;
@@ -22,6 +22,11 @@ public class KeybindBuilder<TContextEnum>(InputHandler<TContextEnum> _inputHandl
     private const string _noKeybindingError = "Atleast one keybind must be set.";
     private const string _noContextError = "Context must be set for bind.";
     private const string _indifferentWithSequenceError = "Indfferent binds cannot contain more than one node.";
+
+    internal KeybindBuilder(InputHandler<TContextEnum> _inputHandler)
+    {
+        inputHandler = _inputHandler;
+    }
 
     public KeybindBuilder<TContextEnum> WithSequence(Key key)
     {
