@@ -11,7 +11,7 @@ public class LabelSVSlim : ISunfireView
     public int SizeY { set; get; }
 
     public TextProperty Properties = TextProperty.None;
-    public TextAlign Alignment = TextAlign.Left;
+    public Direction Alignment = Direction.Left;
 
     public ConsoleColor TextColor = ConsoleColor.White;
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
@@ -20,12 +20,18 @@ public class LabelSVSlim : ISunfireView
     private ConsoleColor OutputBackgroundColor = ConsoleColor.Black;
 
     public string Text = "";
+    private string compiledText = "";
 
     public Task Arrange()
     {
         var maxSize = SizeX * SizeY;
 
-        Text = Text[0..Math.Min(Text.Length, maxSize)] + new string(' ', Math.Max(0, maxSize - Text.Length));
+        compiledText = Alignment switch
+        {
+            Direction.Left => Text[..Math.Min(Text.Length, maxSize)] + new string(' ', Math.Max(0, maxSize - Text.Length)),
+            Direction.Right => new string(' ', Math.Max(0, maxSize - Text.Length)) + Text[^Math.Min(Text.Length, maxSize)..],
+            _ => throw new InvalidOperationException("Label has invalid alignment direction.")
+        };
 
         if (Properties.HasFlag(TextProperty.Highlighted))
         {
@@ -47,7 +53,7 @@ public class LabelSVSlim : ISunfireView
         {
             X = OriginX,
             Y = OriginY,
-            Output = Text
+            Output = compiledText
         };
 
         await TerminalWriter.WriteAsync(output, backgroundColor: OutputBackgroundColor, foregroundColor: OutputTextColor);
