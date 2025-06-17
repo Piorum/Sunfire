@@ -1,4 +1,5 @@
 ﻿using SunfireFramework.Enums;
+using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views;
 
@@ -27,5 +28,5 @@ public interface ISunfireView
 
     Task Arrange();
 
-    Task Draw();
+    Task Draw(SVBuffer buffer);
 }

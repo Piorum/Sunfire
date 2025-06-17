@@ -14,14 +14,14 @@ public static class TerminalWriter
             var prevFg = Console.ForegroundColor;
             var prevBg = Console.BackgroundColor;
 
-            Console.ForegroundColor = foregroundColor ?? prevFg;
-            Console.BackgroundColor = backgroundColor ?? prevBg;
+            //Console.ForegroundColor = foregroundColor ?? prevFg;
+            //Console.BackgroundColor = backgroundColor ?? prevBg;
 
-            Console.SetCursorPosition(output.X, output.Y);
-            Console.Write(output.Output);
+            //Console.SetCursorPosition(output.X, output.Y);
+            //Console.Write(output.Output);
 
-            Console.ForegroundColor = prevFg;
-            Console.BackgroundColor = prevBg;
+            //Console.ForegroundColor = prevFg;
+            //Console.BackgroundColor = prevBg;
         }
         return Task.CompletedTask;
     }
@@ -33,17 +33,17 @@ public static class TerminalWriter
             var prevFg = Console.ForegroundColor;
             var prevBg = Console.BackgroundColor;
 
-            Console.ForegroundColor = foregroundColor ?? prevFg;
-            Console.BackgroundColor = backgroundColor ?? prevBg;
+            //Console.ForegroundColor = foregroundColor ?? prevFg;
+            //Console.BackgroundColor = backgroundColor ?? prevBg;
 
             foreach (var output in outputs)
             {
-                Console.SetCursorPosition(output.X, output.Y);
-                Console.Write(output.Output);
+                //Console.SetCursorPosition(output.X, output.Y);
+                //Console.Write(output.Output);
             }
 
-            Console.ForegroundColor = prevFg;
-            Console.BackgroundColor = prevBg;
+            //Console.ForegroundColor = prevFg;
+            //Console.BackgroundColor = prevBg;
         }
         return Task.CompletedTask;
     }

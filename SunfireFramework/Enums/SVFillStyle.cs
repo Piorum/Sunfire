@@ -1,6 +1,6 @@
 namespace SunfireFramework.Enums;
 
-public enum SVFillStyle
+public enum SVFillStyle : byte
 {
     Static,
     Min,

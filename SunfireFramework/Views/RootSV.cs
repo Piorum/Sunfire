@@ -1,3 +1,4 @@
+using SunfireFramework.Rendering;
 using SunfireFramework.Terminal;
 
 namespace SunfireFramework.Views;
@@ -16,7 +17,8 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
 
     public async Task Arrange()
     {
-        await windowResizer.RegisterResizeEvent(this);
+        if(!windowResizer.Registered)
+            await windowResizer.RegisterResizeEvent(this);
 
         RootPane.OriginX = 0;
         RootPane.OriginY = 0;
@@ -27,10 +29,8 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
         await RootPane.Arrange();
     }
 
-    public async Task Draw()
-    {
-        await RootPane.Draw();
-    }
+    public async Task Draw(SVBuffer buffer) =>
+        await RootPane.Draw(buffer);
 
     public async Task ReSize()
     {
@@ -38,6 +38,5 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
         SizeY = Console.BufferHeight;
 
         await Arrange();
-        await Draw();
     }
 }

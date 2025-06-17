@@ -1,5 +1,6 @@
-﻿using Sunfire.Core;
-using Sunfire.Enums;
+﻿using Sunfire.Enums;
+using Sunfire.Registries;
+using SunfireFramework;
 using SunfireFramework.Terminal;
 using SunfireInputParser;
 using SunfireInputParser.Types;
@@ -21,7 +22,7 @@ internal class Program
 
             await InputHandler.CreateBinding()
                 .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Q, SunfireInputParser.Enums.Modifier.Ctrl))
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
                 .WithContext([InputContext.Global])
                 .WithBind((inputData) => { _cts.Cancel(); return Task.CompletedTask; })
                 .RegisterBind();
@@ -32,7 +33,13 @@ internal class Program
         Console.CursorVisible = false;
         Console.Clear();
 
-        var renderTask = Task.Run(() => RenderHandler.Start(_cts.Token));
+        var renderTask = Task.Run(async () =>
+        {
+            var rootSv = SVRegistry.GetRootSV();
+            var renderer = new Renderer(rootSv);
+
+            await renderer.Render(_cts.Token);
+        });
 
         await Task.WhenAll(inputTask, renderTask);
 

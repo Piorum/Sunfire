@@ -7,10 +7,9 @@ namespace SunfireFramework.Terminal.Platforms;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 public class UnixWindowResizer : IWindowResizer
 {
-#pragma warning disable IDE0052
     //Static store for sigwinch registration so it doesn't get garbage collected
-    private static PosixSignalRegistration? sigwinchRegistration;
-#pragma warning restore IDE0052
+    private PosixSignalRegistration? sigwinchRegistration;
+    public bool Registered { get; set; } = false;
 
     public Task RegisterResizeEvent(RootSV root)
     {
@@ -31,6 +30,7 @@ public class UnixWindowResizer : IWindowResizer
                 }
             });
         });
+        Registered = true;
         return Task.CompletedTask;
     }
 }

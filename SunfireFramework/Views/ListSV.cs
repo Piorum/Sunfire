@@ -1,6 +1,7 @@
 using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
 using SunfireFramework.Terminal;
+using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views;
 
@@ -94,9 +95,9 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].OriginX = OriginX;
             VisibleLabels[i].OriginY = OriginY + i;
             VisibleLabels[i].SizeX = SizeX;
-            VisibleLabels[i].Properties &= ~TextProperty.Highlighted;
+            VisibleLabels[i].TextProperties &= ~SVTextProperty.Highlight;
         }
-        Labels[selectedIndex].Properties |= TextProperty.Highlighted;
+        Labels[selectedIndex].TextProperties |= SVTextProperty.Highlight;
 
         await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));
     }
@@ -108,11 +109,11 @@ public class ListSV : IRelativeSunfireView
     }
 
     //Should be called when list needs to be redrawn
-    public async Task Draw()
+    public async Task Draw(SVBuffer buffer)
     {
         for (int i = 0; i < VisibleLabels.Count; i++)
         {
-            await VisibleLabels[i].Draw();
+            await VisibleLabels[i].Draw(buffer);
         }
 
         List<TerminalOutput> outputs = [];

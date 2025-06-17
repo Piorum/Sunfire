@@ -6,6 +6,7 @@ namespace SunfireFramework.Terminal;
 public interface IWindowResizer
 {
     Task RegisterResizeEvent(RootSV root);
+    bool Registered { get; set; }
 }
 
 internal static class WindowResizerFactory

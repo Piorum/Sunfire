@@ -1,7 +1,7 @@
 namespace SunfireFramework.Enums;
 
 [Flags]
-public enum Direction
+public enum SVDirection : byte
 {
     None = 0,
     Top = 1,

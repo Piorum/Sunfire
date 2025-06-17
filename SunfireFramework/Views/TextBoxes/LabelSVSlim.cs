@@ -1,5 +1,6 @@
 using SunfireFramework.Enums;
 using SunfireFramework.Terminal;
+using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views.TextBoxes;
 
@@ -10,8 +11,9 @@ public class LabelSVSlim : ISunfireView
     public int SizeX { set; get; }
     public int SizeY { set; get; }
 
-    public TextProperty Properties = TextProperty.None;
-    public Direction Alignment = Direction.Left;
+    public SVTextProperty TextProperties = SVTextProperty.None;
+    public SVLabelProperty LabelProperties = SVLabelProperty.None;
+    public SVDirection Alignment = SVDirection.Left;
 
     public ConsoleColor TextColor = ConsoleColor.White;
     public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
@@ -28,12 +30,12 @@ public class LabelSVSlim : ISunfireView
 
         compiledText = Alignment switch
         {
-            Direction.Left => Text[..Math.Min(Text.Length, maxSize)] + new string(' ', Math.Max(0, maxSize - Text.Length)),
-            Direction.Right => new string(' ', Math.Max(0, maxSize - Text.Length)) + Text[^Math.Min(Text.Length, maxSize)..],
+            SVDirection.Left => Text[..Math.Min(Text.Length, maxSize)] + new string(' ', Math.Max(0, maxSize - Text.Length)),
+            SVDirection.Right => new string(' ', Math.Max(0, maxSize - Text.Length)) + Text[^Math.Min(Text.Length, maxSize)..],
             _ => throw new InvalidOperationException("Label has invalid alignment direction.")
         };
 
-        if (Properties.HasFlag(TextProperty.Highlighted))
+        if (TextProperties.HasFlag(SVTextProperty.Highlight))
         {
             OutputTextColor = BackgroundColor;
             OutputBackgroundColor = TextColor;
@@ -47,7 +49,7 @@ public class LabelSVSlim : ISunfireView
         return Task.CompletedTask;
     }
 
-    public async Task Draw()
+    public async Task Draw(SVBuffer buffer)
     {
         var output = new TerminalOutput()
         {

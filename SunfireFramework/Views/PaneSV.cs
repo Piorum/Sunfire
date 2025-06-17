@@ -1,4 +1,5 @@
 using SunfireFramework.Enums;
+using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views;
 
@@ -47,19 +48,19 @@ public class PaneSV : IRelativeSunfireView
             {
                 if (viewCoordinates.Contains((view.X, view.Y - 1)))
                 {
-                    view.BorderConnections |= Direction.Top;
+                    view.BorderConnections |= SVDirection.Top;
                 }
                 if (viewCoordinates.Contains((view.X, view.Y + 1)))
                 {
-                    view.BorderConnections |= Direction.Bottom;
+                    view.BorderConnections |= SVDirection.Bottom;
                 }
                 if (viewCoordinates.Contains((view.X - 1, view.Y)))
                 {
-                    view.BorderConnections |= Direction.Left;
+                    view.BorderConnections |= SVDirection.Left;
                 }
                 if (viewCoordinates.Contains((view.X + 1, view.Y)))
                 {
-                    view.BorderConnections |= Direction.Right;
+                    view.BorderConnections |= SVDirection.Right;
                 }
             }
         });
@@ -168,18 +169,18 @@ public class PaneSV : IRelativeSunfireView
         await Task.WhenAll(SubViews.Select(v => v.Arrange()));
     }
 
-    public async Task Draw()
+    public async Task Draw(SVBuffer buffer)
     {
         if (zLevels!.Count == 1)
         {
-            await Task.WhenAll(SubViews.Select(v => v.Draw()));
+            await Task.WhenAll(SubViews.Select(v => v.Draw(buffer)));
 
         }
         else
         {
             Parallel.ForEach(zLevels, async zLevel =>
             {
-                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw()));
+                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(buffer)));
             });
         }
     }
