@@ -62,6 +62,7 @@ public static class SVRegistry
                         FillStyleX = SVFillStyle.Percent,
                         PercentX = 0.125f,
                         BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left,
+                        BorderColor = new() { R = 255, G = 115, B = 115},
                         SubPane = new()
                         {
                             SubViews =

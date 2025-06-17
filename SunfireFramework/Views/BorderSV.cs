@@ -25,13 +25,14 @@ public class BorderSV : IRelativeSunfireView
     public SVDirection BorderSides = SVDirection.None;
     public SVDirection BorderConnections = SVDirection.None;
 
-    public ConsoleColor BorderColor = ConsoleColor.White;
-    public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
+    public SVColor BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
+    public SVColor BackgroundColor { set; get; } = new() { R = 0, G = 0, B = 0};
 
     required public PaneSV SubPane { set; get; }
 
     //Border buffer
     private string[] borderBuffer = [];
+    private SVCell templateCell = SVCell.Blank;
 
     //Box building characters
     //Squared
@@ -208,25 +209,27 @@ public class BorderSV : IRelativeSunfireView
             SubPane.OriginX++;
         }
 
+        templateCell = new SVCell
+        {
+            ForegroundColor = BorderColor,
+            BackgroundColor = BackgroundColor
+        };
+
         await SubPane.Arrange();
     }
 
-    public async Task Draw(SVBuffer buffer)
+    public async Task Draw(SVContext context)
     {
-        //List<TerminalOutput> outputs = [];
-        for (int i = OriginY; i < OriginY + borderBuffer.Length; i++)
+        for (int y = 0; y < SizeY; y++)
         {
-            int y = i - OriginY;
-            for (int j = OriginX; j < OriginX + borderBuffer[y].Length; j++)
+            var borderRow = borderBuffer[y];
+            for (int x = 0; x < SizeX; x++)
             {
-                int x = j - OriginX;
-                buffer[j, i].Char = borderBuffer[y][x];
+                context[x, y] = templateCell with { Char = borderRow[x] };
             }
         }
 
-        //await TerminalWriter.WriteAsync(outputs, foregroundColor: BorderColor, backgroundColor: BackgroundColor);
-
-        await SubPane.Draw(buffer);
+        await SubPane.Draw(new(SubPane.OriginX, SubPane.OriginY, context.Buffer));
     }
 
 }

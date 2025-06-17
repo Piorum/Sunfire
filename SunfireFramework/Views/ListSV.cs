@@ -28,7 +28,7 @@ public class ListSV : IRelativeSunfireView
     private int startIndex = 0;
     public int selectedIndex = 0;
 
-    public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
+    public SVColor BackgroundColor { get; set; } = new() { R = 0, G = 0, B = 0 };
 
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];
@@ -109,24 +109,9 @@ public class ListSV : IRelativeSunfireView
     }
 
     //Should be called when list needs to be redrawn
-    public async Task Draw(SVBuffer buffer)
+    public async Task Draw(SVContext context)
     {
-        for (int i = 0; i < VisibleLabels.Count; i++)
-        {
-            await VisibleLabels[i].Draw(buffer);
-        }
-
-        List<TerminalOutput> outputs = [];
-        for (int i = VisibleLabels.Count; i < SizeY; i++)
-        {
-            outputs.Add(new()
-            {
-                X = OriginX,
-                Y = OriginY + i,
-                Output = blankString
-            });
-        }
-        await TerminalWriter.WriteAsync(outputs, backgroundColor: BackgroundColor);
+        await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
     }
 
 }

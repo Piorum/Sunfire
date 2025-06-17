@@ -36,9 +36,29 @@ internal class Program
         var renderTask = Task.Run(async () =>
         {
             var rootSv = SVRegistry.GetRootSV();
-            var renderer = new Renderer(rootSv);
+            var renderer = new Renderer(rootSv, 165);
 
-            await renderer.Render(_cts.Token);
+            var renderLoopTask = renderer.Render(_cts.Token);
+
+            var tlLabel = SVRegistry.GetTopLeftLabel();
+            tlLabel.Text = "Top Label";
+            await tlLabel.Arrange();
+
+            var blLabel = SVRegistry.GetBottomLabel();
+            blLabel.Text = "Bottom Label";
+            await blLabel.Arrange();
+
+            var list = SVRegistry.GetCurrentList();
+            for (int i = 0; i < 10; i++)
+            {
+                await list.AddLabel(new()
+                {
+                    Text = $"{i}"
+                });
+            }
+            await list.Arrange();
+
+            await renderLoopTask;
         });
 
         await Task.WhenAll(inputTask, renderTask);

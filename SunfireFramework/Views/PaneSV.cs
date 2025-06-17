@@ -21,8 +21,6 @@ public class PaneSV : IRelativeSunfireView
     public int SizeX { set; get; }
     public int SizeY { set; get; }
 
-    public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
-
     required public List<IRelativeSunfireView> SubViews = [];
 
     protected List<int>? xLevels;
@@ -169,18 +167,18 @@ public class PaneSV : IRelativeSunfireView
         await Task.WhenAll(SubViews.Select(v => v.Arrange()));
     }
 
-    public async Task Draw(SVBuffer buffer)
+    public async Task Draw(SVContext context)
     {
         if (zLevels!.Count == 1)
         {
-            await Task.WhenAll(SubViews.Select(v => v.Draw(buffer)));
+            await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
 
         }
         else
         {
             Parallel.ForEach(zLevels, async zLevel =>
             {
-                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(buffer)));
+                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
             });
         }
     }

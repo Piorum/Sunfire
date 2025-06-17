@@ -6,7 +6,7 @@ namespace SunfireFramework.Terminal.Platforms;
 public class WindowsWindowResizer : IWindowResizer
 {
     public bool Registered { get; set; } = false;
-    public Task RegisterResizeEvent(RootSV root)
+    public Task RegisterResizeEvent(Renderer root)
     {
         throw new NotImplementedException();
     }

@@ -1,11 +1,10 @@
 using SunfireFramework.Terminal.Platforms;
-using SunfireFramework.Views;
 
 namespace SunfireFramework.Terminal;
 
 public interface IWindowResizer
 {
-    Task RegisterResizeEvent(RootSV root);
+    Task RegisterResizeEvent(Renderer root);
     bool Registered { get; set; }
 }
 

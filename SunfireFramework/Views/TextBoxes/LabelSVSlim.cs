@@ -15,14 +15,16 @@ public class LabelSVSlim : ISunfireView
     public SVLabelProperty LabelProperties = SVLabelProperty.None;
     public SVDirection Alignment = SVDirection.Left;
 
-    public ConsoleColor TextColor = ConsoleColor.White;
-    public ConsoleColor BackgroundColor { get; set; } = ConsoleColor.Black;
+    public SVColor TextColor = new() { R = 255, G = 255, B = 255 };
+    public SVColor BackgroundColor = new() { R = 0, G = 0, B = 0 };
 
-    private ConsoleColor OutputTextColor = ConsoleColor.White;
-    private ConsoleColor OutputBackgroundColor = ConsoleColor.Black;
+    private SVColor OutputTextColor = new() { R = 255, G = 255, B = 255 };
+    private SVColor OutputBackgroundColor = new() { R = 0, G = 0, B = 0 };
 
     public string Text = "";
+
     private string compiledText = "";
+    private SVCell templateCell = SVCell.Blank;
 
     public Task Arrange()
     {
@@ -46,18 +48,26 @@ public class LabelSVSlim : ISunfireView
             OutputBackgroundColor = BackgroundColor;
         }
 
+        templateCell = new SVCell
+        {
+            ForegroundColor = TextColor,
+            BackgroundColor = BackgroundColor
+        };
+
         return Task.CompletedTask;
     }
 
-    public async Task Draw(SVBuffer buffer)
+    public Task Draw(SVContext context)
     {
-        var output = new TerminalOutput()
+        string[] rows = [.. compiledText.Chunk(SizeX).Select(x => new string(x))];
+        for (int y = 0; y < rows.Length; y++)
         {
-            X = OriginX,
-            Y = OriginY,
-            Output = compiledText
-        };
-
-        await TerminalWriter.WriteAsync(output, backgroundColor: OutputBackgroundColor, foregroundColor: OutputTextColor);
+            var row = rows[y];
+            for (int x = 0; x < SizeX; x++)
+            {
+                context[x, y] = templateCell with { Char = row[x] };
+            }
+        }
+        return Task.CompletedTask;
     }
 }

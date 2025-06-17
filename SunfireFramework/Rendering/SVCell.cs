@@ -8,5 +8,5 @@ public record struct SVCell(
     SVColor BackgroundColor,
     SVTextProperty Properties
 ) {
-    public static readonly SVCell Blank = new(' ', new SVColor() { R = 255, B = 255, G = 255 }, new SVColor() { R = 0, B = 0, G = 0 }, SVTextProperty.None);
+    public static readonly SVCell Blank = new(' ', new SVColor() { R = 255, B = 255, G = 255 }, new SVColor() { R = 0, G = 0, B = 0 }, SVTextProperty.None);
 }

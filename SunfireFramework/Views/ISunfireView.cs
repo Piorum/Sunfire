@@ -24,9 +24,7 @@ public interface ISunfireView
     int SizeX { set; get; } // Width
     int SizeY { set; get; } // Height
 
-    public ConsoleColor BackgroundColor { set; get; }
-
     Task Arrange();
 
-    Task Draw(SVBuffer buffer);
+    Task Draw(SVContext context);
 }

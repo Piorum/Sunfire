@@ -11,7 +11,7 @@ public class UnixWindowResizer : IWindowResizer
     private PosixSignalRegistration? sigwinchRegistration;
     public bool Registered { get; set; } = false;
 
-    public Task RegisterResizeEvent(RootSV root)
+    public Task RegisterResizeEvent(Renderer renderer)
     {
         sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
         {
@@ -20,9 +20,9 @@ public class UnixWindowResizer : IWindowResizer
                 try
                 {
                     //tight loop until buffer size is updated
-                    while (Console.BufferHeight == root.SizeY & Console.BufferWidth == root.SizeX) { }
+                    while (Console.BufferHeight == renderer.RootView.SizeY & Console.BufferWidth == renderer.RootView.SizeX) { }
 
-                    await root.ReSize();
+                    await renderer.Resize();
                 }
                 catch (Exception ex)
                 {

@@ -11,7 +11,7 @@ public class SVBuffer(int width, int height)
         get => ref cells[y * Width + x];
     }
 
-    public ReadOnlySpan<SVCell> AsSpan() => cells.AsSpan();
+    public Span<SVCell> AsSpan() => cells.AsSpan();
 
     public void Clear() => Array.Fill(cells, SVCell.Blank);
 }
