@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using SunfireFramework.Views;
 
 namespace SunfireFramework.Terminal.Platforms;
 

@@ -38,16 +38,16 @@ public class LabelSVSlim : ISunfireView
         {
             templateCell = new SVCell
             {
-                ForegroundColor = TextColor,
-                BackgroundColor = BackgroundColor
+                ForegroundColor = BackgroundColor,
+                BackgroundColor = TextColor
             };
         }
         else
         {
             templateCell = new SVCell
             {
-                ForegroundColor = BackgroundColor,
-                BackgroundColor = TextColor
+                ForegroundColor = TextColor,
+                BackgroundColor = BackgroundColor
             };
         }
 

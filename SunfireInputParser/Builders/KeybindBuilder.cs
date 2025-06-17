@@ -7,9 +7,7 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
 {
     private readonly InputHandler<TContextEnum> inputHandler;
 
-    private Key? firstKey;
-    private TrieNode<TContextEnum>? firstNode;
-    private TrieNode<TContextEnum>? lastNode;
+    private readonly List<Key> keySequence = [];
 
     private Func<InputData, Task>? binding;
     private List<TContextEnum>? context;
@@ -30,18 +28,7 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
 
     public KeybindBuilder<TContextEnum> WithSequence(Key key)
     {
-        if (firstKey is null)
-        {
-            firstKey = key;
-            firstNode = new();
-            lastNode = firstNode;
-        }
-        else
-        {
-            TrieNode<TContextEnum> newNode = new();
-            lastNode!.Children.Add(key, newNode);
-            lastNode = newNode;
-        }
+        keySequence.Add(key);
         return this;
     }
 
@@ -67,12 +54,12 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
     {
         if (binding is null)
             return Task.FromResult<(string?, bool)>((_noBindingError, validated));
-        if (firstKey is null)
+        if (keySequence.Count == 0)
             return Task.FromResult<(string?, bool)>((_noKeybindingError, validated));
         if (context is null)
             return Task.FromResult<(string?, bool)>((_noContextError, validated));
 
-        if (sequenceIndifferent && firstNode != lastNode)
+        if (sequenceIndifferent && keySequence.Count != 1)
             return Task.FromResult<(string?, bool)>((_indifferentWithSequenceError, validated));
 
         validated = true;
@@ -85,12 +72,12 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
         {
             if (binding is null)
                 throw new InvalidOperationException(_noBindingError);
-            if (firstKey is null)
+            if (keySequence.Count == 0)
                 throw new InvalidOperationException(_noKeybindingError);
             if (context is null)
                 throw new InvalidOperationException(_noContextError);
 
-            if (sequenceIndifferent && firstNode != lastNode)
+            if (sequenceIndifferent && keySequence.Count != 1)
                 throw new InvalidOperationException(_indifferentWithSequenceError);
         }
 
@@ -99,16 +86,24 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
             Bind bind = new(binding!);
             foreach (var ctx in context!)
             {
-                inputHandler.indifferentBinds.Add(((Key)firstKey!, ctx), bind);
+                var key = (keySequence.First(), ctx);
+                inputHandler.indifferentBinds[key] = bind;
             }
         }
         else
         {
+            var currentNode = inputHandler.sequenceBindsRoot;
+            foreach (var key in keySequence)
+            {
+                if (currentNode.Children.TryGetValue(key, out TrieNode<TContextEnum>? value))
+                    currentNode = value;
+                else
+                    currentNode.Children.Add(key, new());
+            }
+
             Bind bind = new(binding!);
             foreach (var ctx in context!)
-                    lastNode!.Bindings.Add(ctx, bind);
-
-            inputHandler.sequenceBindsRoot.Children.Add((Key)firstKey!, firstNode!);
+                    currentNode.Bindings.Add(ctx, bind);
         }
 
         return Task.CompletedTask;
