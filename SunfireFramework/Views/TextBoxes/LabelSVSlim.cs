@@ -18,9 +18,6 @@ public class LabelSVSlim : ISunfireView
     public SVColor TextColor = new() { R = 255, G = 255, B = 255 };
     public SVColor BackgroundColor = new() { R = 0, G = 0, B = 0 };
 
-    private SVColor OutputTextColor = new() { R = 255, G = 255, B = 255 };
-    private SVColor OutputBackgroundColor = new() { R = 0, G = 0, B = 0 };
-
     public string Text = "";
 
     private string compiledText = "";
@@ -39,20 +36,20 @@ public class LabelSVSlim : ISunfireView
 
         if (TextProperties.HasFlag(SVTextProperty.Highlight))
         {
-            OutputTextColor = BackgroundColor;
-            OutputBackgroundColor = TextColor;
+            templateCell = new SVCell
+            {
+                ForegroundColor = TextColor,
+                BackgroundColor = BackgroundColor
+            };
         }
         else
         {
-            OutputTextColor = TextColor;
-            OutputBackgroundColor = BackgroundColor;
+            templateCell = new SVCell
+            {
+                ForegroundColor = BackgroundColor,
+                BackgroundColor = TextColor
+            };
         }
-
-        templateCell = new SVCell
-        {
-            ForegroundColor = TextColor,
-            BackgroundColor = BackgroundColor
-        };
 
         return Task.CompletedTask;
     }

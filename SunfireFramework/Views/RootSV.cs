@@ -20,14 +20,6 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
         RootPane.SizeY = SizeY;
 
         await RootPane.Arrange();
-
-        /*Rectangle rect = new()
-        {
-            X = 0,
-            Y = 0,
-            Width = SizeX,
-            Height = SizeY
-        };*/
     }
 
     public async Task Draw(SVContext context) =>

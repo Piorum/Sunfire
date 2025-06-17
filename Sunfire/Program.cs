@@ -64,6 +64,6 @@ internal class Program
         await Task.WhenAll(inputTask, renderTask);
 
         Console.Clear();
-        await TerminalWriter.OutputLog();
+        await SVLogger.OutputLog();
     }
 }

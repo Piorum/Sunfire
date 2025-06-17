@@ -32,20 +32,20 @@ public class Renderer(RootSV rootView, int? refreshRate = null)
 
         await Write(HideCursor);
 
-        List<double> drawTimes = [];
-        List<double> renderTimes = [];
+        (double total, int count) drawLog = (0, 0);
+        (double total, int count) renderLog = (0, 0);
 
-        int cycle = 0;
+        Task writeTask = Task.CompletedTask;
         while (!token.IsCancellationRequested)
         {
             var startTime = DateTime.Now;
             await RootView.Draw(new SVContext(0, 0, _backBuffer));
             var drawTime = DateTime.Now - startTime;
-            if (cycle > 0) drawTimes.Add(drawTime.TotalMicroseconds);
+
+            drawLog.count++;
+            drawLog.total += drawTime.TotalMicroseconds;
 
             sb.Clear();
-            //var frontSpan = _frontBuffer.AsSpan();
-            //var backSpan = _backBuffer.AsSpan();
 
             sb.Append(MoveCursor(0, 0));
             for (int y = 0; y < RootView.SizeY; y++)
@@ -70,13 +70,17 @@ public class Renderer(RootSV rootView, int? refreshRate = null)
                 if (y < RootView.SizeY - 1) sb.Append('\n');
             }
             sb.Append(Reset);
-            await Write(sb.ToString());
+            await writeTask;
+            writeTask = Write(sb.ToString());
 
             (_backBuffer, _frontBuffer) = (_frontBuffer, _backBuffer);
 
             //Try to match given frame time target but don't exceed it
             var renderTime = DateTime.Now - startTime;
-            if (cycle > 0) renderTimes.Add((renderTime - drawTime).TotalMicroseconds);
+
+            renderLog.count++;
+            renderLog.total += renderTime.TotalMicroseconds - drawTime.TotalMicroseconds;
+
             var remainingTime = frameTimeTarget - renderTime;
             var delay = Math.Max((int)remainingTime.TotalMilliseconds, 0);
 
@@ -88,11 +92,10 @@ public class Renderer(RootSV rootView, int? refreshRate = null)
                 await clearTask;
             }
             catch (OperationCanceledException) { }
-            cycle++;
         }
 
-        await TerminalWriter.LogMessage($"Avg Draw Time : {drawTimes.Average()}");
-        await TerminalWriter.LogMessage($"Avg Render Time : {renderTimes.Average()}");
+        await SVLogger.LogMessage($"Avg Draw Time : {drawLog.total / drawLog.count}");
+        await SVLogger.LogMessage($"Avg Render Time : {renderLog.total / renderLog.count}");
     }
 
     public async Task Resize()

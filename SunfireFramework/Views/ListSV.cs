@@ -1,6 +1,5 @@
 using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
-using SunfireFramework.Terminal;
 using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views;
@@ -33,8 +32,6 @@ public class ListSV : IRelativeSunfireView
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];
 
-    private string blankString = "";
-
     public Task AddLabel(LabelSVSlim label)
     {
         label.SizeY = 1;
@@ -57,8 +54,6 @@ public class ListSV : IRelativeSunfireView
             //Load default empty Label, disple
             return;
         }
-
-        blankString = new string(' ', SizeX);
 
         await PositionStartIndex();
         await UpdateVisibleLabels();
@@ -100,12 +95,6 @@ public class ListSV : IRelativeSunfireView
         Labels[selectedIndex].TextProperties |= SVTextProperty.Highlight;
 
         await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));
-    }
-
-    //Should be called when selectedIndex is updated
-    public Task ArrangeLabels()
-    {
-        throw new NotImplementedException();
     }
 
     //Should be called when list needs to be redrawn
