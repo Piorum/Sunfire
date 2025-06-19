@@ -5,16 +5,16 @@ namespace SunfireFramework.Views;
 
 public interface IRelativeSunfireView : ISunfireView
 {
-    int X { set; get; }
-    int Y { set; get; }
-    int Z { set; get; }
+    int X { get; }
+    int Y { get; }
+    int Z { get; }
 
-    SVFillStyle FillStyleX { set; get; }
-    SVFillStyle FillStyleY { set; get; }
-    int StaticX { set; get; } //1 = 1 Cell
-    int StaticY { set; get; } //1 = 1 Cell
-    float PercentX { set; get; } //1.0f == 100%
-    float PercentY { set; get; } //1.0f == 100%
+    SVFillStyle FillStyleX { get; }
+    SVFillStyle FillStyleY { get; }
+    int StaticX { get; } //1 = 1 Cell
+    int StaticY { get; } //1 = 1 Cell
+    float PercentX { get; } //1.0f == 100%
+    float PercentY { get; } //1.0f == 100%
 }
 
 public interface ISunfireView
@@ -24,7 +24,9 @@ public interface ISunfireView
     int SizeX { set; get; } // Width
     int SizeY { set; get; } // Height
 
-    Task Arrange();
+    Task<bool> Arrange(); //returns true if work done (needs redraw)
 
     Task Draw(SVContext context);
+
+    Task Invalidate();
 }

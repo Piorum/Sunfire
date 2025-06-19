@@ -6,21 +6,23 @@ namespace SunfireFramework.Views;
 
 public class BorderSV : IRelativeSunfireView
 {
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Z { get; set; }
+    public int X => SubPane.X;
+    public int Y => SubPane.Y;
+    public int Z => SubPane.Z;
 
-    public SVFillStyle FillStyleX  { set; get; } = SVFillStyle.Max;
-    public SVFillStyle FillStyleY  { set; get; } = SVFillStyle.Max;
-    public int StaticX  { set; get; } = 1; //1 = 1 Cell
-    public int StaticY  { set; get; } = 1; //1 = 1 Cell
-    public float PercentX  { set; get; } = 1.0f; //1.0f == 100%
-    public float PercentY  { set; get; } = 1.0f; //1.0f == 100%
+    public SVFillStyle FillStyleX => SubPane.FillStyleX;
+    public SVFillStyle FillStyleY => SubPane.FillStyleY;
+    public int StaticX => SubPane.StaticX;
+    public int StaticY => SubPane.StaticY;
+    public float PercentX => SubPane.PercentX;
+    public float PercentY => SubPane.PercentY;
 
     public int OriginX { set; get; }
     public int OriginY { set; get; }
     public int SizeX { set; get; }
     public int SizeY { set; get; }
+
+    public bool Dirty { set; get; }
 
     public SVDirection BorderSides = SVDirection.None;
     public SVDirection BorderConnections = SVDirection.None;
@@ -134,12 +136,24 @@ public class BorderSV : IRelativeSunfireView
         { (SVDirection.None, SVDirection.Right), Vertical },
     };
 
-    public async Task Arrange()
+    public async Task<bool> Arrange()
     {
-        //Populating border buffer
-        //Square
-        //Rounded
+        bool borderUpdated = false;
 
+        if (Dirty)
+        {
+            await OnArrange();
+            Dirty = false;
+            borderUpdated = true;
+        }
+
+        bool workDone = await SubPane.Arrange();
+
+        return workDone || borderUpdated;
+    }
+
+    private Task OnArrange()
+    {
         var width = Math.Max(SizeX - 2, 0);
         string topString = BorderSides.HasFlag(SVDirection.Top) ? new string(Horizontal, SizeX) : new string(' ', width);
         string bottomString = BorderSides.HasFlag(SVDirection.Bottom) ? new string(Horizontal, SizeX) : new string(' ', width);
@@ -215,7 +229,7 @@ public class BorderSV : IRelativeSunfireView
             BackgroundColor = BackgroundColor
         };
 
-        await SubPane.Arrange();
+        return Task.CompletedTask;
     }
 
     public async Task Draw(SVContext context)
@@ -230,6 +244,12 @@ public class BorderSV : IRelativeSunfireView
         }
 
         await SubPane.Draw(new(SubPane.OriginX, SubPane.OriginY, context.Buffer));
+    }
+
+    public async Task Invalidate()
+    {
+        Dirty = true;
+        await SubPane.Invalidate();
     }
 
 }

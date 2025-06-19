@@ -9,9 +9,24 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
     public int SizeX { set; get; } = sizeX ?? Console.BufferWidth;
     public int SizeY { set; get; } = sizeY ?? Console.BufferHeight;
 
+    public bool Dirty { set; get; }
+
     required public PaneSV RootPane;
 
-    public async Task Arrange()
+    public async Task<bool> Arrange()
+    {
+        if (Dirty)
+        {
+            await OnArrange();
+            Dirty = false;
+        }
+
+        var workDone = await RootPane.Arrange();
+
+        return workDone;
+    }
+
+    private Task OnArrange()
     {
         RootPane.OriginX = 0;
         RootPane.OriginY = 0;
@@ -19,10 +34,15 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
         RootPane.SizeX = SizeX;
         RootPane.SizeY = SizeY;
 
-        await RootPane.Arrange();
+        return Task.CompletedTask;
     }
 
     public async Task Draw(SVContext context) =>
         await RootPane.Draw(context);
 
+    public async Task Invalidate()
+    {
+        Dirty = true;
+        await RootPane.Invalidate();
+    }
 }

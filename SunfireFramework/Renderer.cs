@@ -5,49 +5,67 @@ using SunfireFramework.Views;
 
 namespace SunfireFramework;
 
-public class Renderer(RootSV rootView, int? refreshRate = null)
+public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 {
     public readonly RootSV RootView = rootView;
 
     private SVBuffer _frontBuffer = new(rootView.SizeX, rootView.SizeY);
     private SVBuffer _backBuffer = new(rootView.SizeX, rootView.SizeY);
 
-    private readonly TimeSpan frameTimeTarget = TimeSpan.FromSeconds(1.0 / refreshRate ?? 60);
+    private readonly TimeSpan batchDelay = _batchDelay ?? TimeSpan.FromMicroseconds(500);
 
     private readonly IWindowResizer windowResizer = WindowResizerFactory.Create();
 
     private static readonly Stream s_stdout = Console.OpenStandardOutput();
     private static readonly UTF8Encoding s_utf8Encoder = new(false);
 
+    //private readonly Channel<TerminalInput> inputChannel = Channel.CreateUnbounded<TerminalInput>();
+
     public async Task Render(CancellationToken token)
     {
+        //Register resize event
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
 
-        await RootView.Arrange();
+        //Invalidate Initial Layout
+        await RootView.Invalidate();
 
+        //Reused object/structs
         StringBuilder sb = new();
         SVColor? currentForeground = null;
         SVColor? currentBackground = null;
 
-        await Write(HideCursor);
-
-        (double total, int count) drawLog = (0, 0);
-        (double total, int count) renderLog = (0, 0);
+        //Delay task that determines how longer 
+        async Task Delay()
+        {
+            try
+            {
+                await Task.Delay(batchDelay, token);
+            }
+            catch (OperationCanceledException) { }
+        }
 
         Task writeTask = Task.CompletedTask;
         while (!token.IsCancellationRequested)
         {
-            var startTime = DateTime.Now;
+            var invalidScreen = await RootView.Arrange();
+
+            if (!invalidScreen)
+            {
+                await Delay();
+                continue;
+            }
+
             await RootView.Draw(new SVContext(0, 0, _backBuffer));
-            var drawTime = DateTime.Now - startTime;
 
-            drawLog.count++;
-            drawLog.total += drawTime.TotalMicroseconds;
-
+            //Clear colors and string builder
             sb.Clear();
+            currentForeground = null;
+            currentBackground = null;
 
+            sb.Append(HideCursor);
             sb.Append(MoveCursor(0, 0));
+
             for (int y = 0; y < RootView.SizeY; y++)
             {
                 for (int x = 0; x < RootView.SizeX; x++)
@@ -69,33 +87,16 @@ public class Renderer(RootSV rootView, int? refreshRate = null)
                 }
                 if (y < RootView.SizeY - 1) sb.Append('\n');
             }
+
             sb.Append(Reset);
+            sb.Append(ShowCursor);
+
             await writeTask;
             writeTask = Write(sb.ToString());
 
             (_backBuffer, _frontBuffer) = (_frontBuffer, _backBuffer);
-
-            //Try to match given frame time target but don't exceed it
-            var renderTime = DateTime.Now - startTime;
-
-            renderLog.count++;
-            renderLog.total += renderTime.TotalMicroseconds - drawTime.TotalMicroseconds;
-
-            var remainingTime = frameTimeTarget - renderTime;
-            var delay = Math.Max((int)remainingTime.TotalMilliseconds, 0);
-
-            try
-            {
-                var clearTask = Task.Run(() => _backBuffer.Clear(), token);
-
-                await Task.Delay(delay, token);
-                await clearTask;
-            }
-            catch (OperationCanceledException) { }
+            _backBuffer.Clear();
         }
-
-        await SVLogger.LogMessage($"Avg Draw Time : {drawLog.total / drawLog.count}");
-        await SVLogger.LogMessage($"Avg Render Time : {renderLog.total / renderLog.count}");
     }
 
     public async Task Resize()
@@ -106,7 +107,7 @@ public class Renderer(RootSV rootView, int? refreshRate = null)
         _frontBuffer = new(RootView.SizeX, RootView.SizeY);
         _backBuffer = new(RootView.SizeX, RootView.SizeY);
 
-        await RootView.Arrange();
+        await RootView.Invalidate();
     }
 
     public static async Task Write(string text)

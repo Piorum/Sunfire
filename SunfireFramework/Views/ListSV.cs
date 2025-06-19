@@ -1,6 +1,7 @@
 using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
 using SunfireFramework.Rendering;
+using SunfireFramework.Terminal;
 
 namespace SunfireFramework.Views;
 
@@ -22,10 +23,11 @@ public class ListSV : IRelativeSunfireView
     public int SizeX { set; get; }
     public int SizeY { set; get; }
 
-    public bool PopulatingSignal = false;
+    public bool Dirty { set; get; }
 
     private int startIndex = 0;
-    public int selectedIndex = 0;
+    public int SelectedIndex = 0;
+    public int MaxIndex => Labels.Count - 1;
 
     public SVColor BackgroundColor { get; set; } = new() { R = 0, G = 0, B = 0 };
 
@@ -40,14 +42,21 @@ public class ListSV : IRelativeSunfireView
     }
 
     //Should be called when Labels is updated
-    public async Task Arrange()
+    public async Task<bool> Arrange()
     {
-        //Don't bother rendering while items are being added
-        if (PopulatingSignal)
+        if (Dirty)
         {
-            //Load default loading Label, display
-            return;
+            await OnArrange();
+            Dirty = false;
+
+            return true; //Work Done
         }
+
+        return false; //No Work Done
+    }
+
+    private async Task OnArrange()
+    {
         //Don't bother with other adjustments if there is no labels anyways
         if (Labels.Count == 0)
         {
@@ -57,13 +66,11 @@ public class ListSV : IRelativeSunfireView
 
         await PositionStartIndex();
         await UpdateVisibleLabels();
-
-        //await Task.WhenAll(Setup(), PositionStartIndex(), UpdateVisibleLabels());
     }
 
     public Task PositionStartIndex()
     {
-        var diff = selectedIndex - startIndex;
+        var diff = SelectedIndex - startIndex;
         var maxDiff = (int)(0.6f * SizeY);
         var minDiff = (int)(0.4f * SizeY);
         var maxStartIndex = Labels.Count - SizeY + 1;
@@ -71,12 +78,12 @@ public class ListSV : IRelativeSunfireView
         //startIndex above where it should me
         if (diff > maxDiff)
         {
-            startIndex = Math.Min(selectedIndex - maxDiff, maxStartIndex);
+            startIndex = Math.Min(SelectedIndex - maxDiff, maxStartIndex);
         }
         //startIndex below where it should be
         else if (diff < minDiff)
         {
-            startIndex = Math.Max(selectedIndex - minDiff, 0);
+            startIndex = Math.Max(SelectedIndex - minDiff, 0);
         }
 
         return Task.CompletedTask;
@@ -92,8 +99,9 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].SizeX = SizeX;
             VisibleLabels[i].TextProperties &= ~SVTextProperty.Highlight;
         }
-        Labels[selectedIndex].TextProperties |= SVTextProperty.Highlight;
+        Labels[SelectedIndex].TextProperties |= SVTextProperty.Highlight;
 
+        await Task.WhenAll(VisibleLabels.Select(v => v.Invalidate()));
         await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));
     }
 
@@ -103,4 +111,9 @@ public class ListSV : IRelativeSunfireView
         await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
     }
 
+    public Task Invalidate()
+    {
+        Dirty = true;
+        return Task.CompletedTask;
+    }
 }

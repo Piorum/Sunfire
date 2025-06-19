@@ -1,5 +1,4 @@
 using SunfireFramework.Enums;
-using SunfireFramework.Terminal;
 using SunfireFramework.Rendering;
 
 namespace SunfireFramework.Views.TextBoxes;
@@ -10,6 +9,8 @@ public class LabelSVSlim : ISunfireView
     public int OriginY { set; get; }
     public int SizeX { set; get; }
     public int SizeY { set; get; }
+
+    public bool Dirty { set; get; }
 
     public SVTextProperty TextProperties = SVTextProperty.None;
     public SVLabelProperty LabelProperties = SVLabelProperty.None;
@@ -23,7 +24,20 @@ public class LabelSVSlim : ISunfireView
     private string compiledText = "";
     private SVCell templateCell = SVCell.Blank;
 
-    public Task Arrange()
+    public async Task<bool> Arrange()
+    {
+        if (Dirty)
+        {
+            await OnArrange();
+            Dirty = false;
+
+            return true; //Work Done
+        }
+
+        return false; //No Work Done
+    }
+
+    private Task OnArrange()
     {
         var maxSize = SizeX * SizeY;
 
@@ -65,6 +79,12 @@ public class LabelSVSlim : ISunfireView
                 context[x, y] = templateCell with { Char = row[x] };
             }
         }
+        return Task.CompletedTask;
+    }
+
+    public Task Invalidate()
+    {
+        Dirty = true;
         return Task.CompletedTask;
     }
 }

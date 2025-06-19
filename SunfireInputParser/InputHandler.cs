@@ -51,17 +51,16 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
 
         var handleTask = Task.Run(() => Handle(_cts));
 
-        await Task.WhenAll(/*pollTask,*/ handleTask);
+        await Task.WhenAll(pollTask, handleTask);
     }
 
-    public Task Stop()
+    public async Task Stop()
     {
         if (_cts is not null)
         {
-            _cts.CancelAsync();
-            _cts = null;
+            await _cts.CancelAsync();
+            _cts.Dispose();
         }
-        return Task.CompletedTask;
     }
 
     public Task<string?> SequenceText()

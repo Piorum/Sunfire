@@ -57,13 +57,13 @@ public static class SVRegistry
                     topRightLabel,
                     new BorderSV()
                     {
-                        X = 0,
-                        Y = 1,
-                        FillStyleX = SVFillStyle.Percent,
-                        PercentX = 0.125f,
                         BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left,
                         SubPane = new()
                         {
+                            X = 0,
+                            Y = 1,
+                            FillStyleX = SVFillStyle.Percent,
+                            PercentX = 0.125f,
                             SubViews =
                             [
                                 containerList
@@ -72,13 +72,13 @@ public static class SVRegistry
                     },
                     new BorderSV()
                     {
-                        X = 1,
-                        Y = 1,
-                        FillStyleX = SVFillStyle.Percent,
-                        PercentX = 0.425f,
                         BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left,
                         SubPane = new()
                         {
+                            X = 1,
+                            Y = 1,
+                            FillStyleX = SVFillStyle.Percent,
+                            PercentX = 0.425f,
                             SubViews =
                             [
                                 currentList
@@ -87,11 +87,11 @@ public static class SVRegistry
                     },
                     new BorderSV()
                     {
-                        X = 2,
-                        Y = 1,
                         BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left | SVDirection.Right,
                         SubPane = new()
                         {
+                            X = 2,
+                            Y = 1,
                             SubViews =
                             [
                                 previewPane
