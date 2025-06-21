@@ -19,8 +19,9 @@ public class UnixWindowResizer : IWindowResizer
                 try
                 {
                     //tight loop until buffer size is updated
-                    while (Console.BufferHeight == renderer.RootView.SizeY & Console.BufferWidth == renderer.RootView.SizeX) { }
+                    //while (Console.BufferHeight == renderer.RootView.SizeY & Console.BufferWidth == renderer.RootView.SizeX) { }
 
+                    //await SVLogger.LogMessage($"Test Log");
                     await renderer.Resize();
                 }
                 catch (Exception ex)

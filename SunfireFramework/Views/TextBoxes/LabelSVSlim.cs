@@ -16,8 +16,8 @@ public class LabelSVSlim : ISunfireView
     public SVLabelProperty LabelProperties = SVLabelProperty.None;
     public SVDirection Alignment = SVDirection.Left;
 
-    public SVColor TextColor = new() { R = 255, G = 255, B = 255 };
-    public SVColor BackgroundColor = new() { R = 0, G = 0, B = 0 };
+    public SVColor? TextColor = new() { R = 255, G = 255, B = 255 };
+    public SVColor? BackgroundColor = null;
 
     public string Text = "";
 
@@ -48,22 +48,12 @@ public class LabelSVSlim : ISunfireView
             _ => throw new InvalidOperationException("Label has invalid alignment direction.")
         };
 
-        if (TextProperties.HasFlag(SVTextProperty.Highlight))
+        templateCell = new SVCell
         {
-            templateCell = new SVCell
-            {
-                ForegroundColor = BackgroundColor,
-                BackgroundColor = TextColor
-            };
-        }
-        else
-        {
-            templateCell = new SVCell
-            {
-                ForegroundColor = TextColor,
-                BackgroundColor = BackgroundColor
-            };
-        }
+            ForegroundColor = TextColor,
+            BackgroundColor = BackgroundColor,
+            Properties = TextProperties
+        };
 
         return Task.CompletedTask;
     }
@@ -78,7 +68,7 @@ public class LabelSVSlim : ISunfireView
             var row = rows[y];
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = templateCell with { Char = row[x] };
+                context[x, y] = templateCell with { Data = row[x].ToString() };
             }
         }
         return Task.CompletedTask;

@@ -29,7 +29,7 @@ public class ListSV : IRelativeSunfireView
     public int SelectedIndex = 0;
     public int MaxIndex => Labels.Count - 1;
 
-    public SVColor BackgroundColor { get; set; } = new() { R = 0, G = 0, B = 0 };
+    public SVColor? BackgroundColor { get; set; } = null;
 
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];

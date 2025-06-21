@@ -14,8 +14,6 @@ internal static class WindowResizerFactory
     {
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             return new UnixWindowResizer();
-        else if (OperatingSystem.IsWindows())
-            return new WindowsWindowResizer();
 
         throw new PlatformNotSupportedException();
     }

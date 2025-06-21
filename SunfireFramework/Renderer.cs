@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.Channels;
+using SunfireFramework.Enums;
 using SunfireFramework.Rendering;
 using SunfireFramework.Terminal;
 using SunfireFramework.Views;
@@ -27,6 +28,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         //Register resize event
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
+
+        await Write(EnterAlternateScreen);
 
         //Invalidate intial layout, start first batch cycle
         await EnqueueAction(RootView.Invalidate);
@@ -80,6 +83,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             }
             catch (OperationCanceledException) { } //Non-Issue just allow to stop
         }
+
+        await Write(ExitAlternateScreen);
     }
 
     public async Task EnqueueAction(Func<Task> action)
@@ -102,9 +107,12 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         sb.Clear();
         SVColor? currentForeground = null;
         SVColor? currentBackground = null;
+        SVTextProperty? currentProperties = null;
 
         sb.Append(HideCursor);
         sb.Append(MoveCursor(0, 0));
+        sb.Append(ResetForegroundColor);
+        sb.Append(ResetBackgroundColor);
 
         for (int y = 0; y < RootView.SizeY; y++)
         {
@@ -112,18 +120,34 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             {
                 var cell = _backBuffer[x, y];
 
-                if (cell.ForegroundColor != currentForeground)
+                if (cell.Properties != currentProperties)
                 {
-                    currentForeground = cell.ForegroundColor;
-                    sb.Append(SetColor(cell.ForegroundColor, true));
+                    if (cell.Properties.HasFlag(SVTextProperty.Highlight) && ((currentProperties.HasValue && !currentProperties.Value.HasFlag(SVTextProperty.Highlight)) || !currentProperties.HasValue))
+                    {
+                        sb.Append(ReverseVideoMode);
+                    }
+                    else if (!cell.Properties.HasFlag(SVTextProperty.Highlight) && currentProperties.HasValue && currentProperties.Value.HasFlag(SVTextProperty.Highlight))
+                    {
+                        sb.Append(DisableReverseVideoMode);
+                    }
+
+                    currentProperties = cell.Properties;
                 }
-                if (cell.BackgroundColor != currentBackground)
+                if (cell.ForegroundColor != currentForeground || cell.BackgroundColor != currentBackground)
                 {
-                    currentBackground = cell.BackgroundColor;
-                    sb.Append(SetColor(cell.BackgroundColor, false));
+                    if (cell.ForegroundColor != currentForeground)
+                    {
+                        currentForeground = cell.ForegroundColor;
+                        sb.Append(cell.ForegroundColor is null ? ResetForegroundColor : SetColor((SVColor)cell.ForegroundColor, true));
+                    }
+                    if (cell.BackgroundColor != currentBackground)
+                    {
+                        currentBackground = cell.BackgroundColor;
+                        sb.Append(cell.BackgroundColor is null ? ResetBackgroundColor : SetColor((SVColor)cell.BackgroundColor, false));
+                    }
                 }
 
-                sb.Append(cell.Char);
+                sb.Append(cell.Data);
             }
             if (y < RootView.SizeY - 1) sb.Append('\n');
         }
@@ -141,13 +165,14 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     public async Task Resize()
     {
+        _ = Write(ClearScreen); //Remove when proper screen is properly diffed
         await EnqueueAction(async () =>
         {
             RootView.SizeX = Console.BufferWidth;
             RootView.SizeY = Console.BufferHeight;
 
-            FrontBuffer = new(RootView.SizeX, RootView.SizeY);
-            _backBuffer = new(RootView.SizeX, RootView.SizeY);
+            FrontBuffer.Resize(RootView.SizeX, RootView.SizeY);
+            _backBuffer.Resize(RootView.SizeX, RootView.SizeY);
 
             await RootView.Invalidate();
         });
@@ -169,6 +194,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         $"\x1B[{(foreground ? 38 : 48)};2;{color.R};{color.G};{color.B}m";
 
     public const string Reset = "\x1B[0m";
+    public const string ResetForegroundColor = "\x1b[39m";
+    public const string ResetBackgroundColor = "\x1b[49m";
+    public const string ReverseVideoMode = "\x1b[7m";
+    public const string DisableReverseVideoMode = "\x1b[27m";
     public const string HideCursor = "\x1B[?25l";
     public const string ShowCursor = "\x1B[?25l";
+    public const string EnterAlternateScreen = "\x1b[?1049h";
+    public const string ExitAlternateScreen = "\x1b[?1049l";
+    public const string ClearScreen = "\x1b[2J";
 }

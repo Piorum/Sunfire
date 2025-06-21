@@ -60,9 +60,6 @@ internal class Program
             await InputHandler.Start(_cts);
         });
 
-        Console.CursorVisible = false;
-        Console.Clear();
-
         var renderTask = Task.Run(async () =>
         {
             var renderLoopTask = Renderer.Start(_cts.Token);
@@ -94,7 +91,6 @@ internal class Program
 
         await Task.WhenAll(inputTask, renderTask);
 
-        Console.Clear();
         await SVLogger.OutputLog();
     }
 }

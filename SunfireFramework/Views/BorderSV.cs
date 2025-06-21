@@ -27,8 +27,8 @@ public class BorderSV : IRelativeSunfireView
     public SVDirection BorderSides = SVDirection.None;
     public SVDirection BorderConnections = SVDirection.None;
 
-    public SVColor BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
-    public SVColor BackgroundColor { set; get; } = new() { R = 0, G = 0, B = 0};
+    public SVColor? BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
+    public SVColor? BackgroundColor { set; get; } = null;
 
     required public PaneSV SubPane { set; get; }
 
@@ -239,7 +239,7 @@ public class BorderSV : IRelativeSunfireView
             var borderRow = borderBuffer[y];
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = templateCell with { Char = borderRow[x] };
+                context[x, y] = templateCell with { Data = borderRow[x].ToString() };
             }
         }
 
