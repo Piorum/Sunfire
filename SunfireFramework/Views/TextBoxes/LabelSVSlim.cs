@@ -70,7 +70,9 @@ public class LabelSVSlim : ISunfireView
 
     public Task Draw(SVContext context)
     {
-        string[] rows = [.. compiledText.Chunk(SizeX).Select(x => new string(x))];
+        string[] rows = SizeX > 0
+            ? [.. compiledText.Chunk(SizeX).Select(x => new string(x))]
+            : [];
         for (int y = 0; y < rows.Length; y++)
         {
             var row = rows[y];

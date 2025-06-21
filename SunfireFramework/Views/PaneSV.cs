@@ -122,6 +122,9 @@ public class PaneSV : IRelativeSunfireView
                         view.SizeX = availableWidth[view.Y];
                         break;
                 }
+
+                view.SizeX = Math.Max(0, view.SizeX);
+
                 if (view.FillStyleX != SVFillStyle.Max)
                     availableWidth[view.Y] -= view.SizeX;
             }
@@ -154,6 +157,8 @@ public class PaneSV : IRelativeSunfireView
                         view.SizeY = availableHeight[view.X];
                         break;
                 }
+
+                view.SizeY = Math.Max(0, view.SizeY);
 
                 if (view.SizeY > largestAtY[view.Y])
                 {

@@ -9,7 +9,8 @@ namespace Sunfire;
 
 internal class Program
 {
-    public static InputHandler<InputContext>? InputHandler;
+    public static InputHandler<InputContext> InputHandler = new();
+    public static Renderer Renderer = new(SVRegistry.GetRootSV());
 
     public static readonly CancellationTokenSource _cts = new();
 
@@ -17,7 +18,6 @@ internal class Program
     {
         var inputTask = Task.Run(async () =>
         {
-            InputHandler = new InputHandler<InputContext>();
             InputHandler.Context.Add(InputContext.Global);
 
             await InputHandler.CreateBinding()
@@ -32,13 +32,29 @@ internal class Program
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.W))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => { if(currentList.SelectedIndex > 0) currentList.SelectedIndex--; await currentList.Invalidate(); })
+                .WithBind(async (inputData) =>
+                {
+                    if (currentList.SelectedIndex > 0)
+                        await Renderer.EnqueueAction(async () =>
+                        { 
+                            currentList.SelectedIndex--;
+                            await currentList.Invalidate();
+                        });
+                })
                 .RegisterBind();
             await InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.S))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => { if(currentList.SelectedIndex < currentList.MaxIndex) currentList.SelectedIndex++; await currentList.Invalidate(); })
+                .WithBind(async (inputData) =>
+                {
+                    if (currentList.SelectedIndex < currentList.MaxIndex)
+                        await Renderer.EnqueueAction(async () =>
+                        { 
+                            currentList.SelectedIndex++;
+                            await currentList.Invalidate();
+                        });
+                })
                 .RegisterBind();
 
             await InputHandler.Start(_cts);
@@ -49,18 +65,19 @@ internal class Program
 
         var renderTask = Task.Run(async () =>
         {
-            var rootSv = SVRegistry.GetRootSV();
-            var renderer = new Renderer(rootSv);
-
-            var renderLoopTask = renderer.Render(_cts.Token);
+            var renderLoopTask = Renderer.Start(_cts.Token);
 
             var tlLabel = SVRegistry.GetTopLeftLabel();
-            tlLabel.Text = "Top Label";
-            await tlLabel.Invalidate();
+            await Renderer.EnqueueAction(async () => {
+                tlLabel.Text = "Top Label";
+                await tlLabel.Invalidate();
+            });
 
             var blLabel = SVRegistry.GetBottomLabel();
-            blLabel.Text = "Bottom Label";
-            await blLabel.Invalidate();
+            await Renderer.EnqueueAction(async () => {
+                blLabel.Text = "Bottom Label";
+                await blLabel.Invalidate();
+            });
 
             var list = SVRegistry.GetCurrentList();
             for (int i = 0; i < 10; i++)
@@ -70,7 +87,7 @@ internal class Program
                     Text = $"{i}"
                 });
             }
-            await list.Invalidate();
+            await Renderer.EnqueueAction(list.Invalidate);
 
             await renderLoopTask;
         });
