@@ -1,14 +1,13 @@
 using System.Runtime.InteropServices;
 
-namespace SunfireFramework.Terminal.Platforms;
+namespace SunfireFramework.Terminal.Platforms.Linux;
 
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-public class UnixWindowResizer : IWindowResizer
+public class LinuxWindowResizer : IWindowResizer
 {
     //Static store for sigwinch registration so it doesn't get garbage collected
     private PosixSignalRegistration? sigwinchRegistration;
-    public bool Registered { get; set; } = false;
+    public bool Registered { get; private set; } = false;
 
     public Task RegisterResizeEvent(Renderer renderer)
     {

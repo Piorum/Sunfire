@@ -1,19 +1,19 @@
-using SunfireFramework.Terminal.Platforms;
+using SunfireFramework.Terminal.Platforms.Linux;
 
 namespace SunfireFramework.Terminal;
 
 public interface IWindowResizer
 {
     Task RegisterResizeEvent(Renderer root);
-    bool Registered { get; set; }
+    bool Registered { get; }
 }
 
 internal static class WindowResizerFactory
 {
     public static IWindowResizer Create()
     {
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-            return new UnixWindowResizer();
+        if (OperatingSystem.IsLinux())
+            return new LinuxWindowResizer();
 
         throw new PlatformNotSupportedException();
     }

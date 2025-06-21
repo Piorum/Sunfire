@@ -105,6 +105,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
         //Clear colors and string builder
         sb.Clear();
+        //Need to change pretty much all of the following code to properly diff the buffers and minimize output
         SVColor? currentForeground = null;
         SVColor? currentBackground = null;
         SVTextProperty? currentProperties = null;
@@ -165,14 +166,20 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     public async Task Resize()
     {
-        _ = Write(ClearScreen); //Remove when proper screen is properly diffed
         await EnqueueAction(async () =>
         {
-            RootView.SizeX = Console.BufferWidth;
-            RootView.SizeY = Console.BufferHeight;
+            var newHeight = Console.BufferHeight;
+            var newWidth = Console.BufferWidth;
 
-            FrontBuffer.Resize(RootView.SizeX, RootView.SizeY);
-            _backBuffer.Resize(RootView.SizeX, RootView.SizeY);
+            //Maybe rendering will be fast enough when properly diffed but needed to remove perceived overlapping
+            if (RootView.SizeY > newHeight)
+                await Write(ClearScreen);
+
+            FrontBuffer.Resize(newWidth, newHeight); //Resize for comparison
+            _backBuffer = new(newWidth, newHeight); //Back buffer will be fully redrawn anyways
+
+            RootView.SizeX = newWidth;
+            RootView.SizeY = newHeight;
 
             await RootView.Invalidate();
         });
