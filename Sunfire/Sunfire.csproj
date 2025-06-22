@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Sunfire.Logging/Sunfire.Logging.csproj" />
     <ProjectReference Include="../SunfireFramework/SunfireFramework.csproj" />
     <ProjectReference Include="../SunfireInputParser/SunfireInputParser.csproj" />
   </ItemGroup>

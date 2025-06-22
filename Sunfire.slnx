@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Release-Linux" />
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Sunfire.Ansi/Sunfire.Ansi.csproj" />
+  <Project Path="Sunfire.Logging/Sunfire.Logging.csproj" />
+  <Project Path="Sunfire/Sunfire.csproj" />
+  <Project Path="SunfireFramework/SunfireFramework.csproj" />
+  <Project Path="SunfireInputParser/SunfireInputParser.csproj" />
+</Solution>

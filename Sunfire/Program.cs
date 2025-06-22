@@ -1,9 +1,10 @@
 ﻿using Sunfire.Enums;
 using Sunfire.Registries;
 using SunfireFramework;
-using SunfireFramework.Terminal;
 using SunfireInputParser;
 using SunfireInputParser.Types;
+using Sunfire.Logging;
+using Sunfire.Logging.Models;
 
 namespace Sunfire;
 
@@ -16,6 +17,8 @@ internal class Program
 
     public static async Task Main()
     {
+        await Logger.AddSink(new(new BufferSink(), [LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal]));
+
         var inputTask = Task.Run(async () =>
         {
             InputHandler.Context.Add(InputContext.Global);
@@ -89,8 +92,9 @@ internal class Program
             await renderLoopTask;
         });
 
+        await Logger.Info(nameof(Sunfire), "Input and Render Tasks Started.");
         await Task.WhenAll(inputTask, renderTask);
 
-        await SVLogger.OutputLog();
+        await Logger.StopAndFlush();
     }
 }

@@ -1,3 +1,4 @@
+using Sunfire.Ansi.Models;
 using SunfireFramework.Enums;
 using SunfireFramework.Rendering;
 
@@ -12,12 +13,12 @@ public class LabelSVSlim : ISunfireView
 
     public bool Dirty { set; get; }
 
-    public SVTextProperty TextProperties = SVTextProperty.None;
+    public SAnsiProperty TextProperties = SAnsiProperty.None;
     public SVLabelProperty LabelProperties = SVLabelProperty.None;
     public SVDirection Alignment = SVDirection.Left;
 
-    public SVColor? TextColor = new() { R = 255, G = 255, B = 255 };
-    public SVColor? BackgroundColor = null;
+    public SColor? TextColor = new() { R = 255, G = 255, B = 255 };
+    public SColor? BackgroundColor = null;
 
     public string Text = "";
 

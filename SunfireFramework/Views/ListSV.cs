@@ -2,6 +2,7 @@ using SunfireFramework.Views.TextBoxes;
 using SunfireFramework.Enums;
 using SunfireFramework.Rendering;
 using SunfireFramework.Terminal;
+using Sunfire.Ansi.Models;
 
 namespace SunfireFramework.Views;
 
@@ -29,7 +30,7 @@ public class ListSV : IRelativeSunfireView
     public int SelectedIndex = 0;
     public int MaxIndex => Labels.Count - 1;
 
-    public SVColor? BackgroundColor { get; set; } = null;
+    public SColor? BackgroundColor { get; set; } = null;
 
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];
@@ -97,9 +98,9 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].OriginX = OriginX;
             VisibleLabels[i].OriginY = OriginY + i;
             VisibleLabels[i].SizeX = SizeX;
-            VisibleLabels[i].TextProperties &= ~SVTextProperty.Highlight;
+            VisibleLabels[i].TextProperties &= ~SAnsiProperty.Highlight;
         }
-        Labels[SelectedIndex].TextProperties |= SVTextProperty.Highlight;
+        Labels[SelectedIndex].TextProperties |= SAnsiProperty.Highlight;
 
         await Task.WhenAll(VisibleLabels.Select(v => v.Invalidate()));
         await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));

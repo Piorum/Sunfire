@@ -1,12 +1,13 @@
+using Sunfire.Ansi.Models;
 using SunfireFramework.Enums;
 
 namespace SunfireFramework.Rendering;
 
 public record struct SVCell(
     string Data,
-    SVColor? ForegroundColor,
-    SVColor? BackgroundColor,
-    SVTextProperty Properties
+    SColor? ForegroundColor,
+    SColor? BackgroundColor,
+    SAnsiProperty Properties
 ) {
-    public static readonly SVCell Blank = new(" ", new SVColor() { R = 255, B = 255, G = 255 }, null, SVTextProperty.None);
+    public static readonly SVCell Blank = new(" ", new SColor() { R = 255, B = 255, G = 255 }, null, SAnsiProperty.None);
 }

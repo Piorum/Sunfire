@@ -1,3 +1,4 @@
+using Sunfire.Ansi.Models;
 using SunfireFramework.Enums;
 using SunfireFramework.Rendering;
 using SunfireFramework.Terminal;
@@ -27,8 +28,8 @@ public class BorderSV : IRelativeSunfireView
     public SVDirection BorderSides = SVDirection.None;
     public SVDirection BorderConnections = SVDirection.None;
 
-    public SVColor? BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
-    public SVColor? BackgroundColor { set; get; } = null;
+    public SColor? BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
+    public SColor? BackgroundColor { set; get; } = null;
 
     required public PaneSV SubPane { set; get; }
 

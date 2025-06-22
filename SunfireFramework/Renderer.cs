@@ -1,9 +1,12 @@
 using System.Text;
 using System.Threading.Channels;
-using SunfireFramework.Enums;
+using Sunfire.Logging;
 using SunfireFramework.Rendering;
 using SunfireFramework.Terminal;
 using SunfireFramework.Views;
+using Sunfire.Ansi;
+using Sunfire.Ansi.Models;
+using Sunfire.Ansi.Registries;
 
 namespace SunfireFramework;
 
@@ -29,13 +32,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
 
-        await Write(EnterAlternateScreen);
+        await Write(AnsiRegistry.EnterAlternateScreen);
 
         //Invalidate intial layout, start first batch cycle
         await EnqueueAction(RootView.Invalidate);
 
         //Reused string builder
-        StringBuilder sb = new();
+        AnsiStringBuilder asb = new();
 
         List<Task> runningTasks = [];
         while (!token.IsCancellationRequested)
@@ -74,17 +77,19 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 catch (OperationCanceledException) { } //Non-Issue just allow to stop
                 catch (Exception ex)
                 {
-                    await SVLogger.LogMessage($"Render Task Failed:\n{ex}");
+                    _ = Logger.Error(nameof(SunfireFramework), $"Render Task Failed\n{ex}");
                 }
 
                 //Skip render if cancelled basically
+                var startTime = DateTime.Now;
                 if (runningTasks.Count > 0 && !token.IsCancellationRequested)
-                    await OnRender(sb);
+                    await OnRender(asb);
+                await Logger.Debug(nameof(SunfireFramework), $"[Render Time] {(DateTime.Now - startTime).TotalMicroseconds}us");
             }
             catch (OperationCanceledException) { } //Non-Issue just allow to stop
         }
 
-        await Write(ExitAlternateScreen);
+        await Write(AnsiRegistry.ExitAlternateScreen);
     }
 
     public async Task EnqueueAction(Func<Task> action)
@@ -92,7 +97,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await renderQueue.Writer.WriteAsync(action);
     }
 
-    private async Task OnRender(StringBuilder sb)
+    private async Task OnRender(AnsiStringBuilder asb)
     {
         //Rearrange
         var invalidScreen = await RootView.Arrange();
@@ -104,16 +109,29 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await RootView.Draw(new SVContext(0, 0, _backBuffer));
 
         //Clear colors and string builder
-        sb.Clear();
-        //Need to change pretty much all of the following code to properly diff the buffers and minimize output
-        SVColor? currentForeground = null;
-        SVColor? currentBackground = null;
-        SVTextProperty? currentProperties = null;
+        asb.Clear();
+        asb.HideCursor();
 
-        sb.Append(HideCursor);
-        sb.Append(MoveCursor(0, 0));
-        sb.Append(ResetForegroundColor);
-        sb.Append(ResetBackgroundColor);
+        string[] outputBuffer = new string[RootView.SizeX];
+        int outputIndex = 0;
+
+        SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
+        (int X, int Y) outputStartPos = (0, 0);
+        (int X, int Y) cursorPos = (-1, -1);
+
+        void Flush()
+        {
+            if (outputIndex > 0)
+            {
+                var outputData = string.Join("", outputBuffer.AsSpan(0, outputIndex).ToArray());
+
+                asb.Append(outputData, currentStyle with { CursorPosition = cursorPos == outputStartPos ? null : outputStartPos });
+                cursorPos = (outputStartPos.X + outputIndex, outputStartPos.Y);
+
+                outputBuffer.AsSpan(0, outputIndex).Clear();
+                outputIndex = 0;
+            }
+        }
 
         for (int y = 0; y < RootView.SizeY; y++)
         {
@@ -121,43 +139,37 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             {
                 var cell = _backBuffer[x, y];
 
-                if (cell.Properties != currentProperties)
+                //Cell is same as already drawn continue
+                if (cell == FrontBuffer[x, y])
                 {
-                    if (cell.Properties.HasFlag(SVTextProperty.Highlight) && ((currentProperties.HasValue && !currentProperties.Value.HasFlag(SVTextProperty.Highlight)) || !currentProperties.HasValue))
-                    {
-                        sb.Append(ReverseVideoMode);
-                    }
-                    else if (!cell.Properties.HasFlag(SVTextProperty.Highlight) && currentProperties.HasValue && currentProperties.Value.HasFlag(SVTextProperty.Highlight))
-                    {
-                        sb.Append(DisableReverseVideoMode);
-                    }
-
-                    currentProperties = cell.Properties;
-                }
-                if (cell.ForegroundColor != currentForeground || cell.BackgroundColor != currentBackground)
-                {
-                    if (cell.ForegroundColor != currentForeground)
-                    {
-                        currentForeground = cell.ForegroundColor;
-                        sb.Append(cell.ForegroundColor is null ? ResetForegroundColor : SetColor((SVColor)cell.ForegroundColor, true));
-                    }
-                    if (cell.BackgroundColor != currentBackground)
-                    {
-                        currentBackground = cell.BackgroundColor;
-                        sb.Append(cell.BackgroundColor is null ? ResetBackgroundColor : SetColor((SVColor)cell.BackgroundColor, false));
-                    }
+                    Flush();
+                    continue;
                 }
 
-                sb.Append(cell.Data);
+                SStyle cellStyle = new(cell.ForegroundColor, cell.BackgroundColor, cell.Properties, null);
+
+                //Style is the same add to buffer and continue
+                if (outputIndex == 0 || cellStyle != currentStyle)
+                {
+                    Flush();
+
+                    currentStyle = cellStyle;
+                    outputStartPos = (x, y);
+                    outputBuffer[0] = cell.Data;
+                    outputIndex = 1;
+                }
+                else
+                {
+                    outputBuffer[outputIndex] = cell.Data;
+                    outputIndex++;
+                }
             }
-            if (y < RootView.SizeY - 1) sb.Append('\n');
+            Flush();
         }
-
-        sb.Append(Reset);
-        sb.Append(ShowCursor);
+        asb.Final();
 
         //Draw to the screen
-        await Write(sb.ToString());
+        await Write(asb.ToString());
 
         //Swap back buffer to front, clear back buffer
         (_backBuffer, FrontBuffer) = (FrontBuffer, _backBuffer);
@@ -166,6 +178,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     public async Task Resize()
     {
+        await Logger.Debug(nameof(SunfireFramework), "Resizing");
         await EnqueueAction(async () =>
         {
             var newHeight = Console.BufferHeight;
@@ -173,10 +186,11 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
             //Maybe rendering will be fast enough when properly diffed but needed to remove perceived overlapping
             if (RootView.SizeY > newHeight)
-                await Write(ClearScreen);
+                await Write(AnsiRegistry.ClearScreen);
 
-            FrontBuffer.Resize(newWidth, newHeight); //Resize for comparison
-            _backBuffer = new(newWidth, newHeight); //Back buffer will be fully redrawn anyways
+            //Just reset, resizing behavior is too inconsistent to properly resize the buffer
+            FrontBuffer = new(newWidth, newHeight);
+            _backBuffer = new(newWidth, newHeight);
 
             RootView.SizeX = newWidth;
             RootView.SizeY = newHeight;
@@ -194,20 +208,4 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await s_stdout.WriteAsync(bytes);
         await s_stdout.FlushAsync();
     }
-
-    public static string MoveCursor(int line, int column) =>
-        $"\x1B[{line + 1};{column + 1}H";
-    public static string SetColor(SVColor color, bool foreground) =>
-        $"\x1B[{(foreground ? 38 : 48)};2;{color.R};{color.G};{color.B}m";
-
-    public const string Reset = "\x1B[0m";
-    public const string ResetForegroundColor = "\x1b[39m";
-    public const string ResetBackgroundColor = "\x1b[49m";
-    public const string ReverseVideoMode = "\x1b[7m";
-    public const string DisableReverseVideoMode = "\x1b[27m";
-    public const string HideCursor = "\x1B[?25l";
-    public const string ShowCursor = "\x1B[?25l";
-    public const string EnterAlternateScreen = "\x1b[?1049h";
-    public const string ExitAlternateScreen = "\x1b[?1049l";
-    public const string ClearScreen = "\x1b[2J";
 }
