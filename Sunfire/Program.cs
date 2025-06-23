@@ -1,8 +1,8 @@
 ﻿using Sunfire.Enums;
 using Sunfire.Registries;
-using SunfireFramework;
-using SunfireInputParser;
-using SunfireInputParser.Types;
+using Sunfire.Tui;
+using Sunfire.Input;
+using Sunfire.Input.Types;
 using Sunfire.Logging;
 using Sunfire.Logging.Models;
 
@@ -15,9 +15,27 @@ internal class Program
 
     public static readonly CancellationTokenSource _cts = new();
 
-    public static async Task Main()
+    public static async Task Main(string[] args)
     {
-        await Logger.AddSink(new(new BufferSink(), [LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal]));
+        bool debug = args.Contains("--debug");
+        bool info = args.Contains("--info");
+        bool warn = args.Contains("--warn");
+        bool console = args.Contains("-C") || args.Contains("--console");
+
+        List<LogLevel> logLevels = [LogLevel.Error, LogLevel.Fatal];
+
+        if (debug)
+            logLevels.AddRange([LogLevel.Debug, LogLevel.Info, LogLevel.Warn]);
+        else if (info)
+            logLevels.AddRange([LogLevel.Info, LogLevel.Warn]);
+        else if (warn)
+            logLevels.Add(LogLevel.Warn);
+
+        if (console)
+            await Logger.AddSink(new(new BufferSink(), [.. logLevels]));
+
+        //Add file sink to store logs
+        //await Logger.AddSink(new(new FileSink(), [.. logLevels]));
 
         var inputTask = Task.Run(async () =>
         {
@@ -39,7 +57,7 @@ internal class Program
                 {
                     if (currentList.SelectedIndex > 0)
                         await Renderer.EnqueueAction(async () =>
-                        { 
+                        {
                             currentList.SelectedIndex--;
                             await currentList.Invalidate();
                         });
@@ -53,7 +71,7 @@ internal class Program
                 {
                     if (currentList.SelectedIndex < currentList.MaxIndex)
                         await Renderer.EnqueueAction(async () =>
-                        { 
+                        {
                             currentList.SelectedIndex++;
                             await currentList.Invalidate();
                         });
@@ -84,6 +102,7 @@ internal class Program
             {
                 await list.AddLabel(new()
                 {
+                    TextProperties = i < 5 ? Ansi.Models.SAnsiProperty.Bold : Ansi.Models.SAnsiProperty.None,
                     Text = $"{i}"
                 });
             }
@@ -94,6 +113,7 @@ internal class Program
 
         await Logger.Info(nameof(Sunfire), "Input and Render Tasks Started.");
         await Task.WhenAll(inputTask, renderTask);
+        await Logger.Info(nameof(Sunfire), "Shutting Down.");
 
         await Logger.StopAndFlush();
     }

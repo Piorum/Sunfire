@@ -42,8 +42,11 @@ public class Logger : ILogger<Logger>
     public static async Task Warn(string provider, string message) => await LogMessage(provider, message, LogLevel.Warn);
     public static async Task Error(string provider, string message) => await LogMessage(provider, message, LogLevel.Error);
     public static async Task Fatal(string provider, string message) => await LogMessage(provider, message, LogLevel.Fatal);
-    private static async Task LogMessage(string provider, string message, LogLevel logLevel) =>
-        await channel.Writer.WriteAsync(new(DateTime.Now, logLevel, provider, message));
+    private static Task LogMessage(string provider, string message, LogLevel logLevel)
+    {
+        channel.Writer.TryWrite(new(DateTime.Now, logLevel, provider, message));
+        return Task.CompletedTask;
+    }
 
     private static async Task Log(CancellationToken token)
     {

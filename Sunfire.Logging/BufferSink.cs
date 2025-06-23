@@ -34,7 +34,7 @@ public class BufferSink(int? capacity = null) : ILogSink
         .Append
         (
             $"[{message.CreationTime:HH:mm:ss.fffffff}] ",
-            new(ForegroundColor: new(255, 255, 255), Properties: SAnsiProperty.Bold)
+            new(ForegroundColor: new(221, 221, 221), Properties: SAnsiProperty.Bold)
         )
         .Append
         (

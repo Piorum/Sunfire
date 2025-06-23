@@ -1,6 +1,6 @@
-using SunfireFramework.Views;
-using SunfireFramework.Views.TextBoxes;
-using SunfireFramework.Enums;
+using Sunfire.Tui.Views;
+using Sunfire.Tui.Views.TextBoxes;
+using Sunfire.Tui.Enums;
 using System.Runtime.CompilerServices;
 
 namespace Sunfire.Registries;

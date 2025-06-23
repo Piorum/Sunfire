@@ -10,6 +10,6 @@
   <Project Path="Sunfire.Ansi/Sunfire.Ansi.csproj" />
   <Project Path="Sunfire.Logging/Sunfire.Logging.csproj" />
   <Project Path="Sunfire/Sunfire.csproj" />
-  <Project Path="SunfireFramework/SunfireFramework.csproj" />
-  <Project Path="SunfireInputParser/SunfireInputParser.csproj" />
+  <Project Path="Sunfire.Tui/Sunfire.Tui.csproj" />
+  <Project Path="Sunfire.Input/Sunfire.Input.csproj" />
 </Solution>
