@@ -1,6 +1,6 @@
 namespace Sunfire.Tui.Enums;
 
-public enum SVFillStyle : byte
+public enum FillStyle : byte
 {
     Static,
     Min,

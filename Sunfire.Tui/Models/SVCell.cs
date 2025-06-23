@@ -1,7 +1,7 @@
 using Sunfire.Ansi.Models;
 using Sunfire.Tui.Enums;
 
-namespace Sunfire.Tui.Rendering;
+namespace Sunfire.Tui.Models;
 
 public record struct SVCell(
     string Data,

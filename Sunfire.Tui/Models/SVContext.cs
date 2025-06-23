@@ -1,4 +1,4 @@
-namespace Sunfire.Tui.Rendering;
+namespace Sunfire.Tui.Models;
 
 public readonly struct SVContext(int originX, int originY, SVBuffer buffer)
 {

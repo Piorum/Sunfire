@@ -1,7 +1,7 @@
 using System.Text;
 using System.Threading.Channels;
 using Sunfire.Logging;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
 using Sunfire.Tui.Views;
 using Sunfire.Ansi;
@@ -81,10 +81,11 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 }
 
                 //Skip render if cancelled basically
+                await Logger.Debug(nameof(Tui), $"[Starting Render]");
                 var startTime = DateTime.Now;
                 if (runningTasks.Count > 0 && !token.IsCancellationRequested)
                     await OnRender(asb);
-                await Logger.Debug(nameof(Tui), $"[Frame Time] {(DateTime.Now - startTime).TotalMicroseconds}us");
+                await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - startTime).TotalMicroseconds}us)");
             }
             catch (OperationCanceledException) { } //Non-Issue just allow to stop
         }
@@ -194,11 +195,11 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         _backBuffer.Clear();
         var swapTime = (DateTime.Now - startTime).TotalMicroseconds;
 
-        await Logger.Debug(nameof(Tui), $" - View Arrange Time {arrangeTime}us");
-        await Logger.Debug(nameof(Tui), $" - View Draw Time {drawTime}us");
-        await Logger.Debug(nameof(Tui), $" - Output Build Time {buildTime}us");
-        await Logger.Debug(nameof(Tui), $" - Console Write Time {writeTime}us");
-        await Logger.Debug(nameof(Tui), $" - Buffer Swap Time {swapTime}us");
+        await Logger.Debug(nameof(Tui), $" - (Arrange:  {arrangeTime}us)");
+        await Logger.Debug(nameof(Tui), $" - (Draw:     {drawTime}us)");
+        await Logger.Debug(nameof(Tui), $" - (Build     {buildTime}us)");
+        await Logger.Debug(nameof(Tui), $" - (Write:    {writeTime}us)");
+        await Logger.Debug(nameof(Tui), $" - (Swap:     {swapTime}us)");
     }
 
     public async Task Resize()

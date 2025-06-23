@@ -1,5 +1,5 @@
 ﻿using Sunfire.Tui.Enums;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 
 namespace Sunfire.Tui.Views;
 
@@ -9,8 +9,8 @@ public interface IRelativeSunfireView : ISunfireView
     int Y { get; }
     int Z { get; }
 
-    SVFillStyle FillStyleX { get; }
-    SVFillStyle FillStyleY { get; }
+    FillStyle FillStyleX { get; }
+    FillStyle FillStyleY { get; }
     int StaticX { get; } //1 = 1 Cell
     int StaticY { get; } //1 = 1 Cell
     float PercentX { get; } //1.0f == 100%

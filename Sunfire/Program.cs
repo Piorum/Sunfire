@@ -2,7 +2,7 @@
 using Sunfire.Registries;
 using Sunfire.Tui;
 using Sunfire.Input;
-using Sunfire.Input.Types;
+using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Models;
 

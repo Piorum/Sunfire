@@ -1,5 +1,5 @@
 using Sunfire.Tui.Views;
-using Sunfire.Tui.Views.TextBoxes;
+using Sunfire.Tui.Views.Text;
 using Sunfire.Tui.Enums;
 using System.Runtime.CompilerServices;
 
@@ -36,7 +36,7 @@ public static class SVRegistry
         {
             X = 1,
             Y = 0,
-            FillStyleX = SVFillStyle.Static,
+            FillStyleX = FillStyle.Static,
             Text = "Test"
         };
         topRightLabel.StaticX = topRightLabel.Text.Length;
@@ -57,12 +57,12 @@ public static class SVRegistry
                     topRightLabel,
                     new BorderSV()
                     {
-                        BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
                         SubPane = new()
                         {
                             X = 0,
                             Y = 1,
-                            FillStyleX = SVFillStyle.Percent,
+                            FillStyleX = FillStyle.Percent,
                             PercentX = 0.125f,
                             SubViews =
                             [
@@ -72,12 +72,12 @@ public static class SVRegistry
                     },
                     new BorderSV()
                     {
-                        BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
                         SubPane = new()
                         {
                             X = 1,
                             Y = 1,
-                            FillStyleX = SVFillStyle.Percent,
+                            FillStyleX = FillStyle.Percent,
                             PercentX = 0.425f,
                             SubViews =
                             [
@@ -87,7 +87,7 @@ public static class SVRegistry
                     },
                     new BorderSV()
                     {
-                        BorderSides = SVDirection.Top | SVDirection.Bottom | SVDirection.Left | SVDirection.Right,
+                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left | Direction.Right,
                         SubPane = new()
                         {
                             X = 2,

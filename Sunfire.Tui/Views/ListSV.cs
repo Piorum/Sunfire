@@ -1,6 +1,6 @@
-using Sunfire.Tui.Views.TextBoxes;
+using Sunfire.Tui.Views.Text;
 using Sunfire.Tui.Enums;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
 using Sunfire.Ansi.Models;
 
@@ -12,8 +12,8 @@ public class ListSV : IRelativeSunfireView
     public int Y { get; set; }
     public int Z { get; set; }
 
-    public SVFillStyle FillStyleX  { set; get; } = SVFillStyle.Max;
-    public SVFillStyle FillStyleY  { set; get; } = SVFillStyle.Max;
+    public FillStyle FillStyleX  { set; get; } = FillStyle.Max;
+    public FillStyle FillStyleY  { set; get; } = FillStyle.Max;
     public int StaticX  { set; get; } = 1; //1 = 1 Cell
     public int StaticY  { set; get; } = 1; //1 = 1 Cell
     public float PercentX  { set; get; } = 1.0f; //1.0f == 100%

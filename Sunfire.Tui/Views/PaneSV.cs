@@ -1,5 +1,5 @@
 using Sunfire.Tui.Enums;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
 
 namespace Sunfire.Tui.Views;
@@ -10,8 +10,8 @@ public class PaneSV : IRelativeSunfireView
     public int Y { get; set; }
     public int Z { get; set; }
 
-    public SVFillStyle FillStyleX { set; get; } = SVFillStyle.Max;
-    public SVFillStyle FillStyleY { set; get; } = SVFillStyle.Max;
+    public FillStyle FillStyleX { set; get; } = FillStyle.Max;
+    public FillStyle FillStyleY { set; get; } = FillStyle.Max;
     public int StaticX { set; get; } = 1; //1 = 1 Cell
     public int StaticY { set; get; } = 1; //1 = 1 Cell
     public float PercentX { set; get; } = 1.0f; //1.0f == 100%
@@ -77,19 +77,19 @@ public class PaneSV : IRelativeSunfireView
         {
             if (viewCoordinates.Contains((view.X, view.Y - 1)))
             {
-                view.BorderConnections |= SVDirection.Top;
+                view.BorderConnections |= Direction.Top;
             }
             if (viewCoordinates.Contains((view.X, view.Y + 1)))
             {
-                view.BorderConnections |= SVDirection.Bottom;
+                view.BorderConnections |= Direction.Bottom;
             }
             if (viewCoordinates.Contains((view.X - 1, view.Y)))
             {
-                view.BorderConnections |= SVDirection.Left;
+                view.BorderConnections |= Direction.Left;
             }
             if (viewCoordinates.Contains((view.X + 1, view.Y)))
             {
-                view.BorderConnections |= SVDirection.Right;
+                view.BorderConnections |= Direction.Right;
             }
         }
 
@@ -109,23 +109,23 @@ public class PaneSV : IRelativeSunfireView
 
                 switch (view.FillStyleX)
                 {
-                    case SVFillStyle.Static:
+                    case FillStyle.Static:
                         view.SizeX = Math.Min(availableWidth[view.Y], view.StaticX);
                         break;
-                    case SVFillStyle.Min:
+                    case FillStyle.Min:
                         view.SizeX = availableWidth[view.Y] > 0 ? 1 : 0;
                         break;
-                    case SVFillStyle.Percent:
+                    case FillStyle.Percent:
                         view.SizeX = (int)(availableWidth[view.Y] * view.PercentX);
                         break;
-                    case SVFillStyle.Max:
+                    case FillStyle.Max:
                         view.SizeX = availableWidth[view.Y];
                         break;
                 }
 
                 view.SizeX = Math.Max(0, view.SizeX);
 
-                if (view.FillStyleX != SVFillStyle.Max)
+                if (view.FillStyleX != FillStyle.Max)
                     availableWidth[view.Y] -= view.SizeX;
             }
         });
@@ -144,16 +144,16 @@ public class PaneSV : IRelativeSunfireView
 
                 switch (view.FillStyleY)
                 {
-                    case SVFillStyle.Static:
+                    case FillStyle.Static:
                         view.SizeY = Math.Min(availableHeight[view.X], view.StaticY);
                         break;
-                    case SVFillStyle.Min:
+                    case FillStyle.Min:
                         view.SizeY = availableHeight[view.X] > 0 ? 1 : 0;
                         break;
-                    case SVFillStyle.Percent:
+                    case FillStyle.Percent:
                         view.SizeY = (int)(availableHeight[view.X] * view.PercentY);
                         break;
-                    case SVFillStyle.Max:
+                    case FillStyle.Max:
                         view.SizeY = availableHeight[view.X];
                         break;
                 }
@@ -162,7 +162,7 @@ public class PaneSV : IRelativeSunfireView
 
                 if (view.SizeY > largestAtY[view.Y])
                 {
-                    if (view.FillStyleY != SVFillStyle.Max)
+                    if (view.FillStyleY != FillStyle.Max)
                         for (int i = 0; i < availableHeight.Length; i++)
                             availableHeight[i] -= view.SizeY - largestAtY[view.Y];
                     largestAtY[view.Y] = view.SizeY;

@@ -1,4 +1,4 @@
-using Sunfire.Input.Types;
+using Sunfire.Input.Models;
 
 namespace Sunfire.Input.DataStructures;
 

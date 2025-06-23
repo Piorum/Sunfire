@@ -1,6 +1,6 @@
 using Sunfire.Ansi.Models;
 using Sunfire.Tui.Enums;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
 
 namespace Sunfire.Tui.Views;
@@ -11,8 +11,8 @@ public class BorderSV : IRelativeSunfireView
     public int Y => SubPane.Y;
     public int Z => SubPane.Z;
 
-    public SVFillStyle FillStyleX => SubPane.FillStyleX;
-    public SVFillStyle FillStyleY => SubPane.FillStyleY;
+    public FillStyle FillStyleX => SubPane.FillStyleX;
+    public FillStyle FillStyleY => SubPane.FillStyleY;
     public int StaticX => SubPane.StaticX;
     public int StaticY => SubPane.StaticY;
     public float PercentX => SubPane.PercentX;
@@ -25,8 +25,8 @@ public class BorderSV : IRelativeSunfireView
 
     public bool Dirty { set; get; }
 
-    public SVDirection BorderSides = SVDirection.None;
-    public SVDirection BorderConnections = SVDirection.None;
+    public Direction BorderSides = Direction.None;
+    public Direction BorderConnections = Direction.None;
 
     public SColor? BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
     public SColor? BackgroundColor { set; get; } = null;
@@ -60,81 +60,81 @@ public class BorderSV : IRelativeSunfireView
 
     //Box building lookup tables
     //Connections, BorderSide, ProperCornerChar
-    private static readonly Dictionary<(SVDirection, SVDirection), char> topLeftMap =
+    private static readonly Dictionary<(Direction, Direction), char> topLeftMap =
     new()
     {
-        { (SVDirection.Top | SVDirection.Left, SVDirection.Top | SVDirection.Left), HorizontalAndVertical },
-        { (SVDirection.Top | SVDirection.Left, SVDirection.Top),  HorizontalAndUp },
-        { (SVDirection.Top | SVDirection.Left, SVDirection.Left), VerticalAndLeft },
+        { (Direction.Top | Direction.Left, Direction.Top | Direction.Left), HorizontalAndVertical },
+        { (Direction.Top | Direction.Left, Direction.Top),  HorizontalAndUp },
+        { (Direction.Top | Direction.Left, Direction.Left), VerticalAndLeft },
 
-        { (SVDirection.Top, SVDirection.Top | SVDirection.Left), VerticalAndRight },
-        { (SVDirection.Top, SVDirection.Top),  Horizontal },
-        { (SVDirection.Top, SVDirection.Left), Vertical },
+        { (Direction.Top, Direction.Top | Direction.Left), VerticalAndRight },
+        { (Direction.Top, Direction.Top),  Horizontal },
+        { (Direction.Top, Direction.Left), Vertical },
 
-        { (SVDirection.Left, SVDirection.Top | SVDirection.Left), HorizontalAndDown },
-        { (SVDirection.Left, SVDirection.Top),  Horizontal },
-        { (SVDirection.Left, SVDirection.Left), Vertical },
+        { (Direction.Left, Direction.Top | Direction.Left), HorizontalAndDown },
+        { (Direction.Left, Direction.Top),  Horizontal },
+        { (Direction.Left, Direction.Left), Vertical },
 
-        { (SVDirection.None, SVDirection.Top | SVDirection.Left), TopLeft },
-        { (SVDirection.None, SVDirection.Top),  Horizontal },
-        { (SVDirection.None, SVDirection.Left), Vertical },
+        { (Direction.None, Direction.Top | Direction.Left), TopLeft },
+        { (Direction.None, Direction.Top),  Horizontal },
+        { (Direction.None, Direction.Left), Vertical },
     };
-    private static readonly Dictionary<(SVDirection, SVDirection), char> topRightMap =
+    private static readonly Dictionary<(Direction, Direction), char> topRightMap =
     new()
     {
-        { (SVDirection.Top | SVDirection.Right, SVDirection.Top | SVDirection.Right), HorizontalAndVertical },
-        { (SVDirection.Top | SVDirection.Right, SVDirection.Top),  HorizontalAndUp },
-        { (SVDirection.Top | SVDirection.Right, SVDirection.Right), VerticalAndRight },
+        { (Direction.Top | Direction.Right, Direction.Top | Direction.Right), HorizontalAndVertical },
+        { (Direction.Top | Direction.Right, Direction.Top),  HorizontalAndUp },
+        { (Direction.Top | Direction.Right, Direction.Right), VerticalAndRight },
 
-        { (SVDirection.Top,  SVDirection.Top | SVDirection.Right), VerticalAndLeft },
-        { (SVDirection.Top,  SVDirection.Top),  Horizontal },
-        { (SVDirection.Top,  SVDirection.Right), Vertical },
+        { (Direction.Top,  Direction.Top | Direction.Right), VerticalAndLeft },
+        { (Direction.Top,  Direction.Top),  Horizontal },
+        { (Direction.Top,  Direction.Right), Vertical },
 
-        { (SVDirection.Right, SVDirection.Top | SVDirection.Right), HorizontalAndDown },
-        { (SVDirection.Right, SVDirection.Top),  Horizontal },
-        { (SVDirection.Right, SVDirection.Right), Vertical },
+        { (Direction.Right, Direction.Top | Direction.Right), HorizontalAndDown },
+        { (Direction.Right, Direction.Top),  Horizontal },
+        { (Direction.Right, Direction.Right), Vertical },
 
-        { (SVDirection.None, SVDirection.Top | SVDirection.Right), TopRight },
-        { (SVDirection.None, SVDirection.Top),  Horizontal },
-        { (SVDirection.None, SVDirection.Right), Vertical },
+        { (Direction.None, Direction.Top | Direction.Right), TopRight },
+        { (Direction.None, Direction.Top),  Horizontal },
+        { (Direction.None, Direction.Right), Vertical },
     };
-    private static readonly Dictionary<(SVDirection, SVDirection), char> bottomLeftMap =
+    private static readonly Dictionary<(Direction, Direction), char> bottomLeftMap =
     new()
     {
-        { (SVDirection.Bottom | SVDirection.Left, SVDirection.Bottom | SVDirection.Left), HorizontalAndVertical },
-        { (SVDirection.Bottom | SVDirection.Left, SVDirection.Bottom),  HorizontalAndDown },
-        { (SVDirection.Bottom | SVDirection.Left, SVDirection.Left), VerticalAndLeft },
+        { (Direction.Bottom | Direction.Left, Direction.Bottom | Direction.Left), HorizontalAndVertical },
+        { (Direction.Bottom | Direction.Left, Direction.Bottom),  HorizontalAndDown },
+        { (Direction.Bottom | Direction.Left, Direction.Left), VerticalAndLeft },
 
-        { (SVDirection.Bottom,  SVDirection.Bottom | SVDirection.Left), VerticalAndRight },
-        { (SVDirection.Bottom,  SVDirection.Bottom),  Horizontal },
-        { (SVDirection.Bottom,  SVDirection.Left), Vertical },
+        { (Direction.Bottom,  Direction.Bottom | Direction.Left), VerticalAndRight },
+        { (Direction.Bottom,  Direction.Bottom),  Horizontal },
+        { (Direction.Bottom,  Direction.Left), Vertical },
 
-        { (SVDirection.Left, SVDirection.Bottom | SVDirection.Left), HorizontalAndUp },
-        { (SVDirection.Left, SVDirection.Bottom),  Horizontal },
-        { (SVDirection.Left, SVDirection.Left), Vertical },
+        { (Direction.Left, Direction.Bottom | Direction.Left), HorizontalAndUp },
+        { (Direction.Left, Direction.Bottom),  Horizontal },
+        { (Direction.Left, Direction.Left), Vertical },
 
-        { (SVDirection.None, SVDirection.Bottom | SVDirection.Left), BottomLeft },
-        { (SVDirection.None, SVDirection.Bottom),  Horizontal },
-        { (SVDirection.None, SVDirection.Left), Vertical },
+        { (Direction.None, Direction.Bottom | Direction.Left), BottomLeft },
+        { (Direction.None, Direction.Bottom),  Horizontal },
+        { (Direction.None, Direction.Left), Vertical },
     };
-    private static readonly Dictionary<(SVDirection, SVDirection), char> bottomRightMap =
+    private static readonly Dictionary<(Direction, Direction), char> bottomRightMap =
     new()
     {
-        { (SVDirection.Bottom | SVDirection.Right, SVDirection.Bottom | SVDirection.Right), HorizontalAndVertical },
-        { (SVDirection.Bottom | SVDirection.Right, SVDirection.Bottom),  HorizontalAndDown },
-        { (SVDirection.Bottom | SVDirection.Right, SVDirection.Right), VerticalAndRight },
+        { (Direction.Bottom | Direction.Right, Direction.Bottom | Direction.Right), HorizontalAndVertical },
+        { (Direction.Bottom | Direction.Right, Direction.Bottom),  HorizontalAndDown },
+        { (Direction.Bottom | Direction.Right, Direction.Right), VerticalAndRight },
 
-        { (SVDirection.Bottom,  SVDirection.Bottom | SVDirection.Right), VerticalAndLeft },
-        { (SVDirection.Bottom,  SVDirection.Bottom),  Horizontal },
-        { (SVDirection.Bottom,  SVDirection.Right), Vertical },
+        { (Direction.Bottom,  Direction.Bottom | Direction.Right), VerticalAndLeft },
+        { (Direction.Bottom,  Direction.Bottom),  Horizontal },
+        { (Direction.Bottom,  Direction.Right), Vertical },
 
-        { (SVDirection.Right, SVDirection.Bottom | SVDirection.Right), HorizontalAndUp },
-        { (SVDirection.Right, SVDirection.Bottom),  Horizontal },
-        { (SVDirection.Right, SVDirection.Right), Vertical },
+        { (Direction.Right, Direction.Bottom | Direction.Right), HorizontalAndUp },
+        { (Direction.Right, Direction.Bottom),  Horizontal },
+        { (Direction.Right, Direction.Right), Vertical },
 
-        { (SVDirection.None, SVDirection.Bottom | SVDirection.Right), BottomRight },
-        { (SVDirection.None, SVDirection.Bottom),  Horizontal },
-        { (SVDirection.None, SVDirection.Right), Vertical },
+        { (Direction.None, Direction.Bottom | Direction.Right), BottomRight },
+        { (Direction.None, Direction.Bottom),  Horizontal },
+        { (Direction.None, Direction.Right), Vertical },
     };
 
     public async Task<bool> Arrange()
@@ -156,28 +156,28 @@ public class BorderSV : IRelativeSunfireView
     private Task OnArrange()
     {
         var width = Math.Max(SizeX - 2, 0);
-        string topString = BorderSides.HasFlag(SVDirection.Top) ? new string(Horizontal, SizeX) : new string(' ', width);
-        string bottomString = BorderSides.HasFlag(SVDirection.Bottom) ? new string(Horizontal, SizeX) : new string(' ', width);
+        string topString = BorderSides.HasFlag(Direction.Top) ? new string(Horizontal, SizeX) : new string(' ', width);
+        string bottomString = BorderSides.HasFlag(Direction.Bottom) ? new string(Horizontal, SizeX) : new string(' ', width);
 
         string middleString = new(' ', SizeX);
         if (middleString.Length > 0)
         {
-            if (BorderSides.HasFlag(SVDirection.Right))
+            if (BorderSides.HasFlag(Direction.Right))
                 middleString = middleString[0..^1] + Vertical;
-            if (BorderSides.HasFlag(SVDirection.Left))
+            if (BorderSides.HasFlag(Direction.Left))
                 middleString = Vertical + middleString[1..];
         }
 
-        var topLeftKey = (BorderConnections & (SVDirection.Top | SVDirection.Left), BorderSides & (SVDirection.Top | SVDirection.Left));
+        var topLeftKey = (BorderConnections & (Direction.Top | Direction.Left), BorderSides & (Direction.Top | Direction.Left));
         char topLeftChar = topLeftMap.TryGetValue(topLeftKey, out char foundTLChar) ? foundTLChar : '@';
 
-        var topRightKey = (BorderConnections & (SVDirection.Top | SVDirection.Right), BorderSides & (SVDirection.Top | SVDirection.Right));
+        var topRightKey = (BorderConnections & (Direction.Top | Direction.Right), BorderSides & (Direction.Top | Direction.Right));
         var topRightChar = topRightMap.TryGetValue(topRightKey, out char foundTRChar) ? foundTRChar : '@';
 
-        var bottomLeftKey = (BorderConnections & (SVDirection.Bottom | SVDirection.Left), BorderSides & (SVDirection.Bottom | SVDirection.Left));
+        var bottomLeftKey = (BorderConnections & (Direction.Bottom | Direction.Left), BorderSides & (Direction.Bottom | Direction.Left));
         var bottomLeftChar = bottomLeftMap.TryGetValue(bottomLeftKey, out char foundBLChar) ? foundBLChar : '@';
 
-        var bottomRightKey = (BorderConnections & (SVDirection.Bottom | SVDirection.Right), BorderSides & (SVDirection.Bottom | SVDirection.Right));
+        var bottomRightKey = (BorderConnections & (Direction.Bottom | Direction.Right), BorderSides & (Direction.Bottom | Direction.Right));
         var bottomRightChar = bottomRightMap.TryGetValue(bottomRightKey, out char foundBRChar) ? foundBRChar : '@';
 
         if (topString.Length > 1)
@@ -205,20 +205,20 @@ public class BorderSV : IRelativeSunfireView
         SubPane.OriginX = OriginX;
         SubPane.OriginY = OriginY;
 
-        if (BorderSides.HasFlag(SVDirection.Top))
+        if (BorderSides.HasFlag(Direction.Top))
         {
             SubPane.SizeY--;
             SubPane.OriginY++;
         }
-        if (BorderSides.HasFlag(SVDirection.Right))
+        if (BorderSides.HasFlag(Direction.Right))
         {
             SubPane.SizeX--;
         }
-        if (BorderSides.HasFlag(SVDirection.Bottom))
+        if (BorderSides.HasFlag(Direction.Bottom))
         {
             SubPane.SizeY--;
         }
-        if (BorderSides.HasFlag(SVDirection.Left))
+        if (BorderSides.HasFlag(Direction.Left))
         {
             SubPane.SizeX--;
             SubPane.OriginX++;

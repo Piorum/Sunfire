@@ -1,6 +1,6 @@
 using Sunfire.Input.Enums;
 
-namespace Sunfire.Input.Types;
+namespace Sunfire.Input.Models;
 
 public readonly record struct TerminalInput
 {

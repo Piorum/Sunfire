@@ -1,4 +1,4 @@
-namespace Sunfire.Tui.Rendering;
+namespace Sunfire.Tui.Models;
 
 public class SVBuffer(int width, int height)
 {

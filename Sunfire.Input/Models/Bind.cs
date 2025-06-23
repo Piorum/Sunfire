@@ -1,4 +1,4 @@
-namespace Sunfire.Input.Types;
+namespace Sunfire.Input.Models;
 
 public readonly record struct Bind
 {

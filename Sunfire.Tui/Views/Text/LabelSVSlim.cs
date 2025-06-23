@@ -1,8 +1,8 @@
 using Sunfire.Ansi.Models;
 using Sunfire.Tui.Enums;
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 
-namespace Sunfire.Tui.Views.TextBoxes;
+namespace Sunfire.Tui.Views.Text;
 
 public class LabelSVSlim : ISunfireView
 {
@@ -14,8 +14,8 @@ public class LabelSVSlim : ISunfireView
     public bool Dirty { set; get; }
 
     public SAnsiProperty TextProperties = SAnsiProperty.None;
-    public SVLabelProperty LabelProperties = SVLabelProperty.None;
-    public SVDirection Alignment = SVDirection.Left;
+    public LabelSVProperty LabelProperties = LabelSVProperty.None;
+    public Direction Alignment = Direction.Left;
 
     public SColor? TextColor = new() { R = 255, G = 255, B = 255 };
     public SColor? BackgroundColor = null;
@@ -40,17 +40,22 @@ public class LabelSVSlim : ISunfireView
 
     private Task OnArrange()
     {
-        var maxSize = SizeX * SizeY;
+        var blankSpaceSize = (SizeX * SizeY) - Text.Length;
+        var blankString = new string(' ', blankSpaceSize);
 
-        compiledText = Alignment switch
+        switch (Alignment)
         {
-            SVDirection.Left => Text[..Math.Min(Text.Length, maxSize)] + new string(' ', Math.Max(0, maxSize - Text.Length)),
-            SVDirection.Right => new string(' ', Math.Max(0, maxSize - Text.Length)) + Text[^Math.Min(Text.Length, maxSize)..],
-            _ => throw new InvalidOperationException("Label has invalid alignment direction.")
-        };
+            case Direction.Left:
+                compiledText = string.Concat(Text, blankString);
+                break;
+            case Direction.Right:
+                compiledText = string.Concat(blankString, Text);
+                break;
+        }
 
         templateCell = new SVCell
         {
+            Data = " ",
             ForegroundColor = TextColor,
             BackgroundColor = BackgroundColor,
             Properties = TextProperties
@@ -61,15 +66,13 @@ public class LabelSVSlim : ISunfireView
 
     public Task Draw(SVContext context)
     {
-        string[] rows = SizeX > 0
-            ? [.. compiledText.Chunk(SizeX).Select(x => new string(x))]
-            : [];
-        for (int y = 0; y < rows.Length; y++)
+        var index = 0;
+        for (int y = 0; y < SizeY; y++)
         {
-            var row = rows[y];
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = templateCell with { Data = row[x].ToString() };
+                context[x, y] = templateCell with { Data = compiledText[index].ToString() };
+                index++;
             }
         }
         return Task.CompletedTask;

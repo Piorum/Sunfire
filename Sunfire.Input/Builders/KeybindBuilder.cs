@@ -1,5 +1,5 @@
 using Sunfire.Input.DataStructures;
-using Sunfire.Input.Types;
+using Sunfire.Input.Models;
 
 namespace Sunfire.Input.Builders;
 

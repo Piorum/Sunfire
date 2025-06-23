@@ -1,7 +1,7 @@
 namespace Sunfire.Tui.Enums;
 
 [Flags]
-public enum SVDirection : byte
+public enum Direction : byte
 {
     None = 0,
     Top = 1,

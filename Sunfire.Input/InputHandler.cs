@@ -1,5 +1,5 @@
 using System.Threading.Channels;
-using Sunfire.Input.Types;
+using Sunfire.Input.Models;
 using Sunfire.Input.DataStructures;
 using System.Text;
 using Sunfire.Input.Builders;
@@ -106,9 +106,6 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         {
             await foreach (var evt in inputChannel.Reader.ReadAllAsync(cts.Token))
             {
-                await Logger.Debug(nameof(Input), $"[Bind Received]");
-                await Logger.Debug(nameof(Input), $" - {evt.Key}");
-                await Logger.Debug(nameof(Input), $" - {evt.InputData}");
                 var indifferentBindsTask = Task.Run(async () =>
                 {
                     await ExecuteBindings(
@@ -147,6 +144,25 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
 
                     if(executedBinds)
                         await ResetSequence();
+                });
+                
+                await Logger.Debug(nameof(Input), $"[Bind Received]");
+                
+                await Logger.Debug(nameof(Input), evt.Key.InputType switch
+                {
+                    Enums.InputType.Mouse => $" - (Key: {evt.Key.MouseKey}, Modifiers: {evt.Key.Modifiers})",
+                    Enums.InputType.Keyboard => $" - (Key: {evt.Key.KeyboardKey}, Modifiers: {evt.Key.Modifiers})",
+                    _ => " - None"
+                });
+                await Logger.Debug(nameof(Input), evt.Key.InputType switch
+                {
+                    Enums.InputType.Mouse => (evt.InputData.ScrollDelta is null) switch
+                        {
+                            true => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y})",
+                            false => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y}, ScrollDelta: {evt.InputData.ScrollDelta})"
+                        },
+                    Enums.InputType.Keyboard => $" - (UTFChar: {evt.InputData.UTFChar})",
+                    _ => " - None"
                 });
 
                 await Task.WhenAll(indifferentBindsTask, sequenceBindsTask);

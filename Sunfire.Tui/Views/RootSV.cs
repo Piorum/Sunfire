@@ -1,4 +1,4 @@
-using Sunfire.Tui.Rendering;
+using Sunfire.Tui.Models;
 
 namespace Sunfire.Tui.Views;
 

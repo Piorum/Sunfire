@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 using Sunfire.Input.Enums;
-using Sunfire.Input.Types;
+using Sunfire.Input.Models;
 
 namespace Sunfire.Input.Platforms;
 
