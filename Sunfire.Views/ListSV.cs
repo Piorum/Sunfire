@@ -1,10 +1,10 @@
-using Sunfire.Tui.Views.Text;
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
-using Sunfire.Tui.Terminal;
+using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
+using Sunfire.Views.Text;
 
-namespace Sunfire.Tui.Views;
+namespace Sunfire.Views;
 
 public class ListSV : IRelativeSunfireView
 {

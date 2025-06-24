@@ -1,8 +1,8 @@
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
-using Sunfire.Tui.Terminal;
+using Sunfire.Tui.Interfaces;
 
-namespace Sunfire.Tui.Views;
+namespace Sunfire.Views;
 
 public class PaneSV : IRelativeSunfireView
 {

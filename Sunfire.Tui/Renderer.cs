@@ -3,13 +3,17 @@ using System.Threading.Channels;
 using Sunfire.Logging;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
-using Sunfire.Tui.Views;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
 
 namespace Sunfire.Tui;
 
+/// <summary>
+/// Handles outputting data requested by given RootView
+/// </summary>
+/// <param name="rootView">RootView which all other views should come from.</param>
+/// <param name="_batchDelay">Amount of time renderer spends waiting for more render actions before rendering, by default 100μs</param>
 public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 {
     public readonly RootSV RootView = rootView;
@@ -26,6 +30,9 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     private readonly Channel<Func<Task>> renderQueue = Channel.CreateUnbounded<Func<Task>>();
 
+    /// <summary>
+    /// Starts rendering loop.
+    /// </summary>
     public async Task Start(CancellationToken token)
     {
         //Register resize event
@@ -93,6 +100,9 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await Write(AnsiRegistry.ExitAlternateScreen);
     }
 
+    /// <summary>
+    /// Used to Enqueue a task to the render queue.
+    /// </summary>
     public async Task EnqueueAction(Func<Task> action)
     {
         await renderQueue.Writer.WriteAsync(action);
@@ -120,7 +130,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         asb.Clear();
         asb.HideCursor();
 
-        string[] outputBuffer = new string[RootView.SizeX];
+        char[] outputBuffer = new char[RootView.SizeX];
         int outputIndex = 0;
 
         SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
@@ -182,7 +192,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             Flush();
         }
         //Append final escape codes like resetting properties
-        asb.Final();
+        asb.ResetProperties();
         var buildTime = (DateTime.Now - startTime).TotalMicroseconds;
 
         startTime = DateTime.Now;
@@ -202,7 +212,17 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await Logger.Debug(nameof(Tui), $" - (Swap:     {swapTime}us)");
     }
 
-    public async Task Resize()
+    private static async Task Write(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+
+        byte[] bytes = s_utf8Encoder.GetBytes(text);
+
+        await s_stdout.WriteAsync(bytes);
+        await s_stdout.FlushAsync();
+    }
+
+    internal async Task Resize()
     {
         await EnqueueAction(async () =>
         {
@@ -223,15 +243,5 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
             await RootView.Invalidate();
         });
-    }
-
-    public static async Task Write(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return;
-
-        byte[] bytes = s_utf8Encoder.GetBytes(text);
-
-        await s_stdout.WriteAsync(bytes);
-        await s_stdout.FlushAsync();
     }
 }

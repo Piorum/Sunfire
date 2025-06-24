@@ -4,6 +4,7 @@ using Sunfire.Tui;
 using Sunfire.Input;
 using Sunfire.Input.Models;
 using Sunfire.Logging;
+using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
 
 namespace Sunfire;

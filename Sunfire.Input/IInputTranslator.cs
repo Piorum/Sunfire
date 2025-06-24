@@ -1,5 +1,5 @@
 using System.Threading.Channels;
-using Sunfire.Input.Platforms;
+using Sunfire.Input.Platforms.Linux;
 using Sunfire.Input.Models;
 
 namespace Sunfire.Input;

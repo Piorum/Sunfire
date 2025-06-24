@@ -60,12 +60,12 @@ public class AnsiStringBuilder()
         return this;
     }
 
-    public AnsiStringBuilder Final()
+    public AnsiStringBuilder ResetProperties()
     {
         sb.Append(AnsiRegistry.ResetProperties);
         return this;
     }
-    public AnsiStringBuilder FinalLine()
+    public AnsiStringBuilder ResetPropertiesNewLine()
     {
         sb.Append('\n');
         sb.Append(AnsiRegistry.ResetProperties);

@@ -1,8 +1,9 @@
-using Sunfire.Ansi.Models;
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
+using Sunfire.Tui.Interfaces;
+using Sunfire.Ansi.Models;
 
-namespace Sunfire.Tui.Views.Text;
+namespace Sunfire.Views.Text;
 
 public class LabelSVSlim : ISunfireView
 {
@@ -55,7 +56,7 @@ public class LabelSVSlim : ISunfireView
 
         templateCell = new SVCell
         {
-            Data = " ",
+            Data = ' ',
             ForegroundColor = TextColor,
             BackgroundColor = BackgroundColor,
             Properties = TextProperties
@@ -71,7 +72,7 @@ public class LabelSVSlim : ISunfireView
         {
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = templateCell with { Data = compiledText[index].ToString() };
+                context[x, y] = templateCell with { Data = compiledText[index] };
                 index++;
             }
         }

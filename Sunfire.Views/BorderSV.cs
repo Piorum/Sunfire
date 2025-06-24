@@ -1,9 +1,9 @@
-using Sunfire.Ansi.Models;
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
-using Sunfire.Tui.Terminal;
+using Sunfire.Tui.Interfaces;
+using Sunfire.Ansi.Models;
 
-namespace Sunfire.Tui.Views;
+namespace Sunfire.Views;
 
 public class BorderSV : IRelativeSunfireView
 {
@@ -240,7 +240,7 @@ public class BorderSV : IRelativeSunfireView
             var borderRow = borderBuffer[y];
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = templateCell with { Data = borderRow[x].ToString() };
+                context[x, y] = templateCell with { Data = borderRow[x] };
             }
         }
 

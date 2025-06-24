@@ -5,7 +5,7 @@ using Sunfire.Ansi.Models;
 using Sunfire.Logging.Interfaces;
 using Sunfire.Logging.Models;
 
-namespace Sunfire.Logging;
+namespace Sunfire.Logging.Sinks;
 
 public class BufferSink(int? capacity = null) : ILogSink
 {
@@ -51,7 +51,7 @@ public class BufferSink(int? capacity = null) : ILogSink
             message.Message,
             new(ForegroundColor: providerColor)
         )
-        .FinalLine();
+        .ResetPropertiesNewLine();
 
         logBuffer.Enqueue(asb.ToString());
 

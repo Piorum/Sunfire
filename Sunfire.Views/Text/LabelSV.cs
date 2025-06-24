@@ -1,6 +1,7 @@
 using Sunfire.Tui.Enums;
+using Sunfire.Tui.Interfaces;
 
-namespace Sunfire.Tui.Views.Text;
+namespace Sunfire.Views.Text;
 
 public class LabelSV : LabelSVSlim, IRelativeSunfireView
 {

@@ -1,6 +1,7 @@
-using Sunfire.Tui.Views;
-using Sunfire.Tui.Views.Text;
+using Sunfire.Tui;
 using Sunfire.Tui.Enums;
+using Sunfire.Views;
+using Sunfire.Views.Text;
 using System.Runtime.CompilerServices;
 
 namespace Sunfire.Registries;
@@ -49,7 +50,7 @@ public static class SVRegistry
 
         rootSV = new()
         {
-            RootPane = new()
+            RootView = new PaneSV()
             {
                 SubViews =
                 [
