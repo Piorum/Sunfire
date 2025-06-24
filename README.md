@@ -1,2 +1,2 @@
 ### Sunfire
-A Linux TUI file manager for Kitty.
+Another TUI file manager.

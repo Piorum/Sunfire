@@ -10,10 +10,6 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Release-Linux'">
-    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="../Sunfire.Tui/Sunfire.Tui.csproj" />
     <ProjectReference Include="../Sunfire.Views/Sunfire.Views.csproj" />
