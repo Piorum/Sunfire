@@ -18,5 +18,5 @@ public record struct SVCell(
     RichDataRef? RichData
 )
 {
-    public static readonly SVCell Blank = new(' ', new SColor() { R = 255, B = 255, G = 255 }, null, SAnsiProperty.None, null);
+    public static readonly SVCell Blank = new(' ', null, null, SAnsiProperty.None, null);
 }

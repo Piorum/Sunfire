@@ -18,7 +18,7 @@ public class LabelSVSlim : ISunfireView
     public LabelSVProperty LabelProperties = LabelSVProperty.None;
     public Direction Alignment = Direction.Left;
 
-    public SColor? TextColor = new() { R = 255, G = 255, B = 255 };
+    public SColor? TextColor = null;
     public SColor? BackgroundColor = null;
 
     public string Text = "";
@@ -42,16 +42,23 @@ public class LabelSVSlim : ISunfireView
     private Task OnArrange()
     {
         var blankSpaceSize = (SizeX * SizeY) - Text.Length;
-        var blankString = new string(' ', blankSpaceSize);
-
-        switch (Alignment)
+        if (blankSpaceSize > 0)
         {
-            case Direction.Left:
-                compiledText = string.Concat(Text, blankString);
-                break;
-            case Direction.Right:
-                compiledText = string.Concat(blankString, Text);
-                break;
+            var blankString = new string(' ', blankSpaceSize);
+
+            switch (Alignment)
+            {
+                case Direction.Left:
+                    compiledText = string.Concat(Text, blankString);
+                    break;
+                case Direction.Right:
+                    compiledText = string.Concat(blankString, Text);
+                    break;
+            }
+        }
+        else
+        {
+            compiledText = Text;
         }
 
         templateCell = new SVCell

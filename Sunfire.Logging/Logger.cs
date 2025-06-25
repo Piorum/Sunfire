@@ -4,7 +4,7 @@ using Sunfire.Logging.Models;
 
 namespace Sunfire.Logging;
 
-public class Logger : ILogger<Logger>
+public static class Logger
 {
     private static readonly List<SinkConfiguration> sinks = [];
 

@@ -28,7 +28,7 @@ public class BorderSV : IRelativeSunfireView
     public Direction BorderSides = Direction.None;
     public Direction BorderConnections = Direction.None;
 
-    public SColor? BorderColor { set; get; } = new() { R = 255, G = 255, B = 255};
+    public SColor? BorderColor { set; get; } = null;
     public SColor? BackgroundColor { set; get; } = null;
 
     required public PaneSV SubPane { set; get; }

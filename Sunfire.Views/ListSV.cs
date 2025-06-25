@@ -109,6 +109,8 @@ public class ListSV : IRelativeSunfireView
     //Should be called when list needs to be redrawn
     public async Task Draw(SVContext context)
     {
+        //Should actually draw background here
+        
         await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
     }
 
