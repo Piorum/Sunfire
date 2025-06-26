@@ -45,6 +45,8 @@ public interface IRelativeSunfireView : ISunfireView
     /// Requested percentage of height for the view where 1.0f is equal to 100%.
     /// </summary>
     float PercentY { get; } //1.0f == 100%
+    int MinX { get; }
+    int MinY { get; }
 }
 
 /// <summary>

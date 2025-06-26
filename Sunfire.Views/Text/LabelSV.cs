@@ -16,4 +16,7 @@ public class LabelSV : LabelSVSlim, IRelativeSunfireView
     public float PercentX { set; get; } = 1.0f; //1.0f == 100%
     public float PercentY { set; get; } = 1.0f; //1.0f == 100%
 
+    public int MinX { get; } = 0;
+    public int MinY { get; } = 1;
+
 }

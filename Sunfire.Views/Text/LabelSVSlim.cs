@@ -19,12 +19,10 @@ public class LabelSVSlim : ISunfireView
     public Direction Alignment = Direction.Left;
 
     public SColor? TextColor = null;
-    public SColor? BackgroundColor = null;
 
     public string Text = "";
 
     private string compiledText = "";
-    private SVCell templateCell = SVCell.Blank;
 
     public async Task<bool> Arrange()
     {
@@ -61,27 +59,36 @@ public class LabelSVSlim : ISunfireView
             compiledText = Text;
         }
 
-        templateCell = new SVCell
-        {
-            Data = ' ',
-            ForegroundColor = TextColor,
-            BackgroundColor = BackgroundColor,
-            Properties = TextProperties
-        };
-
         return Task.CompletedTask;
     }
 
     public Task Draw(SVContext context)
     {
-        var index = 0;
-        for (int y = 0; y < SizeY; y++)
+        int index;
+        switch (Alignment)
         {
-            for (int x = 0; x < SizeX; x++)
-            {
-                context[x, y] = templateCell with { Data = compiledText[index] };
-                index++;
-            }
+            case Direction.Left:
+                index = 0;
+                for (int y = 0; y < SizeY; y++)
+                {
+                    for (int x = 0; x < SizeX; x++)
+                    {
+                        context[x, y] = context[x, y] with { Data = compiledText[index], ForegroundColor = TextColor, Properties = TextProperties };
+                        index++;
+                    }
+                }
+                break;
+            case Direction.Right:
+                index = compiledText.Length - 1;
+                for (int y = SizeY - 1; y >= 0; y--)
+                {
+                    for (int x = SizeX - 1; x >= 0; x--)
+                    {
+                        context[x, y] = context[x, y] with { Data = compiledText[index], ForegroundColor = TextColor, Properties = TextProperties };
+                        index--;
+                    }
+                }
+                break;
         }
         return Task.CompletedTask;
     }

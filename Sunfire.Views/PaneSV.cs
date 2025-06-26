@@ -24,6 +24,9 @@ public class PaneSV : IRelativeSunfireView
 
     public bool Dirty { set; get; }
 
+    public int MinX => SubViews.Select(sv => sv.MinX).Max();
+    public int MinY => SubViews.Select(sv => sv.MinY).Max();
+
     required public List<IRelativeSunfireView> SubViews = [];
 
     protected List<int>? xLevels;
@@ -45,9 +48,6 @@ public class PaneSV : IRelativeSunfireView
     {
         await PopulateXYZLevels();
 
-        //Border Connections Task
-        var borderConnectionsTask = Task.Run(CalculateBorderConnections);
-
         //Measure and Position
         var orderedByWidthStyle = SubViews.OrderBy(sv => sv.FillStyleX).ToList();
         var orderedByHeightStyle = SubViews.OrderBy(sv => sv.FillStyleY).ToList();
@@ -65,35 +65,7 @@ public class PaneSV : IRelativeSunfireView
             }));
         }
 
-        await Task.WhenAll(Task.WhenAll(measureAndPostionTasks), borderConnectionsTask);
-    }
-
-    private Task CalculateBorderConnections()
-    {
-        var borderViews = SubViews.OfType<BorderSV>().ToList();
-        var viewCoordinates = borderViews.Select(v => (v.X, v.Y)).ToHashSet();
-
-        foreach (var view in borderViews)
-        {
-            if (viewCoordinates.Contains((view.X, view.Y - 1)))
-            {
-                view.BorderConnections |= Direction.Top;
-            }
-            if (viewCoordinates.Contains((view.X, view.Y + 1)))
-            {
-                view.BorderConnections |= Direction.Bottom;
-            }
-            if (viewCoordinates.Contains((view.X - 1, view.Y)))
-            {
-                view.BorderConnections |= Direction.Left;
-            }
-            if (viewCoordinates.Contains((view.X + 1, view.Y)))
-            {
-                view.BorderConnections |= Direction.Right;
-            }
-        }
-
-        return Task.CompletedTask;
+        await Task.WhenAll(measureAndPostionTasks);
     }
 
     private async Task Measure(int zIndex, List<IRelativeSunfireView> orderedByWidthStyle, List<IRelativeSunfireView> orderedByHeightStyle)
@@ -113,7 +85,8 @@ public class PaneSV : IRelativeSunfireView
                         view.SizeX = Math.Min(availableWidth[view.Y], view.StaticX);
                         break;
                     case FillStyle.Min:
-                        view.SizeX = availableWidth[view.Y] > 0 ? 1 : 0;
+                        var minX = view.MinX;
+                        view.SizeX = availableWidth[view.Y] > minX - 1 ? minX : 0;
                         break;
                     case FillStyle.Percent:
                         view.SizeX = (int)(availableWidth[view.Y] * view.PercentX);
@@ -148,7 +121,8 @@ public class PaneSV : IRelativeSunfireView
                         view.SizeY = Math.Min(availableHeight[view.X], view.StaticY);
                         break;
                     case FillStyle.Min:
-                        view.SizeY = availableHeight[view.X] > 0 ? 1 : 0;
+                        var minY = view.MinY;
+                        view.SizeY = availableHeight[view.X] > minY - 1 ? minY : 0;
                         break;
                     case FillStyle.Percent:
                         view.SizeY = (int)(availableHeight[view.X] * view.PercentY);
@@ -202,11 +176,6 @@ public class PaneSV : IRelativeSunfireView
     private async Task<bool> PropagateArrange()
     {
         return (await Task.WhenAll(SubViews.Select(v => v.Arrange()))).Any(r => r);
-        
-        /*if (workDone.Contains(true))
-            return true;
-        else
-            return false;*/
     }
 
     public async Task Draw(SVContext context)

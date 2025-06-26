@@ -11,7 +11,9 @@ public static class SVRegistry
     private static RootSV? rootSV;
 
     private static ListSV? currentList;
+    private static PaneSV? currentPane;
     private static ListSV? containerList;
+    private static PaneSV? containerPane;
     private static PaneSV? previewPane;
     private static LabelSV? topLeftLabel;
     private static LabelSV? topRightLabel;
@@ -23,11 +25,6 @@ public static class SVRegistry
         currentList = new();
         containerList = new();
 
-        previewPane = new()
-        {
-            SubViews = []
-        };
-
         topLeftLabel = new()
         {
             X = 0,
@@ -36,7 +33,7 @@ public static class SVRegistry
         topRightLabel = new()
         {
             X = 1,
-            Y = 0,
+            Y = 1,
             FillStyleX = FillStyle.Static,
             Text = "Test"
         };
@@ -45,7 +42,36 @@ public static class SVRegistry
         bottomLabel = new()
         {
             X = 0,
-            Y = 2,
+            Y = 1,
+        };
+
+        containerPane = new PaneSV()
+        {
+            X = 0,
+            Y = 0,
+            FillStyleX = FillStyle.Percent,
+            PercentX = 0.125f,
+            SubViews =
+            [
+                containerList
+            ]
+        };
+        currentPane = new PaneSV()
+        {
+            X = 1,
+            Y = 0,
+            FillStyleX = FillStyle.Percent,
+            PercentX = 0.425f,
+            SubViews =
+            [
+                currentList
+            ]
+        };
+        previewPane = new()
+        {
+            X = 2,
+            Y = 0,
+            SubViews = []
         };
 
         rootSV = new()
@@ -54,53 +80,29 @@ public static class SVRegistry
             {
                 SubViews =
                 [
-                    topLeftLabel,
-                    topRightLabel,
-                    new BorderSV()
-                    {
-                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
-                        SubPane = new()
-                        {
-                            X = 0,
-                            Y = 1,
-                            FillStyleX = FillStyle.Percent,
-                            PercentX = 0.125f,
-                            SubViews =
-                            [
-                                containerList
-                            ]
-                        }
+                    new BorderSV(){
+                        SubView = containerPane
                     },
-                    new BorderSV()
-                    {
-                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left,
-                        SubPane = new()
+                    new BorderSV(){
+                        TitleLabel = new()
                         {
-                            X = 1,
-                            Y = 1,
-                            FillStyleX = FillStyle.Percent,
-                            PercentX = 0.425f,
-                            SubViews =
-                            [
-                                currentList
-                            ]
-                        }
+                            Text = "~/.config/hypr/hyprext/variables.conf"
+                        },
+                        SubView = currentPane
                     },
-                    new BorderSV()
-                    {
-                        BorderSides = Direction.Top | Direction.Bottom | Direction.Left | Direction.Right,
-                        SubPane = new()
+                    new BorderSV(){
+                        SubView = previewPane
+                    },
+                    new BorderSV(){
+                        TitleLabel = new()
                         {
-                            X = 2,
-                            Y = 1,
-                            SubViews =
-                            [
-                                previewPane
-                            ]
-                        }
+                            Text = "Bottom Border"
+                        },
+                        SubView = bottomLabel
                     },
-                    bottomLabel,
-
+                    new BorderSV(){
+                        SubView = topRightLabel
+                    },
                 ]
             }
         };
@@ -111,8 +113,12 @@ public static class SVRegistry
 
     public static ListSV GetCurrentList() =>
         currentList!;
+    public static PaneSV GetCurrentPane() =>
+        currentPane!;
     public static ListSV GetContainerList() =>
         containerList!;
+    public static PaneSV GetContainerPane() =>
+        containerPane!;
     public static PaneSV GetPreviewPane() =>
         previewPane!;
     public static LabelSV GetTopLeftLabel() =>

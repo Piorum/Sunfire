@@ -19,6 +19,9 @@ public class ListSV : IRelativeSunfireView
     public float PercentX  { set; get; } = 1.0f; //1.0f == 100%
     public float PercentY  { set; get; } = 1.0f; //1.0f == 100%
 
+    public int MinX { get; } = 0;
+    public int MinY { get; } = 0;
+
     public int OriginX { set; get; }
     public int OriginY { set; get; }
     public int SizeX { set; get; }
@@ -110,7 +113,7 @@ public class ListSV : IRelativeSunfireView
     public async Task Draw(SVContext context)
     {
         //Should actually draw background here
-        
+
         await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
     }
 
