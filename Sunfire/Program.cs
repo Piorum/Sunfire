@@ -49,6 +49,13 @@ internal class Program
                 .WithBind(async (inputData) => { await InputHandler.Stop(); })
                 .RegisterBind();
 
+            await InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.R, Input.Enums.Modifier.Ctrl | Input.Enums.Modifier.Alt))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => { await Renderer.EnqueueAction(Renderer.RootView.Invalidate); })
+                .RegisterBind();
+
             var currentList = SVRegistry.GetCurrentList();
             await InputHandler.CreateBinding()
                 .AsIndifferent()
@@ -99,13 +106,31 @@ internal class Program
             });
 
             var list = SVRegistry.GetCurrentList();
-            for (int i = 0; i < 10; i++)
-            {
-                await list.AddLabel(new()
+            var dirInfo = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            var grouped = dirInfo.EnumerateFileSystemInfos()
+                .GroupBy(info => (
+                    IsDirectory: info.Attributes.HasFlag(FileAttributes.Directory),
+                    IsHidden: info.Attributes.HasFlag(FileAttributes.Hidden)
+                ))
+                .OrderBy(group =>
                 {
-                    TextProperties = i < 5 ? Ansi.Models.SAnsiProperty.Bold : Ansi.Models.SAnsiProperty.None,
-                    Text = $"{i}"
+                    var key = group.Key;
+                    return key switch
+                    {
+                        (true, true)  => 0, // Hidden directory
+                        (true, false) => 1, // Visible directory
+                        (false, true)  => 2, // Hidden file
+                        (false, false) => 3, // Visible file
+                    };
                 });
+            foreach (var grp in grouped)
+            {
+                foreach(var info in grp)
+                    await list.AddLabel(new()
+                    {
+                        TextProperties = info.Attributes.HasFlag(FileAttributes.Directory) ? Ansi.Models.SAnsiProperty.Bold : Ansi.Models.SAnsiProperty.None,
+                        Text = info.Name
+                    });
             }
             await Renderer.EnqueueAction(list.Invalidate);
 

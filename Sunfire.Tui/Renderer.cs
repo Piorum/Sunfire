@@ -226,13 +226,11 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     {
         await EnqueueAction(async () =>
         {
+            await Write(AnsiRegistry.ClearScreen);
+
             var newHeight = Console.BufferHeight;
             var newWidth = Console.BufferWidth;
             await Logger.Debug(nameof(Tui), $"[Resizing] ({RootView.SizeX},{RootView.SizeY}) -> ({newWidth},{newHeight})");
-
-            //Maybe rendering will be fast enough when properly diffed but needed to remove perceived overlapping
-            if (RootView.SizeY > newHeight)
-                await Write(AnsiRegistry.ClearScreen);
 
             //Just reset, resizing behavior is too inconsistent to properly resize the buffer
             FrontBuffer = new(newWidth, newHeight);

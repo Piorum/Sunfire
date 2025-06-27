@@ -35,7 +35,7 @@ public static class SVRegistry
             X = 1,
             Y = 1,
             FillStyleX = FillStyle.Static,
-            Text = "Test"
+            Text = $"{Environment.UserName}@{Environment.UserDomainName}"
         };
         topRightLabel.StaticX = topRightLabel.Text.Length;
 

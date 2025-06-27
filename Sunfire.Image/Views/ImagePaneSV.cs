@@ -29,6 +29,10 @@ public class ImagePaneSV : IRelativeSunfireView
     public int SizeX { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public int SizeY { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
+    public int MinX => throw new NotImplementedException();
+
+    public int MinY => throw new NotImplementedException();
+
     public Task<bool> Arrange()
     {
         throw new NotImplementedException();
