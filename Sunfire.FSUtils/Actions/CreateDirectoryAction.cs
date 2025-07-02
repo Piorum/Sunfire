@@ -1,24 +1,20 @@
-
+using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Interfaces;
 using Sunfire.FSUtils.Models;
 
-namespace Sunfire.FSUtils.Actions
+namespace Sunfire.FSUtils.Actions;
+
+public class CreateDirectoryAction(string directoryPath) : IModificationAction
 {
-    public class CreateDirectoryAction : IModificationAction
+    public string Description => $"Create directory {DirectoryPath}";
+    public FSEntry? Target => null;
+    public ActionProperty ActionProperties { get; } = ActionProperty.Destructive;
+
+    public string DirectoryPath { get; } = directoryPath;
+
+    public Task ExecuteAsync()
     {
-        public string DirectoryPath { get; }
-        public string Description => $"Create directory {DirectoryPath}";
-        public FSEntry? Target => null;
-
-        public CreateDirectoryAction(string directoryPath)
-        {
-            DirectoryPath = directoryPath;
-        }
-
-        public Task ExecuteAsync()
-        {
-            Directory.CreateDirectory(DirectoryPath);
-            return Task.CompletedTask;
-        }
+        Directory.CreateDirectory(DirectoryPath);
+        return Task.CompletedTask;
     }
 }

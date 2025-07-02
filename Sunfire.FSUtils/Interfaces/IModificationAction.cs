@@ -1,12 +1,14 @@
-
+using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Models;
 
-namespace Sunfire.FSUtils.Interfaces
+namespace Sunfire.FSUtils.Interfaces;
+
+public interface IModificationAction
 {
-    public interface IModificationAction
-    {
-        string Description { get; }
-        FSEntry? Target { get; }
-        Task ExecuteAsync();
-    }
+    string Description { get; }
+    FSEntry? Target { get; }
+    ActionProperty ActionProperties { get; }
+    
+    Task ExecuteAsync();
 }
+

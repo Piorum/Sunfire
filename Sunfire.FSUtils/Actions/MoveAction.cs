@@ -1,34 +1,27 @@
-
+using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Interfaces;
 using Sunfire.FSUtils.Models;
 
-namespace Sunfire.FSUtils.Actions
+namespace Sunfire.FSUtils.Actions;
+
+public class MoveAction(FSEntry target, string newPath) : IModificationAction
 {
-    public class MoveAction : IModificationAction
+    public string Description => $"Move {Target.FullPath} to {NewPath}";
+    public FSEntry Target { get; } = target;
+    public ActionProperty ActionProperties { get; } = ActionProperty.Destructive;
+
+    public string NewPath { get; } = newPath;
+
+    public Task ExecuteAsync()
     {
-        public FSEntry Target { get; }
-        public string NewPath { get; }
-        public string Description => $"Move {Target.FullPath} to {NewPath}";
-
-        FSEntry? IModificationAction.Target => Target;
-
-        public MoveAction(FSEntry target, string newPath)
+        if (Target is FSDirectory)
         {
-            Target = target;
-            NewPath = newPath;
+            Directory.Move(Target.FullPath, NewPath);
         }
-
-        public Task ExecuteAsync()
+        else
         {
-            if (Target is FSDirectory)
-            {
-                Directory.Move(Target.FullPath, NewPath);
-            }
-            else
-            {
-                File.Move(Target.FullPath, NewPath);
-            }
-            return Task.CompletedTask;
+            File.Move(Target.FullPath, NewPath);
         }
+        return Task.CompletedTask;
     }
 }

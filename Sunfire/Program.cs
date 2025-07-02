@@ -6,6 +6,8 @@ using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
+using Sunfire.FSUtils;
+using Sunfire.FSUtils.Models;
 
 namespace Sunfire;
 
@@ -106,31 +108,30 @@ internal class Program
             });
 
             var list = SVRegistry.GetCurrentList();
-            var dirInfo = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            var grouped = dirInfo.EnumerateFileSystemInfos()
-                .GroupBy(info => (
-                    IsDirectory: info.Attributes.HasFlag(FileAttributes.Directory),
-                    IsHidden: info.Attributes.HasFlag(FileAttributes.Hidden)
-                ))
-                .OrderBy(group =>
-                {
-                    var key = group.Key;
-                    return key switch
-                    {
-                        (true, true)  => 0, // Hidden directory
-                        (true, false) => 1, // Visible directory
-                        (false, true)  => 2, // Hidden file
-                        (false, false) => 3, // Visible file
-                    };
-                });
-            foreach (var grp in grouped)
+            var fsService = new FSService();
+            var userProfle = await fsService.GetEntryAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            if (userProfle is null || userProfle is not FSDirectory cwd) throw new();
+
+            var dirInfo = await cwd.GetChildrenAsync();
+            var dirs = dirInfo.OfType<FSDirectory>();
+            dirs = dirs.OrderByDescending(d => d.IsHidden);
+            var files = dirInfo.OfType<FSFile>();
+            files = files.OrderByDescending(f => f.IsHidden);
+
+            foreach (var dir in dirs)
             {
-                foreach(var info in grp)
-                    await list.AddLabel(new()
-                    {
-                        TextProperties = info.Attributes.HasFlag(FileAttributes.Directory) ? Ansi.Models.SAnsiProperty.Bold : Ansi.Models.SAnsiProperty.None,
-                        Text = info.Name
-                    });
+                await list.AddLabel(new()
+                {
+                    TextProperties = Ansi.Models.SAnsiProperty.Bold,
+                    Text = dir.Name
+                });
+            }
+            foreach (var file in files)
+            {
+                await list.AddLabel(new()
+                {
+                    Text = file.Name
+                });
             }
             await Renderer.EnqueueAction(list.Invalidate);
 
