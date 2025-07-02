@@ -8,6 +8,7 @@ using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
+using Sunfire.FSUtils.Enums;
 
 namespace Sunfire;
 
@@ -112,26 +113,33 @@ internal class Program
             var userProfle = await fsService.GetEntryAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             if (userProfle is null || userProfle is not FSDirectory cwd) throw new();
 
-            var dirInfo = await cwd.GetChildrenAsync();
-            var dirs = dirInfo.OfType<FSDirectory>();
-            dirs = dirs.OrderByDescending(d => d.IsHidden);
-            var files = dirInfo.OfType<FSFile>();
-            files = files.OrderByDescending(f => f.IsHidden);
+            var queryOptions = new DirectoryQueryOptions
+            {
+                SortOrder = SortOrder.DirectoriesFirst,
+                SortBy = SortField.Name,
+                SortDirection = SortDirection.Ascending,
+                ShowHidden = true
+            };
 
-            foreach (var dir in dirs)
+            var dirInfo = await cwd.GetChildrenAsync(queryOptions);
+
+            foreach (var entry in dirInfo)
             {
-                await list.AddLabel(new()
+                if (entry is FSDirectory dir)
                 {
-                    TextProperties = Ansi.Models.SAnsiProperty.Bold,
-                    Text = dir.Name
-                });
-            }
-            foreach (var file in files)
-            {
-                await list.AddLabel(new()
+                    await list.AddLabel(new()
+                    {
+                        TextProperties = Ansi.Models.SAnsiProperty.Bold,
+                        Text = dir.Name
+                    });
+                }
+                else if (entry is FSFile file)
                 {
-                    Text = file.Name
-                });
+                    await list.AddLabel(new()
+                    {
+                        Text = file.Name
+                    });
+                }
             }
             await Renderer.EnqueueAction(list.Invalidate);
 

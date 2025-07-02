@@ -13,9 +13,9 @@ public class FSDirectory : FSEntry
         _fsService = fsService;
     }
 
-    public async Task<IEnumerable<FSEntry>> GetChildrenAsync(bool forceRefresh = false)
+    public async Task<IEnumerable<FSEntry>> GetChildrenAsync(DirectoryQueryOptions? options = null, bool forceRefresh = false)
     {
-        return await _fsService.LoadChildrenAsync(FullPath, forceRefresh);
+        return await _fsService.LoadChildrenAsync(FullPath, options, forceRefresh);
     }
 
     public async Task CreateFileAsync(string name)

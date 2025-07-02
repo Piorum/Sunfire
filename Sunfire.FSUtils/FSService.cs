@@ -71,7 +71,7 @@ public class FSService
         return Task.FromResult<FSEntry?>(null);
     }
 
-    internal async Task<IEnumerable<FSEntry>> LoadChildrenAsync(string parentPath, bool forceRefresh)
+    internal async Task<IEnumerable<FSEntry>> LoadChildrenAsync(string parentPath, DirectoryQueryOptions? options, bool forceRefresh)
     {
         var children = new List<FSEntry>();
         try
@@ -91,7 +91,68 @@ public class FSService
         {
             await Logger.Error(nameof(FSUtils), $"{ex}");
         }
-        return children;
+
+        IEnumerable<FSEntry> filteredChildren = children;
+
+        // Apply ShowHidden filter
+        if (options != null && !options.ShowHidden)
+        {
+            filteredChildren = filteredChildren.Where(e => !e.IsHidden);
+        }
+
+        // Apply SearchPattern filter
+        if (options != null && !string.IsNullOrEmpty(options.SearchPattern))
+        {
+            filteredChildren = filteredChildren.Where(e => e.Name.Contains(options.SearchPattern, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply SortOrder, SortBy, and SortDirection
+        if (options != null)
+        {
+            IOrderedEnumerable<FSEntry> orderedChildren;
+
+            // Primary sort based on SortOrder
+            switch (options.SortOrder)
+            {
+                case Enums.SortOrder.DirectoriesFirst:
+                    orderedChildren = filteredChildren.OrderByDescending(e => e is FSDirectory);
+                    break;
+                case Enums.SortOrder.FilesFirst:
+                    orderedChildren = filteredChildren.OrderBy(e => e is FSDirectory);
+                    break;
+                case Enums.SortOrder.Mixed:
+                default:
+                    // If mixed, start with the SortBy field directly
+                    orderedChildren = options.SortDirection == Enums.SortDirection.Ascending
+                        ? filteredChildren.OrderBy(e => GetSortValue(e, options.SortBy))
+                        : filteredChildren.OrderByDescending(e => GetSortValue(e, options.SortBy));
+                    break;
+            }
+
+            // Secondary sort based on SortBy (if SortOrder is not Mixed)
+            if (options.SortOrder != Enums.SortOrder.Mixed)
+            {
+                orderedChildren = options.SortDirection == Enums.SortDirection.Ascending
+                    ? orderedChildren.ThenBy(e => GetSortValue(e, options.SortBy))
+                    : orderedChildren.ThenByDescending(e => GetSortValue(e, options.SortBy));
+            }
+            
+            filteredChildren = orderedChildren;
+        }
+
+        return filteredChildren;
+    }
+
+    private static object GetSortValue(FSEntry entry, Enums.SortField sortBy)
+    {
+        return sortBy switch
+        {
+            Enums.SortField.Name => entry.Name,
+            Enums.SortField.DateModified => entry.DateModified,
+            Enums.SortField.Size => entry.Size,
+            Enums.SortField.Extension => entry.Extension,
+            _ => entry.Name, // Default
+        };
     }
 
     private static string GetOwner()
