@@ -109,25 +109,14 @@ public class FSService
         // Apply SortOrder, SortBy, and SortDirection
         if (options != null)
         {
-            IOrderedEnumerable<FSEntry> orderedChildren;
-
-            // Primary sort based on SortOrder
-            switch (options.SortOrder)
+            IOrderedEnumerable<FSEntry> orderedChildren = options.SortOrder switch
             {
-                case Enums.SortOrder.DirectoriesFirst:
-                    orderedChildren = filteredChildren.OrderByDescending(e => e is FSDirectory);
-                    break;
-                case Enums.SortOrder.FilesFirst:
-                    orderedChildren = filteredChildren.OrderBy(e => e is FSDirectory);
-                    break;
-                case Enums.SortOrder.Mixed:
-                default:
-                    // If mixed, start with the SortBy field directly
-                    orderedChildren = options.SortDirection == Enums.SortDirection.Ascending
-                        ? filteredChildren.OrderBy(e => GetSortValue(e, options.SortBy))
-                        : filteredChildren.OrderByDescending(e => GetSortValue(e, options.SortBy));
-                    break;
-            }
+                Enums.SortOrder.DirectoriesFirst => filteredChildren.OrderByDescending(e => e is FSDirectory),
+                Enums.SortOrder.FilesFirst => filteredChildren.OrderBy(e => e is FSDirectory),
+                _ => options.SortDirection == Enums.SortDirection.Ascending
+                                        ? filteredChildren.OrderBy(e => GetSortValue(e, options.SortBy))
+                                        : filteredChildren.OrderByDescending(e => GetSortValue(e, options.SortBy)),// If mixed, start with the SortBy field directly
+            };
 
             // Secondary sort based on SortBy (if SortOrder is not Mixed)
             if (options.SortOrder != Enums.SortOrder.Mixed)
@@ -147,11 +136,11 @@ public class FSService
     {
         return sortBy switch
         {
-            Enums.SortField.Name => entry.Name,
+            Enums.SortField.Name => entry.Name.ToLowerInvariant(),
             Enums.SortField.DateModified => entry.DateModified,
             Enums.SortField.Size => entry.Size,
-            Enums.SortField.Extension => entry.Extension,
-            _ => entry.Name, // Default
+            Enums.SortField.Extension => entry.Extension.ToLowerInvariant(),
+            _ => entry.Name.ToLowerInvariant(), // Default
         };
     }
 

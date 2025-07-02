@@ -72,12 +72,20 @@ public class ListSV : IRelativeSunfireView
         await UpdateVisibleLabels();
     }
 
-    public Task PositionStartIndex()
+    public async Task PositionStartIndex()
     {
         var diff = SelectedIndex - startIndex;
         var maxDiff = (int)(0.6f * SizeY);
         var minDiff = (int)(0.4f * SizeY);
         var maxStartIndex = Labels.Count - SizeY + 1;
+
+        //Ensure proper resizing
+        if (Labels.Count - startIndex < SizeY - 1 && Labels.Count >= SizeY - 1)
+        {
+            startIndex = 0;
+            await PositionStartIndex();
+            return;
+        }
 
         //startIndex above where it should me
         if (diff > maxDiff)
@@ -89,8 +97,6 @@ public class ListSV : IRelativeSunfireView
         {
             startIndex = Math.Max(SelectedIndex - minDiff, 0);
         }
-
-        return Task.CompletedTask;
     }
 
     public async Task UpdateVisibleLabels()
