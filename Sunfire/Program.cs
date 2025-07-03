@@ -110,20 +110,15 @@ internal class Program
 
             var list = SVRegistry.GetCurrentList();
             var fsService = new FSService();
-            var userProfle = await fsService.GetEntryAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            if (userProfle is null || userProfle is not FSDirectory cwd) throw new();
+            var userProfleDir = await fsService.GetEntryAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            if (userProfleDir is null || userProfleDir is not FSDirectory cwd) throw new("User profile is not a directory");
 
-            var queryOptions = new DirectoryQueryOptions
-            {
-                SortOrder = SortOrder.DirectoriesFirst,
-                SortBy = SortField.Name,
-                SortDirection = SortDirection.Ascending,
-                ShowHidden = true
-            };
+            var info = (await cwd.GetChildrenAsync())
+                .OrderByDescending(e => e is FSDirectory)
+                .ThenByDescending(e => e.IsHidden)
+                .ThenBy(e => e.Name.ToLowerInvariant());
 
-            var dirInfo = await cwd.GetChildrenAsync(queryOptions);
-
-            foreach (var entry in dirInfo)
+            foreach (var entry in info)
             {
                 if (entry is FSDirectory dir)
                 {

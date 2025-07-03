@@ -36,10 +36,8 @@ public class FSService
                     Name = fileInfo.Name,
                     Size = fileInfo.Length,
                     IsHidden = (fileInfo.Attributes & FileAttributes.Hidden) != 0,
-                    Owner = GetOwner(),
                     DateModified = fileInfo.LastWriteTimeUtc,
-                    ActionQueue = _modificationChannel.Writer,
-                    Permissions = GetPermissions()
+                    ActionQueue = _modificationChannel.Writer
                 };
                 _cache[path] = fileEntry;
                 return Task.FromResult<FSEntry?>(fileEntry);
@@ -52,11 +50,9 @@ public class FSService
                     FullPath = path,
                     Name = dirInfo.Name,
                     IsHidden = (dirInfo.Attributes & FileAttributes.Hidden) != 0,
-                    Owner = GetOwner(),
                     DateModified = dirInfo.LastWriteTimeUtc,
                     ActionQueue = _modificationChannel.Writer,
-                    ContentCount = dirInfo.GetFileSystemInfos().Length,
-                    Permissions = GetPermissions()
+                    ContentCount = dirInfo.GetFileSystemInfos().Length
                 };
                 _cache[path] = dirEntry;
                 return Task.FromResult<FSEntry?>(dirEntry);
@@ -71,9 +67,9 @@ public class FSService
         return Task.FromResult<FSEntry?>(null);
     }
 
-    internal async Task<IEnumerable<FSEntry>> LoadChildrenAsync(string parentPath, DirectoryQueryOptions? options, bool forceRefresh)
+    internal async Task<IEnumerable<FSEntry>> LoadChildrenAsync(string parentPath, bool forceRefresh)
     {
-        var children = new List<FSEntry>();
+        List<FSEntry> children = [];
         try
         {
             var directory = new DirectoryInfo(parentPath);
@@ -92,65 +88,6 @@ public class FSService
             await Logger.Error(nameof(FSUtils), $"{ex}");
         }
 
-        IEnumerable<FSEntry> filteredChildren = children;
-
-        // Apply ShowHidden filter
-        if (options != null && !options.ShowHidden)
-        {
-            filteredChildren = filteredChildren.Where(e => !e.IsHidden);
-        }
-
-        // Apply SearchPattern filter
-        if (options != null && !string.IsNullOrEmpty(options.SearchPattern))
-        {
-            filteredChildren = filteredChildren.Where(e => e.Name.Contains(options.SearchPattern, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // Apply SortOrder, SortBy, and SortDirection
-        if (options != null)
-        {
-            IOrderedEnumerable<FSEntry> orderedChildren = options.SortOrder switch
-            {
-                Enums.SortOrder.DirectoriesFirst => filteredChildren.OrderByDescending(e => e is FSDirectory),
-                Enums.SortOrder.FilesFirst => filteredChildren.OrderBy(e => e is FSDirectory),
-                _ => options.SortDirection == Enums.SortDirection.Ascending
-                                        ? filteredChildren.OrderBy(e => GetSortValue(e, options.SortBy))
-                                        : filteredChildren.OrderByDescending(e => GetSortValue(e, options.SortBy)),// If mixed, start with the SortBy field directly
-            };
-
-            // Secondary sort based on SortBy (if SortOrder is not Mixed)
-            if (options.SortOrder != Enums.SortOrder.Mixed)
-            {
-                orderedChildren = options.SortDirection == Enums.SortDirection.Ascending
-                    ? orderedChildren.ThenBy(e => GetSortValue(e, options.SortBy))
-                    : orderedChildren.ThenByDescending(e => GetSortValue(e, options.SortBy));
-            }
-            
-            filteredChildren = orderedChildren;
-        }
-
-        return filteredChildren;
-    }
-
-    private static object GetSortValue(FSEntry entry, Enums.SortField sortBy)
-    {
-        return sortBy switch
-        {
-            Enums.SortField.Name => entry.Name.ToLowerInvariant(),
-            Enums.SortField.DateModified => entry.DateModified,
-            Enums.SortField.Size => entry.Size,
-            Enums.SortField.Extension => entry.Extension.ToLowerInvariant(),
-            _ => entry.Name.ToLowerInvariant(), // Default
-        };
-    }
-
-    private static string GetOwner()
-    {
-        return string.Empty;
-    }
-
-    private static FSPermissions? GetPermissions()
-    {
-        return null;
+        return children;
     }
 }
