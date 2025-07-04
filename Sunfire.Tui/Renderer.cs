@@ -6,6 +6,8 @@ using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
+using Sunfire.Common;
+using Sunfire.Common.Enums;
 
 namespace Sunfire.Tui;
 
@@ -16,6 +18,10 @@ namespace Sunfire.Tui;
 /// <param name="_batchDelay">Amount of time renderer spends waiting for more render actions before rendering, by default 100μs</param>
 public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 {
+    public static readonly RenderingContext RenderingContext = new(RendererType.Tui);
+    private static readonly Stream s_stdout = Console.OpenStandardOutput();
+    private static readonly UTF8Encoding s_utf8Encoder = new(false);
+
     public readonly RootSV RootView = rootView;
 
     public SVBuffer FrontBuffer { internal set; get; } = new(rootView.SizeX, rootView.SizeY);
@@ -24,9 +30,6 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     private readonly TimeSpan batchDelay = _batchDelay ?? TimeSpan.FromMicroseconds(100);
 
     private readonly IWindowResizer windowResizer = WindowResizerFactory.Create();
-
-    private static readonly Stream s_stdout = Console.OpenStandardOutput();
-    private static readonly UTF8Encoding s_utf8Encoder = new(false);
 
     private readonly Channel<Func<Task>> renderQueue = Channel.CreateUnbounded<Func<Task>>();
 

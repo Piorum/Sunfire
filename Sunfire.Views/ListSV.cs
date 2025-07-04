@@ -87,7 +87,7 @@ public class ListSV : IRelativeSunfireView
             return;
         }
 
-        //startIndex above where it should me
+        //startIndex above where it should be
         if (diff > maxDiff)
         {
             startIndex = Math.Min(SelectedIndex - maxDiff, maxStartIndex);
