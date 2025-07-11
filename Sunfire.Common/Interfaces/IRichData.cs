@@ -10,4 +10,7 @@ public interface IRichData
 
     Task<Size> Measure();
     Task Prepare();
+    
+    Task Render();
+    Task Clear();
 }

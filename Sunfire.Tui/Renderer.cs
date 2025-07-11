@@ -6,8 +6,7 @@ using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
-using Sunfire.Common;
-using Sunfire.Common.Enums;
+using Sunfire.Common.Interfaces;
 
 namespace Sunfire.Tui;
 
@@ -18,7 +17,6 @@ namespace Sunfire.Tui;
 /// <param name="_batchDelay">Amount of time renderer spends waiting for more render actions before rendering, by default 100μs</param>
 public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 {
-    public static readonly RenderingContext RenderingContext = new(RendererType.Tui);
     private static readonly Stream s_stdout = Console.OpenStandardOutput();
     private static readonly UTF8Encoding s_utf8Encoder = new(false);
 
@@ -38,7 +36,6 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     /// </summary>
     public async Task Start(CancellationToken token)
     {
-        //Register resize event
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
 
@@ -55,7 +52,6 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         {
             try
             {
-                //Clear runningTasks
                 runningTasks.Clear();
 
                 //Get first action and start batch timer
@@ -90,9 +86,9 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
                 }
 
-                //Skip render if cancelled basically
                 await Logger.Debug(nameof(Tui), $"[Starting Render]");
                 var startTime = DateTime.Now;
+                //Skip render if cancelled basically
                 if (runningTasks.Count > 0 && !token.IsCancellationRequested)
                     await OnRender(asb);
                 await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - startTime).TotalMicroseconds}us)");
@@ -137,7 +133,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         int outputIndex = 0;
 
         SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
-        //These should be different or redraw breaks
+        //These need to be different or redraw breaks
         (int X, int Y) outputStartPos = (0, 0);
         (int X, int Y) cursorPos = (-1, -1);
 

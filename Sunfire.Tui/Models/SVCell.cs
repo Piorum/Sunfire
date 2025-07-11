@@ -9,14 +9,12 @@ namespace Sunfire.Tui.Models;
 /// <param name="ForegroundColor">Foreground color cell should be.</param>
 /// <param name="BackgroundColor">Background color cell should be.</param>
 /// <param name="Properties">Ansi properties cell should have.</param>
-/// <param name="RichData">Ref to rich data that should be displayed at cell's position</param>
 public record struct SVCell(
     char Data,
     SColor? ForegroundColor,
     SColor? BackgroundColor,
-    SAnsiProperty Properties,
-    RichDataRef? RichData
+    SAnsiProperty Properties
 )
 {
-    public static readonly SVCell Blank = new(' ', null, null, SAnsiProperty.None, null);
+    public static readonly SVCell Blank = new(' ', null, null, SAnsiProperty.None);
 }
