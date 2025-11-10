@@ -56,6 +56,7 @@ internal class Program
     {
         InputHandler.Context.Add(InputContext.Global);
 
+        //Exit
         await InputHandler.CreateBinding()
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
@@ -63,6 +64,7 @@ internal class Program
             .WithBind(async (inputData) => { await InputHandler.Stop(); })
             .RegisterBind();
 
+        //Rerender
         await InputHandler.CreateBinding()
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.R, Input.Enums.Modifier.Ctrl | Input.Enums.Modifier.Alt))

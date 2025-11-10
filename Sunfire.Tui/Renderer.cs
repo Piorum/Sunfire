@@ -6,7 +6,6 @@ using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
-using Sunfire.Common.Interfaces;
 
 namespace Sunfire.Tui;
 
