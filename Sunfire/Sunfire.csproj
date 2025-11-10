@@ -16,7 +16,6 @@
     <ProjectReference Include="../Sunfire.Input/Sunfire.Input.csproj" />
     <ProjectReference Include="../Sunfire.Logging/Sunfire.Logging.csproj" />
     <ProjectReference Include="../Sunfire.FSUtils/Sunfire.FSUtils.csproj" />
-    <ProjectReference Include="../Sunfire.Common/Sunfire.Common.csproj" />
   </ItemGroup>
 
 </Project>

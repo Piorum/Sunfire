@@ -10,7 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="../Sunfire.Logging/Sunfire.Logging.csproj" />
     <ProjectReference Include="../Sunfire.Ansi/Sunfire.Ansi.csproj" />
-    <ProjectReference Include="../Sunfire.Common/Sunfire.Common.csproj" />
   </ItemGroup>
 
 </Project>
