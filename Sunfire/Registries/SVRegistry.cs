@@ -10,53 +10,61 @@ public static class SVRegistry
 {
     private static RootSV? rootSV;
 
-    private static ListSV? currentList;
-    private static PaneSV? currentPane;
     private static ListSV? containerList;
     private static PaneSV? containerPane;
+    private static BorderSV? containerBorder;
+
+    private static ListSV? currentList;
+    private static PaneSV? currentPane;
+    private static BorderSV? currentBorder;
+
     private static PaneSV? previewPane;
-    private static LabelSV? topLeftLabel;
-    private static LabelSV? topRightLabel;
-    private static LabelSV? bottomLabel;
+    private static BorderSV? previewBorder;
+
+    private static LabelSV? bottomRightLabel;
+    private static BorderSV? bottomRightBorder;
+    private static LabelSV? bottomLeftLabel;
+    private static BorderSV? bottomLeftBorder;
+
 
     [ModuleInitializer]
     public static void Init()
     {
-        currentList = new();
-        containerList = new();
-
-        topLeftLabel = new()
+        bottomLeftLabel = new()
         {
             X = 0,
-            Y = 0,
+            Y = 1,
         };
-        topRightLabel = new()
+        bottomLeftBorder = new()
+        {
+            SubView = bottomLeftLabel
+        };
+        bottomRightLabel = new()
         {
             X = 1,
             Y = 1,
             FillStyleX = FillStyle.Static,
             Text = $"{Environment.UserName}@{Environment.UserDomainName}"
         };
-        topRightLabel.StaticX = topRightLabel.Text.Length;
-
-        bottomLabel = new()
+        bottomRightLabel.StaticX = bottomRightLabel.Text.Length;
+        bottomRightBorder = new()
         {
-            X = 0,
-            Y = 1,
+            SubView = bottomRightLabel
         };
 
-        containerPane = new PaneSV()
+        previewPane = new()
         {
-            X = 0,
+            X = 2,
             Y = 0,
-            FillStyleX = FillStyle.Percent,
-            PercentX = 0.125f,
-            SubViews =
-            [
-                containerList
-            ]
+            SubViews = []
         };
-        currentPane = new PaneSV()
+        previewBorder = new()
+        {
+            SubView = previewPane
+        };
+
+        currentList = new();
+        currentPane = new()
         {
             X = 1,
             Y = 0,
@@ -67,11 +75,26 @@ public static class SVRegistry
                 currentList
             ]
         };
-        previewPane = new()
+        currentBorder = new()
         {
-            X = 2,
+            SubView = currentPane
+        };
+
+        containerList = new();
+        containerPane = new()
+        {
+            X = 0,
             Y = 0,
-            SubViews = []
+            FillStyleX = FillStyle.Percent,
+            PercentX = 0.125f,
+            SubViews =
+            [
+                containerList
+            ]
+        };
+        containerBorder = new()
+        {
+            SubView = containerPane
         };
 
         rootSV = new()
@@ -80,51 +103,44 @@ public static class SVRegistry
             {
                 SubViews =
                 [
-                    new BorderSV(){
-                        SubView = containerPane
-                    },
-                    new BorderSV(){
-                        TitleLabel = new()
-                        {
-                            Text = "~/.config/hypr/hyprext/variables.conf"
-                        },
-                        SubView = currentPane
-                    },
-                    new BorderSV(){
-                        SubView = previewPane
-                    },
-                    new BorderSV(){
-                        TitleLabel = new()
-                        {
-                            Text = "Bottom Border"
-                        },
-                        SubView = bottomLabel
-                    },
-                    new BorderSV(){
-                        SubView = topRightLabel
-                    },
+                    containerBorder,
+                    currentBorder,
+                    previewBorder,
+                    bottomLeftBorder,
+                    bottomRightBorder
                 ]
             }
         };
     }
 
-    public static RootSV GetRootSV() =>
+    public static RootSV RootSV =>
         rootSV!;
 
-    public static ListSV GetCurrentList() =>
-        currentList!;
-    public static PaneSV GetCurrentPane() =>
-        currentPane!;
-    public static ListSV GetContainerList() =>
+    public static ListSV ContainerList =>
         containerList!;
-    public static PaneSV GetContainerPane() =>
+    public static PaneSV ContainerPane =>
         containerPane!;
-    public static PaneSV GetPreviewPane() =>
+    public static BorderSV ContainerBorder =>
+        containerBorder!;
+
+    public static ListSV CurrentList =>
+        currentList!;
+    public static PaneSV CurrentPane =>
+        currentPane!;
+    public static BorderSV CurrentBorder =>
+        currentBorder!;
+
+    public static PaneSV PreviewPane =>
         previewPane!;
-    public static LabelSV GetTopLeftLabel() =>
-        topLeftLabel!;
-    public static LabelSV GetTopRightLabel() =>
-        topRightLabel!;
-    public static LabelSV GetBottomLabel() =>
-        bottomLabel!;
+    public static BorderSV PreviewBorder =>
+        previewBorder!;
+
+    public static LabelSV BottomRightLabel =>
+        bottomRightLabel!;
+    public static BorderSV BottomRightBorder =>
+        bottomRightBorder!;
+    public static LabelSV BottomLeftLabel =>
+        bottomLeftLabel!;
+    public static BorderSV BottomLeftBorder =>
+        bottomLeftBorder!;
 }

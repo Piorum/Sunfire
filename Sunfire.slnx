@@ -9,6 +9,5 @@
   <Project Path="Sunfire.Views/Sunfire.Views.csproj" />
   <Project Path="Sunfire/Sunfire.csproj" />
   <Project Path="Sunfire.Tui/Sunfire.Tui.csproj" />
-  <Project Path="Sunfire.FSUtils/Sunfire.FSUtils.csproj" />
   <Project Path="Sunfire.Input/Sunfire.Input.csproj" />
 </Solution>

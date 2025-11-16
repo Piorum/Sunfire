@@ -6,15 +6,13 @@ using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
-using Sunfire.FSUtils;
-using Sunfire.FSUtils.Models;
 
 namespace Sunfire;
 
 internal class Program
 {
     public static InputHandler<InputContext> InputHandler = new();
-    public static Renderer Renderer = new(SVRegistry.GetRootSV());
+    public static Renderer Renderer = new(SVRegistry.RootSV);
 
     public static readonly CancellationTokenSource _cts = new();
 
@@ -72,34 +70,30 @@ internal class Program
             .WithBind(async (inputData) => { await Renderer.EnqueueAction(Renderer.RootView.Invalidate); })
             .RegisterBind();
 
-        var currentList = SVRegistry.GetCurrentList();
+        //Nav
         await InputHandler.CreateBinding()
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.W))
             .WithContext([InputContext.Global])
-            .WithBind(async (inputData) =>
-            {
-                if (currentList.SelectedIndex > 0)
-                    await Renderer.EnqueueAction(async () =>
-                    {
-                        currentList.SelectedIndex--;
-                        await currentList.Invalidate();
-                    });
-            })
+            .WithBind(async (inputData) => await AppState.NavUp())
             .RegisterBind();
         await InputHandler.CreateBinding()
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.S))
             .WithContext([InputContext.Global])
-            .WithBind(async (inputData) =>
-            {
-                if (currentList.SelectedIndex < currentList.MaxIndex)
-                    await Renderer.EnqueueAction(async () =>
-                    {
-                        currentList.SelectedIndex++;
-                        await currentList.Invalidate();
-                    });
-            })
+            .WithBind(async (inputData) => await AppState.NavDown())
+            .RegisterBind();
+        await InputHandler.CreateBinding()
+            .AsIndifferent()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.A))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => await AppState.NavOut())
+            .RegisterBind();
+        await InputHandler.CreateBinding()
+            .AsIndifferent()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.D))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => await AppState.NavIn())
             .RegisterBind();
 
         await InputHandler.Start(_cts);
@@ -109,49 +103,7 @@ internal class Program
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
 
-        var tlLabel = SVRegistry.GetTopLeftLabel();
-        await Renderer.EnqueueAction(async () =>
-        {
-            tlLabel.Text = "Top Label";
-            await tlLabel.Invalidate();
-        });
-
-        var blLabel = SVRegistry.GetBottomLabel();
-        await Renderer.EnqueueAction(async () =>
-        {
-            blLabel.Text = "Bottom Label";
-            await blLabel.Invalidate();
-        });
-
-        var list = SVRegistry.GetCurrentList();
-        var fsService = new FSService();
-        var userProfleDir = await fsService.GetEntryAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-        if (userProfleDir is null || userProfleDir is not FSDirectory cwd) throw new("User profile is not a directory");
-
-        var info = (await cwd.GetChildrenAsync())
-            .OrderByDescending(e => e is FSDirectory)
-            .ThenByDescending(e => e.IsHidden)
-            .ThenBy(e => e.Name.ToLowerInvariant());
-
-        foreach (var entry in info)
-        {
-            if (entry is FSDirectory dir)
-            {
-                await list.AddLabel(new()
-                {
-                    TextProperties = Ansi.Models.SAnsiProperty.Bold,
-                    Text = dir.Name
-                });
-            }
-            else if (entry is FSFile file)
-            {
-                await list.AddLabel(new()
-                {
-                    Text = file.Name
-                });
-            }
-        }
-        await Renderer.EnqueueAction(list.Invalidate);
+        await AppState.Init();
 
         await renderLoopTask;
     }

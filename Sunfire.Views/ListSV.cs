@@ -45,6 +45,22 @@ public class ListSV : IRelativeSunfireView
         return Task.CompletedTask;
     }
 
+    public Task Clear()
+    {
+        Labels.Clear();
+        VisibleLabels.Clear();
+
+        return Task.CompletedTask;
+    }
+
+    public LabelSVSlim? GetSelected()
+    {
+        if (Labels.Count == 0)
+            return null;
+
+        return Labels[SelectedIndex];
+    }
+
     //Should be called when Labels is updated
     public async Task<bool> Arrange()
     {
@@ -118,7 +134,13 @@ public class ListSV : IRelativeSunfireView
     //Should be called when list needs to be redrawn
     public async Task Draw(SVContext context)
     {
-        //Should actually draw background here
+        for (int y = 0; y < SizeY; y++)
+        {
+            for (int x = 0; x < SizeX; x++)
+            {
+                context[x, y] = SVCell.Blank;
+            }
+        }
 
         await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
     }
