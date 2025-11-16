@@ -1,2 +1,2 @@
 ### Sunfire
-Another TUI file manager.
+File explorer project. Currently "works" for browsing. Indefinite WIP 
