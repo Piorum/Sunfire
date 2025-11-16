@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Sunfire.Registries;
 using Sunfire.Views;
 
@@ -216,7 +217,7 @@ public static class AppState
 
         var selectedEntryPath = Path.Combine(currentPath, CurrentEntry);
 
-        if(Directory.Exists(selectedEntryPath))
+        if (Directory.Exists(selectedEntryPath))
         {
             currentPath = selectedEntryPath;
             await Program.Renderer.EnqueueAction(async () =>
@@ -228,6 +229,19 @@ public static class AppState
                 SVRegistry.CurrentList.SelectedIndex = 0;
                 await Refresh();
             });
+        }
+        else if (File.Exists(selectedEntryPath))
+        {
+            var psi = new ProcessStartInfo()
+            {
+                FileName = "xdg-open",
+                Arguments = selectedEntryPath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            Process.Start(psi);
         }
     }
 }
