@@ -6,6 +6,8 @@ namespace Sunfire;
 
 public static class AppState
 {
+    private static Dictionary<string, int> indexCache = [];
+
     private static string currentPath = "";
     private static string? CurrentEntry => SVRegistry.CurrentList.GetSelected()?.Text;
 
@@ -15,6 +17,9 @@ public static class AppState
         var userProfleDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!Directory.Exists(userProfleDir)) throw new("User profile is not a directory");
         currentPath = userProfleDir;
+        indexCache.Add(currentPath,0);
+        indexCache.Add("/home", 0);
+        indexCache.Add("/", 4);
 
         await Program.Renderer.EnqueueAction(async () =>
         {
@@ -66,6 +71,12 @@ public static class AppState
             }
         }
 
+        indexCache.TryGetValue(directoryInfo.FullName, out var previousIndex);
+        if(previousIndex <= SVRegistry.ContainerList.MaxIndex && previousIndex > 0)
+            SVRegistry.ContainerList.SelectedIndex = previousIndex;
+        else
+            indexCache[directoryInfo.FullName] = 0;
+
         await SVRegistry.ContainerList.Invalidate();
     }
 
@@ -97,6 +108,13 @@ public static class AppState
                 });
             }
         }
+
+
+        indexCache.TryGetValue(currentPath, out var previousIndex);
+        if(previousIndex <= SVRegistry.CurrentList.MaxIndex && previousIndex > 0)
+            SVRegistry.CurrentList.SelectedIndex = previousIndex;
+        else
+            indexCache[currentPath] = 0;
 
         await SVRegistry.CurrentList.Invalidate();
     }
@@ -136,9 +154,15 @@ public static class AppState
                             Text = entry.Name
                         });
                     }
-
-                    SVRegistry.PreviewPane.SubViews.Add(previewList);
                 }
+
+                indexCache.TryGetValue(directoryInfo.FullName, out var previousIndex);
+                if(previousIndex <= previewList.MaxIndex && previousIndex > 0)
+                    previewList.SelectedIndex = previousIndex;
+                else
+                    indexCache[directoryInfo.FullName] = 0;
+
+                SVRegistry.PreviewPane.SubViews.Add(previewList);
             }
         }
 
@@ -172,6 +196,9 @@ public static class AppState
             await Program.Renderer.EnqueueAction(async () =>
             {
                 SVRegistry.CurrentList.SelectedIndex--;
+
+                indexCache[currentPath] = SVRegistry.CurrentList.SelectedIndex;
+
                 await SVRegistry.CurrentList.Invalidate();
                 await RefreshCurrentSelection();
                 await RefreshPreview();
@@ -185,6 +212,9 @@ public static class AppState
             await Program.Renderer.EnqueueAction(async () =>
             {
                 SVRegistry.CurrentList.SelectedIndex++;
+
+                indexCache[currentPath] = SVRegistry.CurrentList.SelectedIndex;
+
                 await SVRegistry.CurrentList.Invalidate();
                 await RefreshCurrentSelection();
                 await RefreshPreview();
