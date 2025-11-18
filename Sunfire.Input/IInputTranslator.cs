@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using Sunfire.Input.Platforms.Linux;
+using Sunfire.Input.Platforms.Fallback;
 using Sunfire.Input.Models;
 
 namespace Sunfire.Input;
@@ -14,9 +15,10 @@ internal static class InputTranslatorFactory
 {
     public static IInputTranslator Create()
     {
-        if (OperatingSystem.IsLinux())
+        if(OperatingSystem.IsLinux())
             return new LinuxInputTranslator();
+        else
 
-        throw new PlatformNotSupportedException();
+            return new FallbackInputTranslator();
     }
 }

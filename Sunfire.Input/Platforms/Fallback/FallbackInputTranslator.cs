@@ -2,9 +2,9 @@ using System.Threading.Channels;
 using Sunfire.Input.Enums;
 using Sunfire.Input.Models;
 
-namespace Sunfire.Input.Platforms.Linux;
+namespace Sunfire.Input.Platforms.Fallback;
 
-public class LinuxInputTranslator : IInputTranslator
+public class FallbackInputTranslator : IInputTranslator
 {
     public async Task PollInput(ChannelWriter<TerminalInput> writer, CancellationToken token)
     {
@@ -26,7 +26,7 @@ public class LinuxInputTranslator : IInputTranslator
         var tcs = new TaskCompletionSource<ConsoleKeyInfo>();
         var cancellationRegistration = token.Register(() => tcs.TrySetCanceled(token));
 
-        Task.Run(() =>
+        _ = Task.Run(() =>
         {
             try
             {
