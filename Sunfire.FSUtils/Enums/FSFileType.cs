@@ -1,4 +1,4 @@
-namespace Sunfire.FSUtils;
+namespace Sunfire.FSUtils.Enums;
 
 public enum FSFileType
 {

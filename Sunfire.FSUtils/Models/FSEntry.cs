@@ -1,4 +1,6 @@
-namespace Sunfire.FSUtils;
+using Sunfire.FSUtils.Enums;
+
+namespace Sunfire.FSUtils.Models;
 
 public readonly record struct FSEntry
 {

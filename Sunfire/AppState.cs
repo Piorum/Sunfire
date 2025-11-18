@@ -3,6 +3,8 @@ using Sunfire.Registries;
 using Sunfire.Views;
 using Sunfire.Views.Text;
 using Sunfire.FSUtils;
+using Sunfire.FSUtils.Enums;
+using Sunfire.FSUtils.Models;
 
 namespace Sunfire;
 

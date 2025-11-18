@@ -1,4 +1,4 @@
-namespace Sunfire.FSUtils;
+namespace Sunfire.FSUtils.Enums;
 
 [Flags]
 public enum FSFileAttributes
