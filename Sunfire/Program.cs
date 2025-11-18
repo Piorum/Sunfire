@@ -21,7 +21,7 @@ internal class Program
         await SetupLogging([.. args]);
 
         var inputTask = StartInput();
-        var renderTask = StartRender();
+        var renderTask = StartRender([.. args]);
         await Task.WhenAll(inputTask, renderTask);
 
         await Logger.StopAndFlush();
@@ -62,7 +62,7 @@ internal class Program
             .WithBind(async (inputData) => { await InputHandler.Stop(); })
             .RegisterBind();
 
-        //Rerender
+        //Try Redraw
         await InputHandler.CreateBinding()
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.R, Input.Enums.Modifier.Ctrl | Input.Enums.Modifier.Alt))
@@ -96,12 +96,24 @@ internal class Program
             .WithBind(async (inputData) => await AppState.NavIn())
             .RegisterBind();
 
+        //Toggle Hidden
+        await InputHandler.CreateBinding()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
+            .WithSequence(Key.KeyboardBind(ConsoleKey.H))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => { AppState.Toggles ^= AppToggles.ShowHiddenEntries; await Renderer.EnqueueAction(AppState.Refresh); })
+            .RegisterBind();
+
         await InputHandler.Start(_cts);
     }
 
-    private static async Task StartRender()
+    private static async Task StartRender(HashSet<string> args)
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
+
+        bool useUserProfile = args.Contains("-U") || args.Contains("--user");
+        if(useUserProfile)
+            AppState.Toggles |= AppToggles.UseUserProfileAsDefault;
 
         await AppState.Init();
 

@@ -19,7 +19,7 @@ public class FSCache
             .ThenByDescending(e => (e.Attributes & FileAttributes.Hidden) != 0)
             .ThenBy(e => e.Name.ToLowerInvariant());
 
-        foreach (var entry in info)
+        foreach (var entry in info.ToList())
             entries.Add(
                 new FSEntry() 
                 { 
@@ -27,7 +27,8 @@ public class FSCache
                     Path = entry.FullName, 
                     Type = Directory.Exists(entry.FullName) 
                         ? FSFileType.Directory 
-                        : FSFileType.File 
+                        : FSFileType.File,
+                    Attributes = entry.Attributes.HasFlag(FileAttributes.Hidden) ? FSFileAttributes.Hidden : FSFileAttributes.None
                 }
             );
 

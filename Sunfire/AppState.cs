@@ -1,15 +1,17 @@
 using System.Diagnostics;
 using Sunfire.Registries;
 using Sunfire.Views;
-using Sunfire.FSUtils;
 using Sunfire.Views.Text;
+using Sunfire.FSUtils;
 
 namespace Sunfire;
 
 public static class AppState
 {
+    public static AppToggles Toggles = AppToggles.None;
+
     private static readonly FSCache fsCache = new();
-    private static readonly Dictionary<string, int> indexCache = [];
+    private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
 
     private static string currentPath = "";
     private static FSEntry SelectedEntry => fsCache.GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex];
@@ -17,14 +19,38 @@ public static class AppState
     public static async Task Init()
     {
         //Swap for finding directory program is opened in?
-        var userProfleDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!Directory.Exists(userProfleDir)) throw new("User profile is not a directory");
-        indexCache.Add(userProfleDir, 0);
-        indexCache.Add("/home", 0);
-        indexCache.Add("/", 4);
+        string basePath;
+        if(Toggles.HasFlag(AppToggles.UseUserProfileAsDefault))
+            basePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        else
+            basePath = Environment.CurrentDirectory;
 
-        await Refresh(userProfleDir);
+        if (!Directory.Exists(basePath)) 
+            throw new("CWD is invalid, Not a directory");
+
+        //Prepopulated selectedEntryCache
+        var curDir = new DirectoryInfo(basePath);
+
+        while(curDir?.Parent != null)
+        {
+            string containerPath = curDir.Parent.FullName;
+            string entryToSelectName = curDir.Name;
+
+            var entries = fsCache.GetEntries(containerPath);
+
+            var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
+
+            selectedEntryCache[containerPath] = entry;
+
+            curDir = curDir.Parent;
+        }
+
+        //Populating Views
+        await Refresh(basePath);
     }
+
+    public static async Task Refresh() => 
+        await Refresh(currentPath);
 
     private static async Task Refresh(string path)
     {
@@ -113,23 +139,21 @@ public static class AppState
             await list.AddLabel(label);
         }
 
-        list.SelectedIndex = GetPreviousIndex(path, list.MaxIndex);
+        list.SelectedIndex = GetPreviousIndex(entries, path);
 
         await list.Invalidate();
     }
 
-    private static int GetPreviousIndex(string path, int maxIndex)
+    private static int GetPreviousIndex(List<FSEntry> entries, string path)
     {
-        indexCache.TryGetValue(path, out var previousIndex);
-        if(previousIndex <= maxIndex && previousIndex > 0)
-        {
-            return previousIndex;
-        }
-        else
-        {
-            indexCache[path] = 0;
+        selectedEntryCache.TryGetValue(path, out var previousEntry);
+
+        if(previousEntry is null)
             return 0;
-        }
+
+        return entries.IndexOf((FSEntry)previousEntry) is var index && index >= 0 
+            ? index 
+            : 0; //If not found in entries use 0
     }
 
     public static async Task NavUp() => await NavList(-1);
@@ -152,10 +176,11 @@ public static class AppState
         if(targetIndex == SVRegistry.CurrentList.SelectedIndex)
             return;
 
+        selectedEntryCache[currentPath] = fsCache.GetEntries(currentPath)[targetIndex];
+
         await Program.Renderer.EnqueueAction(async () =>
         {
             SVRegistry.CurrentList.SelectedIndex = targetIndex;
-            indexCache[currentPath] = targetIndex;
 
             await SVRegistry.CurrentList.Invalidate();
             await RefreshSelectionInfo();
