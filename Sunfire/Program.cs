@@ -13,37 +13,46 @@ internal class Program
 {
     public static InputHandler<InputContext> InputHandler = new();
     public static Renderer Renderer = new(SVRegistry.RootSV);
+    public static AppOptions Options = new();
 
     public static readonly CancellationTokenSource _cts = new();
 
     public static async Task Main(string[] args)
     {
-        await SetupLogging([.. args]);
+        var argsHS = args.ToHashSet();
+        if(argsHS.Contains("-D") || argsHS.Contains("--debug"))
+            Options.DebugLogs = true;
+        if(argsHS.Contains("--info"))
+            Options.InfoLogs = true;
+        if(argsHS.Contains("--warn"))
+            Options.WarnLogs = true;
+        if(argsHS.Contains("-C") || argsHS.Contains("--console"))
+            Options.OutputLogsToConsole = true;
+        if(argsHS.Contains("-U") || argsHS.Contains("--user"))
+            Options.UseUserProfileAsDefault = true;
+
+        await SetupLogging();
 
         var inputTask = StartInput();
-        var renderTask = StartRender([.. args]);
+        var renderTask = StartRender();
         await Task.WhenAll(inputTask, renderTask);
 
         await Logger.StopAndFlush();
     }
 
-    private static async Task SetupLogging(HashSet<string> args)
+    private static async Task SetupLogging()
     {
-        bool debug = args.Contains("-D") || args.Contains("--debug");
-        bool info = args.Contains("--info");
-        bool warn = args.Contains("--warn");
-        bool console = args.Contains("-C") || args.Contains("--console");
 
         List<LogLevel> logLevels = [LogLevel.Error, LogLevel.Fatal];
 
-        if (debug)
+        if (Options.DebugLogs)
             logLevels.AddRange([LogLevel.Debug, LogLevel.Info, LogLevel.Warn]);
-        else if (info)
+        else if (Options.InfoLogs)
             logLevels.AddRange([LogLevel.Info, LogLevel.Warn]);
-        else if (warn)
+        else if (Options.WarnLogs)
             logLevels.Add(LogLevel.Warn);
 
-        if (console)
+        if (Options.OutputLogsToConsole)
             await Logger.AddSink(new(new BufferSink(), [.. logLevels]));
 
         //Add file sink to store logs
@@ -96,24 +105,12 @@ internal class Program
             .WithBind(async (inputData) => await AppState.NavIn())
             .RegisterBind();
 
-        //Toggle Hidden
-        await InputHandler.CreateBinding()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
-            .WithSequence(Key.KeyboardBind(ConsoleKey.H))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => { AppState.Toggles ^= AppToggles.ShowHiddenEntries; await Renderer.EnqueueAction(AppState.Refresh); })
-            .RegisterBind();
-
         await InputHandler.Start(_cts);
     }
 
-    private static async Task StartRender(HashSet<string> args)
+    private static async Task StartRender()
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
-
-        bool useUserProfile = args.Contains("-U") || args.Contains("--user");
-        if(useUserProfile)
-            AppState.Toggles |= AppToggles.UseUserProfileAsDefault;
 
         await AppState.Init();
 

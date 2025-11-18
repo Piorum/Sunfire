@@ -8,8 +8,6 @@ namespace Sunfire;
 
 public static class AppState
 {
-    public static AppToggles Toggles = AppToggles.None;
-
     private static readonly FSCache fsCache = new();
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
 
@@ -18,9 +16,10 @@ public static class AppState
 
     public static async Task Init()
     {
+
         //Swap for finding directory program is opened in?
         string basePath;
-        if(Toggles.HasFlag(AppToggles.UseUserProfileAsDefault))
+        if(Program.Options.UseUserProfileAsDefault)
             basePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         else
             basePath = Environment.CurrentDirectory;
