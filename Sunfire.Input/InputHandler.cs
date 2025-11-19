@@ -180,12 +180,23 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
             .Select(bind => bind!.Value)
             .DistinctBy(bind => bind.Id);
 
-        //Fire and forget bound tasks
-        _ = bindings
-            .Select(bind => bind.Task(inputData))
-            .ToList();
+        //Executing bindings and log errors
+        foreach(var bind in bindings)
+            _ = ExecuteBinding(bind, inputData);
 
         return Task.FromResult(bindings.Any());
+    }
+
+    private async Task ExecuteBinding(Bind bind, InputData inputData)
+    {
+        try
+        {
+            await bind.Task(inputData);
+        }
+        catch (Exception ex)
+        {
+            await Logger.Error(nameof(Input), ex.ToString());
+        }
     }
 
     private Task ResetSequence()

@@ -105,6 +105,30 @@ internal class Program
             .WithBind(async (inputData) => await AppState.NavIn())
             .RegisterBind();
 
+        //Nav Ext
+        //Jump Top
+        await InputHandler.CreateBinding()
+            .AsIndifferent()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.G))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => await AppState.NavList(-SVRegistry.CurrentList.SelectedIndex))
+            .RegisterBind();
+        //Jump Bottom
+        await InputHandler.CreateBinding()
+            .AsIndifferent()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.G, Input.Enums.Modifier.Shift))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex))
+            .RegisterBind();
+        
+        //Toggles
+        await InputHandler.CreateBinding()
+            .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
+            .WithSequence(Key.KeyboardBind(ConsoleKey.H))
+            .WithContext([InputContext.Global])
+            .WithBind(async (inputData) => await AppState.ToggleHidden())
+            .RegisterBind();
+
         await InputHandler.Start(_cts);
     }
 

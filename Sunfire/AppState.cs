@@ -5,6 +5,7 @@ using Sunfire.Views.Text;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Models;
+using Sunfire.Logging;
 
 namespace Sunfire;
 
@@ -14,7 +15,16 @@ public static class AppState
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
 
     private static string currentPath = "";
-    private static FSEntry SelectedEntry => fsCache.GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex];
+    private static FSEntry SelectedEntry => GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex];
+
+    private static bool showHidden = false;
+
+    public static async Task ToggleHidden()
+    {
+        showHidden = !showHidden;
+        await Program.Renderer.EnqueueAction(Refresh);
+        await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
+    }
 
     public static async Task Init()
     {
@@ -46,11 +56,12 @@ public static class AppState
             curDir = curDir.Parent;
         }
 
-        //Populating Views
+        //Populating Views && currentPath
         await Refresh(basePath);
+        selectedEntryCache[basePath] = SelectedEntry;
     }
 
-    public static async Task Refresh() => 
+    private static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
@@ -130,7 +141,7 @@ public static class AppState
     {
         await list.Clear();
 
-        var entries = fsCache.GetEntries(path);
+        var entries = GetEntries(path);
         foreach (var entry in entries)
         {
             LabelSVSlim label = new() { Text = entry.Name };
@@ -143,6 +154,20 @@ public static class AppState
         list.SelectedIndex = GetPreviousIndex(entries, path);
 
         await list.Invalidate();
+    }
+
+    private static List<FSEntry> GetEntries(string path) =>
+        [.. OrderAndFilterEntries(fsCache.GetEntries(path))];
+
+    private static IOrderedEnumerable<FSEntry> OrderAndFilterEntries(IEnumerable<FSEntry> entries)
+    {
+        if(!showHidden)
+            entries = entries.Where(e => !e.Attributes.HasFlag(FSFileAttributes.Hidden));
+
+        return entries
+            .OrderByDescending(e => e.Type == FSFileType.Directory)
+            .ThenByDescending(e => e.Attributes.HasFlag(FSFileAttributes.Hidden))
+            .ThenBy(e => e.Name.ToLowerInvariant());
     }
 
     private static int GetPreviousIndex(List<FSEntry> entries, string path)
@@ -177,7 +202,7 @@ public static class AppState
         if(targetIndex == SVRegistry.CurrentList.SelectedIndex)
             return;
 
-        selectedEntryCache[currentPath] = fsCache.GetEntries(currentPath)[targetIndex];
+        selectedEntryCache[currentPath] = GetEntries(currentPath)[targetIndex];
 
         await Program.Renderer.EnqueueAction(async () =>
         {

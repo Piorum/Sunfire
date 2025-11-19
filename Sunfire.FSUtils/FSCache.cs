@@ -15,11 +15,14 @@ public class FSCache
 
         entries ??= [];
 
+        if(!Directory.Exists(path))
+            return entries;
+
         var directoryInfo = new DirectoryInfo(path);
-        var info = directoryInfo.GetFileSystemInfos()
-            .OrderByDescending(e => Directory.Exists(e.FullName))
-            .ThenByDescending(e => (e.Attributes & FileAttributes.Hidden) != 0)
-            .ThenBy(e => e.Name.ToLowerInvariant());
+        var info = directoryInfo.GetFileSystemInfos();
+            //.OrderByDescending(e => Directory.Exists(e.FullName))
+            //.ThenByDescending(e => (e.Attributes & FileAttributes.Hidden) != 0)
+            //.ThenBy(e => e.Name.ToLowerInvariant());
 
         foreach (var entry in info.ToList())
             entries.Add(

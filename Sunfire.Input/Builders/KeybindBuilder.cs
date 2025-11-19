@@ -98,7 +98,12 @@ public class KeybindBuilder<TContextEnum> where TContextEnum : struct, Enum
                 if (currentNode.Children.TryGetValue(key, out TrieNode<TContextEnum>? value))
                     currentNode = value;
                 else
-                    currentNode.Children.Add(key, new());
+                {
+                    value = new();
+                    currentNode.Children.Add(key, value);
+                }
+
+                currentNode = value;
             }
 
             Bind bind = new(binding!);
