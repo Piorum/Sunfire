@@ -6,7 +6,6 @@ using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
-using System.Collections.ObjectModel;
 
 namespace Sunfire;
 
@@ -37,40 +36,34 @@ internal class Program
         var inputTask = Input();
         var renderTask = Render();
 
+        _ = await Task.WhenAny(inputTask, renderTask);
+
+        await Stop();
+
         try
         {
-            var first = await Task.WhenAny(inputTask, renderTask);
-
-            if(first.IsFaulted)
-                await Task.FromException(first.Exception);
+            await Task.WhenAll(inputTask, renderTask);
         }
-        catch
+        catch (Exception ex)
         {
-            await Stop();
+            var exs = ex is AggregateException ae ? ae.InnerExceptions : new AggregateException(ex).InnerExceptions;
+            foreach(var ie in exs)
+                await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
         }
-        finally
-        {
-            try
-            {
-                await Task.WhenAll(inputTask, renderTask);
-            }
-            catch (Exception ex)
-            {
-                var exs = ex is AggregateException ae ? ae.InnerExceptions : new AggregateException(ex).InnerExceptions;
-                foreach(var ie in exs)
-                    await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
-            }
 
-            await Logger.StopAndFlush();
-        }
+        await Logger.StopAndFlush();
     }
 
     private static async Task Stop()
     {
         if (_cts is not null)
         {
-            await _cts.CancelAsync();
-            _cts.Dispose();
+            try
+            {
+                await _cts.CancelAsync();
+                _cts.Dispose();
+            }
+            catch (ObjectDisposedException) { }
         }
     }
 
