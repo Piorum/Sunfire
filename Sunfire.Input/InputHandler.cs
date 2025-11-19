@@ -22,8 +22,6 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
 
     private readonly System.Timers.Timer sequenceTimeoutTimer;
 
-    private CancellationTokenSource? _cts;
-
     public InputHandler(int sequenceTimeoutMs = 1000)
     {
         currentNode = sequenceBindsRoot;
@@ -44,24 +42,13 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         return new(this);
     }
 
-    public async Task Start(CancellationTokenSource? cts = default)
+    public async Task Init(CancellationToken token)
     {
-        _cts = cts ?? new();
+        var pollTask = Task.Run(() => inputTranslator.PollInput(inputChannel.Writer, token), CancellationToken.None);
 
-        var pollTask = Task.Run(() => inputTranslator.PollInput(inputChannel.Writer, _cts.Token));
-
-        var handleTask = Task.Run(() => Handle(_cts));
+        var handleTask = Task.Run(() => Handle(token), CancellationToken.None);
 
         await Task.WhenAll(pollTask, handleTask);
-    }
-
-    public async Task Stop()
-    {
-        if (_cts is not null)
-        {
-            await _cts.CancelAsync();
-            _cts.Dispose();
-        }
     }
 
     public Task<string?> SequenceText()
@@ -100,11 +87,11 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         }
     }
 
-    private async Task Handle(CancellationTokenSource cts)
+    private async Task Handle(CancellationToken token)
     {
         try
         {
-            await foreach (var evt in inputChannel.Reader.ReadAllAsync(cts.Token))
+            await foreach (var evt in inputChannel.Reader.ReadAllAsync(token))
             {
                 var indifferentBindsTask = Task.Run(async () =>
                 {
@@ -113,7 +100,7 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
                         ctx => (evt.Key, ctx),
                         evt.InputData
                     );
-                });
+                }, CancellationToken.None);
 
                 var sequenceBindsTask = Task.Run(async () =>
                 {
@@ -144,7 +131,7 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
 
                     if(executedBinds)
                         await ResetSequence();
-                });
+                }, CancellationToken.None);
                 
                 await Logger.Debug(nameof(Input), $"[Bind Received]");
                 

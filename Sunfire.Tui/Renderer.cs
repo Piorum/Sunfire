@@ -55,7 +55,9 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                 //Get first action and start batch timer
                 var firstAction = await renderQueue.Reader.ReadAsync(token);
-                runningTasks.Add(firstAction());
+
+                try { runningTasks.Add(firstAction()); }
+                catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
 
                 var batchTimer = Task.Delay(batchDelay, token);
 
@@ -64,7 +66,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 {
                     //Read any available actions
                     while (renderQueue.Reader.TryRead(out var action))
-                        runningTasks.Add(action());
+                        try { runningTasks.Add(action()); }
+                        catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
 
                     //Wait for more actions or for batch timer to end
                     var waitForMoreActions = renderQueue.Reader.WaitToReadAsync(token).AsTask();
@@ -79,10 +82,10 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 {
                     await Task.WhenAll(runningTasks);
                 }
-                catch (OperationCanceledException) { } //Non-Issue just allow to stop
-                catch (Exception ex)
+                catch (AggregateException ae)
                 {
-                    _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
+                    foreach(var ex in ae.InnerExceptions)
+                        _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
                 }
 
                 await Logger.Debug(nameof(Tui), $"[Starting Render]");

@@ -6,6 +6,7 @@ using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
+using System.Collections.ObjectModel;
 
 namespace Sunfire;
 
@@ -31,16 +32,49 @@ internal class Program
         if(argsHS.Contains("-U") || argsHS.Contains("--user"))
             Options.UseUserProfileAsDefault = true;
 
-        await SetupLogging();
+        await InitLogging();
 
-        var inputTask = StartInput();
-        var renderTask = StartRender();
-        await Task.WhenAll(inputTask, renderTask);
+        var inputTask = Input();
+        var renderTask = Render();
 
-        await Logger.StopAndFlush();
+        try
+        {
+            var first = await Task.WhenAny(inputTask, renderTask);
+
+            if(first.IsFaulted)
+                await Task.FromException(first.Exception);
+        }
+        catch
+        {
+            await Stop();
+        }
+        finally
+        {
+            try
+            {
+                await Task.WhenAll(inputTask, renderTask);
+            }
+            catch (Exception ex)
+            {
+                var exs = ex is AggregateException ae ? ae.InnerExceptions : new AggregateException(ex).InnerExceptions;
+                foreach(var ie in exs)
+                    await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
+            }
+
+            await Logger.StopAndFlush();
+        }
     }
 
-    private static async Task SetupLogging()
+    private static async Task Stop()
+    {
+        if (_cts is not null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+        }
+    }
+
+    private static async Task InitLogging()
     {
 
         List<LogLevel> logLevels = [LogLevel.Error, LogLevel.Fatal];
@@ -59,7 +93,7 @@ internal class Program
         //await Logger.AddSink(new(new FileSink(), [.. logLevels]));
     }
 
-    private static async Task StartInput()
+    private static async Task Input()
     {
         InputHandler.Context.Add(InputContext.Global);
 
@@ -68,13 +102,13 @@ internal class Program
             .AsIndifferent()
             .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
             .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => { await InputHandler.Stop(); })
+            .WithBind(async (inputData) => { await Stop(); })
             .RegisterBind();
 
         //Try Redraw
         await InputHandler.CreateBinding()
             .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.R, Input.Enums.Modifier.Ctrl | Input.Enums.Modifier.Alt))
+            .WithSequence(Key.KeyboardBind(ConsoleKey.R, Sunfire.Input.Enums.Modifier.Ctrl | Sunfire.Input.Enums.Modifier.Alt))
             .WithContext([InputContext.Global])
             .WithBind(async (inputData) => { await Renderer.EnqueueAction(Renderer.RootView.Invalidate); })
             .RegisterBind();
@@ -116,7 +150,7 @@ internal class Program
         //Jump Bottom
         await InputHandler.CreateBinding()
             .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.G, Input.Enums.Modifier.Shift))
+            .WithSequence(Key.KeyboardBind(ConsoleKey.G, Sunfire.Input.Enums.Modifier.Shift))
             .WithContext([InputContext.Global])
             .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex))
             .RegisterBind();
@@ -129,10 +163,10 @@ internal class Program
             .WithBind(async (inputData) => await AppState.ToggleHidden())
             .RegisterBind();
 
-        await InputHandler.Start(_cts);
+        await InputHandler.Init(_cts.Token);
     }
 
-    private static async Task StartRender()
+    private static async Task Render()
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
 
