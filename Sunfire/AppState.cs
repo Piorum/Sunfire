@@ -15,7 +15,7 @@ public static class AppState
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
 
     private static string currentPath = "";
-    private static FSEntry SelectedEntry => GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex];
+    private static FSEntry? SelectedEntry => SVRegistry.CurrentList.MaxIndex >= 0 ? GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex] : null;
 
     private static bool showHidden = false;
 
@@ -87,16 +87,17 @@ public static class AppState
     {
         SVRegistry.PreviewPane.SubViews.Clear();
 
-        switch(SelectedEntry.Type)
-        {
-            case FSFileType.Directory:
-                ListSV previewList = new();
+        if(SelectedEntry is not null)
+            switch(SelectedEntry.Value.Type)
+            {
+                case FSFileType.Directory:
+                    ListSV previewList = new();
 
-                await UpdateList(previewList, SelectedEntry.Path);
+                    await UpdateList(previewList, SelectedEntry.Value.Path);
 
-                SVRegistry.PreviewPane.SubViews.Add(previewList);
-                break;
-        }
+                    SVRegistry.PreviewPane.SubViews.Add(previewList);
+                    break;
+            }
                 
         await SVRegistry.PreviewBorder.Invalidate();
 
@@ -113,19 +114,27 @@ public static class AppState
     private static async Task RefreshSelectionInfo()
     {
         //Selection Full Path
-        SVRegistry.BottomLeftBorder.TitleLabel ??= new();
-        SVRegistry.BottomLeftBorder.TitleLabel.Text = SelectedEntry.Path;
+        if(SelectedEntry is not null)
+        {
+            SVRegistry.BottomLeftBorder.TitleLabel ??= new();
+            SVRegistry.BottomLeftBorder.TitleLabel.Text = SelectedEntry.Value.Path;
+        }
+        else
+            SVRegistry.BottomLeftBorder.TitleLabel = null;
 
         //Misc File Info
-        switch(SelectedEntry.Type)
-        {
-            case FSFileType.Directory:
-                SVRegistry.BottomLeftLabel.Text = $" Directory {Directory.GetFiles(SelectedEntry.Path).Length + Directory.GetDirectories(SelectedEntry.Path).Length}";
-                break;
-            case FSFileType.File:
-                SVRegistry.BottomLeftLabel.Text = $" Size: {new FileInfo(SelectedEntry.Path).Length}B";
-                break;
-        }
+        if(SelectedEntry is not null)
+            switch(SelectedEntry.Value.Type)
+            {
+                case FSFileType.Directory:
+                    SVRegistry.BottomLeftLabel.Text = $" Directory {Directory.GetFiles(SelectedEntry.Value.Path).Length + Directory.GetDirectories(SelectedEntry.Value.Path).Length}";
+                    break;
+                case FSFileType.File:
+                    SVRegistry.BottomLeftLabel.Text = $" Size: {new FileInfo(SelectedEntry.Value.Path).Length}B";
+                    break;
+            }
+        else
+            SVRegistry.BottomLeftLabel.Text = string.Empty;
 
         await SVRegistry.BottomLeftBorder.Invalidate();
     }
@@ -189,8 +198,8 @@ public static class AppState
             ? Program.Renderer.EnqueueAction(() => Refresh(dirInfo.FullName)) 
             : Task.CompletedTask);
     public static async Task NavIn() => 
-        await(SelectedEntry.Type == FSFileType.Directory 
-            ? Program.Renderer.EnqueueAction(() => Refresh(SelectedEntry.Path)) 
+        await(SelectedEntry is not null && SelectedEntry.Value.Type == FSFileType.Directory 
+            ? Program.Renderer.EnqueueAction(() => Refresh(SelectedEntry.Value.Path)) 
             : HandleFile());
 
     //Nav Helpers
@@ -216,22 +225,23 @@ public static class AppState
 
     public static Task HandleFile()
     {
-        switch (SelectedEntry.Type)
-        {
-            case FSFileType.File:
-                Process.Start(
-                    new ProcessStartInfo()
-                    {
-                        FileName = "xdg-open",
-                        Arguments = SelectedEntry.Path,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                    }
-                );
-                break;
-        }
+        if(SelectedEntry is not null)
+            switch (SelectedEntry.Value.Type)
+            {
+                case FSFileType.File:
+                    Process.Start(
+                        new ProcessStartInfo()
+                        {
+                            FileName = "xdg-open",
+                            Arguments = SelectedEntry.Value.Path,
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                        }
+                    );
+                    break;
+            }
 
         return Task.CompletedTask;
     }

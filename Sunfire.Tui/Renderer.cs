@@ -82,9 +82,10 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 {
                     await Task.WhenAll(runningTasks);
                 }
-                catch (AggregateException ae)
+                catch (Exception ex)
                 {
-                    foreach(var ex in ae.InnerExceptions)
+                    var exs = ex is AggregateException ae ? ae.InnerExceptions : (IEnumerable<Exception>)[ex];
+                    foreach(var ie in exs)
                         _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
                 }
 

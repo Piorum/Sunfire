@@ -46,7 +46,7 @@ internal class Program
         }
         catch (Exception ex)
         {
-            var exs = ex is AggregateException ae ? ae.InnerExceptions : new AggregateException(ex).InnerExceptions;
+            var exs = ex is AggregateException ae ? ae.InnerExceptions : (IEnumerable<Exception>)[ex];
             foreach(var ie in exs)
                 await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
         }
