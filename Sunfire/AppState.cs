@@ -205,6 +205,9 @@ public static class AppState
     //Nav Helpers
     public static async Task NavList(int delta)
     {
+        if(SVRegistry.CurrentList.MaxIndex == -1)
+            return; 
+            
         var targetIndex = SVRegistry.CurrentList.SelectedIndex + delta;
         targetIndex = Math.Clamp(targetIndex, 0, SVRegistry.CurrentList.MaxIndex);
 
