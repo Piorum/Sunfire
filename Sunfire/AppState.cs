@@ -156,14 +156,11 @@ public static class AppState
             SVRegistry.BottomLeftBorder.TitleLabel ??= new();
             SVRegistry.BottomLeftBorder.TitleLabel.Text = selectedEntry.Value.Path;
             
-            switch(selectedEntry.Value.Type)
-            {
-                case FSFileType.Directory:
-                    SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}";
-                    break;
-                case FSFileType.File:
-                    break;
-            }
+            if(selectedEntry.Value.IsDirectory)
+                SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}";
+            else
+                SVRegistry.BottomLeftLabel.Text = $" File {selectedEntry.Value.Size}B";
+
         }
         else
         {
@@ -198,8 +195,8 @@ public static class AppState
         var newLabels = new List<LabelSVSlim>(entries.Count);
         foreach (var entry in entries)
         {
-            LabelSVSlim label = new() { Text = entry.Name };
-            if(entry.Type == FSFileType.Directory)
+            LabelSVSlim label = new() { Text = $"{(entry.IsDirectory ? "D" : "F")} {entry.Name}" };
+            if(entry.IsDirectory)
                 label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
             
             newLabels.Add(label);
@@ -219,7 +216,7 @@ public static class AppState
             entries = entries.Where(e => !e.Attributes.HasFlag(FSFileAttributes.Hidden));
 
         return entries
-            .OrderByDescending(e => e.Type == FSFileType.Directory)
+            .OrderByDescending(e => e.IsDirectory)
             .ThenByDescending(e => e.Attributes.HasFlag(FSFileAttributes.Hidden))
             .ThenBy(e => e.Name.ToLowerInvariant());
     }
@@ -240,15 +237,13 @@ public static class AppState
     {
         IRelativeSunfireView? view = null;
         if(selectedEntry is not null)
-            switch(selectedEntry.Value.Type)
+            if (selectedEntry.Value.IsDirectory)
             {
-                case FSFileType.Directory:
-                    ListSV previewList = new();
+                ListSV previewList = new();
 
-                    await UpdateList(previewList, await GetLabelsAndIndex(selectedEntry.Value.Path));
+                await UpdateList(previewList, await GetLabelsAndIndex(selectedEntry.Value.Path, token));
 
-                    view = previewList;
-                    break;
+                view = previewList;
             }
 
         return view;
@@ -261,7 +256,7 @@ public static class AppState
             ? Refresh(dirInfo.FullName) 
             : Task.CompletedTask);
     public static async Task NavIn() => 
-        await(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && selectedEntry.Value.Type == FSFileType.Directory 
+        await(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && selectedEntry.Value.IsDirectory 
             ? Refresh(selectedEntry.Value.Path) 
             : HandleFile());
 
@@ -309,22 +304,17 @@ public static class AppState
 
     public static async Task HandleFile()
     {
-        if(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null)
-            switch (selectedEntry.Value.Type)
-            {
-                case FSFileType.File:
-                    Process.Start(
-                        new ProcessStartInfo()
-                        {
-                            FileName = "xdg-open",
-                            Arguments = selectedEntry.Value.Path,
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            CreateNoWindow = true,
-                        }
-                    );
-                    break;
-            }
+        if(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && !selectedEntry.Value.IsDirectory)
+            Process.Start(
+                new ProcessStartInfo()
+                {
+                    FileName = "xdg-open",
+                    Arguments = selectedEntry.Value.Path,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                }
+            );
     }
 }
