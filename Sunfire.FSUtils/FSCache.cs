@@ -6,9 +6,9 @@ namespace Sunfire.FSUtils;
 
 public class FSCache
 {
-    private readonly Dictionary<string, List<FSEntry>> _cache = [];
+    private readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
 
-    public List<FSEntry> GetEntries(string path)
+    public async Task<List<FSEntry>> GetEntries(string path)
     {
         if(_cache.TryGetValue(path, out var entries))
             return entries;
@@ -16,15 +16,22 @@ public class FSCache
         if(!Directory.Exists(path))
             return [];
 
-        var enumerator = new FileSystemEnumerable<FSEntry>(
-            path,
-            (ref FileSystemEntry entry) => new FSEntry(ref entry, path),
-            new EnumerationOptions { IgnoreInaccessible = true }
-        );
+        entries = await Task.Run(() =>
+        {
+            var enumerator = new FileSystemEnumerable<FSEntry>(
+                path,
+                (ref FileSystemEntry entry) => new FSEntry(ref entry, path),
+                new EnumerationOptions 
+                { 
+                    IgnoreInaccessible = true,
+                    AttributesToSkip = 0
+                }
+            );
+            
+            return enumerator.ToList();
+        });
 
-        entries = [.. enumerator];
-
-        _cache.Add(path, entries);
+        _cache.TryAdd(path, entries);
 
         return entries;
     }

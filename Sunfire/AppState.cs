@@ -6,6 +6,7 @@ using Sunfire.FSUtils;
 using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
+using Sunfire.Tui.Interfaces;
 
 namespace Sunfire;
 
@@ -15,14 +16,13 @@ public static class AppState
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
 
     private static string currentPath = "";
-    private static FSEntry? SelectedEntry => SVRegistry.CurrentList.MaxIndex >= 0 ? GetEntries(currentPath)[SVRegistry.CurrentList.SelectedIndex] : null;
 
     private static bool showHidden = false;
 
     public static async Task ToggleHidden()
     {
         showHidden = !showHidden;
-        await Program.Renderer.EnqueueAction(Refresh);
+        await Refresh();
         await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
     }
 
@@ -47,7 +47,7 @@ public static class AppState
             string containerPath = curDir.Parent.FullName;
             string entryToSelectName = curDir.Name;
 
-            var entries = fsCache.GetEntries(containerPath);
+            var entries = await fsCache.GetEntries(containerPath);
 
             var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
 
@@ -58,48 +58,59 @@ public static class AppState
 
         //Populating Views && currentPath
         await Refresh(basePath);
-        selectedEntryCache[basePath] = SelectedEntry;
+        selectedEntryCache[basePath] = await GetSelectedEntry();
     }
+
+    private static async Task<FSEntry?> GetSelectedEntry() => SVRegistry.CurrentList.MaxIndex >= 0 
+        ? (await GetEntries(currentPath))[SVRegistry.CurrentList.SelectedIndex] 
+        : null;
 
     private static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
     {
+
         currentPath = path;
-        
-        await RefreshContainerList();
-        await RefreshCurrentList();
-        await RefreshPreview();
-        await RefreshDirectoryHint();
-        await RefreshSelectionInfo();
+
+        TaskCompletionSource tcs = new();
+        await Program.Renderer.EnqueueAction(async () =>
+        {
+
+            await RefreshContainerList();
+            await RefreshCurrentList();
+            tcs.TrySetResult();
+        });
+        await tcs.Task;
+
+        var selectedEntry = await GetSelectedEntry();
+        var preview = await GetPreview(selectedEntry);
+
+        await Program.Renderer.EnqueueAction(async () =>
+        {
+
+            await RefreshPreview(preview);
+            await RefreshDirectoryHint();
+            await RefreshSelectionInfo(selectedEntry);
+        });
     }
 
     private static async Task RefreshContainerList() => 
         await (Directory.GetParent(currentPath) is var dirInfo && dirInfo is null 
             ? ClearAndInvalidateList(SVRegistry.ContainerList) 
-            : UpdateList(SVRegistry.ContainerList, dirInfo.FullName));
+            : UpdateList(SVRegistry.ContainerList, await GetLabelsAndIndex(dirInfo.FullName)));
 
     private static async Task RefreshCurrentList() =>
-        await UpdateList(SVRegistry.CurrentList, currentPath);
+        await UpdateList(SVRegistry.CurrentList, await GetLabelsAndIndex(currentPath));
 
-    private static async Task RefreshPreview()
+    private static async Task RefreshPreview(IRelativeSunfireView? view)
     {
         SVRegistry.PreviewPane.SubViews.Clear();
 
-        if(SelectedEntry is not null)
-            switch(SelectedEntry.Value.Type)
-            {
-                case FSFileType.Directory:
-                    ListSV previewList = new();
-
-                    await UpdateList(previewList, SelectedEntry.Value.Path);
-
-                    SVRegistry.PreviewPane.SubViews.Add(previewList);
-                    break;
-            }
+        if(view is not null)
+            SVRegistry.PreviewPane.SubViews.Add(view);
                 
-        await SVRegistry.PreviewBorder.Invalidate();
+        await SVRegistry.PreviewPane.Invalidate();
 
     }
 
@@ -111,30 +122,29 @@ public static class AppState
         await SVRegistry.CurrentBorder.Invalidate();
     }
 
-    private static async Task RefreshSelectionInfo()
+    private static async Task RefreshSelectionInfo(FSEntry? selectedEntry)
     {
         //Selection Full Path
-        if(SelectedEntry is not null)
+        //Misc File Info
+        if(selectedEntry is not null)
         {
             SVRegistry.BottomLeftBorder.TitleLabel ??= new();
-            SVRegistry.BottomLeftBorder.TitleLabel.Text = SelectedEntry.Value.Path;
-        }
-        else
-            SVRegistry.BottomLeftBorder.TitleLabel = null;
-
-        //Misc File Info
-        if(SelectedEntry is not null)
-            switch(SelectedEntry.Value.Type)
+            SVRegistry.BottomLeftBorder.TitleLabel.Text = selectedEntry.Value.Path;
+            
+            switch(selectedEntry.Value.Type)
             {
                 case FSFileType.Directory:
-                    SVRegistry.BottomLeftLabel.Text = $" Directory {Directory.GetFiles(SelectedEntry.Value.Path).Length + Directory.GetDirectories(SelectedEntry.Value.Path).Length}";
+                    SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path)).Count}";
                     break;
                 case FSFileType.File:
-                    SVRegistry.BottomLeftLabel.Text = $" Size: {new FileInfo(SelectedEntry.Value.Path).Length}B";
                     break;
             }
+        }
         else
+        {
+            SVRegistry.BottomLeftBorder.TitleLabel = null;
             SVRegistry.BottomLeftLabel.Text = string.Empty;
+        }
 
         await SVRegistry.BottomLeftBorder.Invalidate();
     }
@@ -146,39 +156,37 @@ public static class AppState
         await list.Invalidate();
     }
 
-    private static async Task UpdateList(ListSV list, string path)
+    private static async Task UpdateList(ListSV list, (List<LabelSVSlim> newLabels, int previousSelectedIndex) newValues)
     {
         await list.Clear();
 
-        Stopwatch sw = new();
-        sw.Start();
-        var entries = GetEntries(path);
-        sw.Stop();
-        string time = sw.Elapsed.TotalMicroseconds.ToString();
-        await Logger.Debug(nameof(Sunfire), $"Get \"{path}\" Entries Time {time}us");
-        sw.Restart();
+        await list.AddLabels(newValues.newLabels);
+        list.SelectedIndex = newValues.previousSelectedIndex;
 
-        var labels = new List<LabelSVSlim>(entries.Count);
+        await list.Invalidate();
+    }
+
+    private static async Task<(List<LabelSVSlim> newLabels, int previousSelectedIndex)> GetLabelsAndIndex(string path)
+    {
+        var entries = await GetEntries(path);
+
+        var newLabels = new List<LabelSVSlim>(entries.Count);
         foreach (var entry in entries)
         {
             LabelSVSlim label = new() { Text = entry.Name };
             if(entry.Type == FSFileType.Directory)
                 label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
             
-            labels.Add(label);
+            newLabels.Add(label);
         }
-        await list.AddLabels(labels);
-        sw.Stop();
-        string time2 = sw.Elapsed.TotalMicroseconds.ToString();
-        await Logger.Debug(nameof(Sunfire), $"Add \"{path}\" Labels Time {time2}us");
 
-        list.SelectedIndex = GetPreviousIndex(entries, path);
+        var previousSelectedIndex = GetPreviousIndex(entries, path);
 
-        await list.Invalidate();
+        return (newLabels, previousSelectedIndex);
     }
 
-    private static List<FSEntry> GetEntries(string path) =>
-        [.. OrderAndFilterEntries(fsCache.GetEntries(path))];
+    private static async Task<List<FSEntry>> GetEntries(string path) =>
+        [.. OrderAndFilterEntries(await fsCache.GetEntries(path))];
 
     private static IOrderedEnumerable<FSEntry> OrderAndFilterEntries(IEnumerable<FSEntry> entries)
     {
@@ -203,15 +211,33 @@ public static class AppState
             : 0; //If not found in entries use 0
     }
 
+    private static async Task<IRelativeSunfireView?> GetPreview(FSEntry? selectedEntry)
+    {
+        IRelativeSunfireView? view = null;
+        if(selectedEntry is not null)
+            switch(selectedEntry.Value.Type)
+            {
+                case FSFileType.Directory:
+                    ListSV previewList = new();
+
+                    await UpdateList(previewList, await GetLabelsAndIndex(selectedEntry.Value.Path));
+
+                    view = previewList;
+                    break;
+            }
+
+        return view;
+    }
+
     public static async Task NavUp() => await NavList(-1);
     public static async Task NavDown() => await NavList(1);
     public static async Task NavOut() => 
         await(Directory.GetParent(currentPath) is var dirInfo && dirInfo is not null 
-            ? Program.Renderer.EnqueueAction(() => Refresh(dirInfo.FullName)) 
+            ? Refresh(dirInfo.FullName) 
             : Task.CompletedTask);
     public static async Task NavIn() => 
-        await(SelectedEntry is not null && SelectedEntry.Value.Type == FSFileType.Directory 
-            ? Program.Renderer.EnqueueAction(() => Refresh(SelectedEntry.Value.Path)) 
+        await(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && selectedEntry.Value.Type == FSFileType.Directory 
+            ? Refresh(selectedEntry.Value.Path) 
             : HandleFile());
 
     //Nav Helpers
@@ -226,29 +252,39 @@ public static class AppState
         if(targetIndex == SVRegistry.CurrentList.SelectedIndex)
             return;
 
-        selectedEntryCache[currentPath] = GetEntries(currentPath)[targetIndex];
+        selectedEntryCache[currentPath] = (await GetEntries(currentPath))[targetIndex];
 
+        TaskCompletionSource tcs = new();
         await Program.Renderer.EnqueueAction(async () =>
         {
             SVRegistry.CurrentList.SelectedIndex = targetIndex;
-
             await SVRegistry.CurrentList.Invalidate();
-            await RefreshSelectionInfo();
-            await RefreshPreview();
+
+            tcs.TrySetResult();
+        });
+        await tcs.Task;
+
+        var selectedEntry = await GetSelectedEntry();
+        var preview = await GetPreview(selectedEntry);
+
+        await Program.Renderer.EnqueueAction(async () =>
+        {
+            await RefreshSelectionInfo(selectedEntry);
+            await RefreshPreview(preview);
         });
     }
 
-    public static Task HandleFile()
+    public static async Task HandleFile()
     {
-        if(SelectedEntry is not null)
-            switch (SelectedEntry.Value.Type)
+        if(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null)
+            switch (selectedEntry.Value.Type)
             {
                 case FSFileType.File:
                     Process.Start(
                         new ProcessStartInfo()
                         {
                             FileName = "xdg-open",
-                            Arguments = SelectedEntry.Value.Path,
+                            Arguments = selectedEntry.Value.Path,
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             RedirectStandardError = true,
@@ -257,7 +293,5 @@ public static class AppState
                     );
                     break;
             }
-
-        return Task.CompletedTask;
     }
 }

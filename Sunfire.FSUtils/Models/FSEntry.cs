@@ -8,6 +8,8 @@ public readonly struct FSEntry
     public readonly string Name { get; init; }
     public readonly string Directory { get; init; }
 
+    public readonly long Size { get; init; }
+
     public readonly FSFileType Type { get; init; }
     public readonly FSFileAttributes Attributes { get; init; }
 
@@ -17,6 +19,8 @@ public readonly struct FSEntry
     {
         Name = entry.FileName.ToString();
         Directory = directory;
+
+        Size = entry.Length;
 
         Type = entry.IsDirectory
             ? FSFileType.Directory
