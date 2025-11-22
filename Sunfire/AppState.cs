@@ -3,7 +3,6 @@ using Sunfire.Registries;
 using Sunfire.Views;
 using Sunfire.Views.Text;
 using Sunfire.FSUtils;
-using Sunfire.FSUtils.Enums;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.Tui.Interfaces;
@@ -213,11 +212,11 @@ public static class AppState
     private static IOrderedEnumerable<FSEntry> OrderAndFilterEntries(IEnumerable<FSEntry> entries)
     {
         if(!showHidden)
-            entries = entries.Where(e => !e.Attributes.HasFlag(FSFileAttributes.Hidden));
+            entries = entries.Where(e => !e.Attributes.HasFlag(FileAttributes.Hidden));
 
         return entries
             .OrderByDescending(e => e.IsDirectory)
-            .ThenByDescending(e => e.Attributes.HasFlag(FSFileAttributes.Hidden))
+            .ThenByDescending(e => e.Attributes.HasFlag(FileAttributes.Hidden))
             .ThenBy(e => e.Name.ToLowerInvariant());
     }
 

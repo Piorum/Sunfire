@@ -1,5 +1,4 @@
 using System.IO.Enumeration;
-using Sunfire.FSUtils.Enums;
 
 namespace Sunfire.FSUtils.Models;
 
@@ -13,7 +12,7 @@ public readonly struct FSEntry
 
     public readonly bool IsDirectory { get; init; }
 
-    public readonly FSFileAttributes Attributes { get; init; }
+    public readonly FileAttributes Attributes { get; init; }
 
     public string Path => System.IO.Path.Combine(Directory, Name);
     public string Type => MediaType.Lookup(this);
@@ -28,9 +27,7 @@ public readonly struct FSEntry
 
         IsDirectory = entry.IsDirectory;
 
-        Attributes = entry.Attributes.HasFlag(FileAttributes.Hidden)
-            ? FSFileAttributes.Hidden
-            : FSFileAttributes.None;
+        Attributes = entry.Attributes;
 
     }
 }
