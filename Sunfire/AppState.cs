@@ -19,6 +19,17 @@ public static class AppState
 
     private static bool showHidden = false;
 
+    private static CancellationTokenSource? previewGenCts;
+
+    private static CancellationToken SecurePreviewGenToken()
+    {
+        previewGenCts?.Cancel();
+        previewGenCts?.Dispose();
+        
+        previewGenCts = new();
+        return previewGenCts.Token;
+    }
+
     public static async Task ToggleHidden()
     {
         showHidden = !showHidden;
@@ -47,7 +58,7 @@ public static class AppState
             string containerPath = curDir.Parent.FullName;
             string entryToSelectName = curDir.Name;
 
-            var entries = await fsCache.GetEntries(containerPath);
+            var entries = await fsCache.GetEntries(containerPath, default);
 
             var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
 
@@ -83,16 +94,30 @@ public static class AppState
         });
         await tcs.Task;
 
-        var selectedEntry = await GetSelectedEntry();
-        var preview = await GetPreview(selectedEntry);
-
-        await Program.Renderer.EnqueueAction(async () =>
+        try
         {
+            previewGenCts?.Cancel();
+        }
+        catch { }
 
-            await RefreshPreview(preview);
-            await RefreshDirectoryHint();
-            await RefreshSelectionInfo(selectedEntry);
-        });
+        var previewToken = SecurePreviewGenToken();
+
+        var selectedEntry = await GetSelectedEntry();
+
+        try
+        {   
+            var preview = await GetPreview(selectedEntry, previewToken);
+
+            if(!previewToken.IsCancellationRequested)
+                await Program.Renderer.EnqueueAction(async () =>
+                {
+
+                    await RefreshPreview(preview);
+                    await RefreshDirectoryHint();
+                    await RefreshSelectionInfo(selectedEntry);
+                });
+            }
+        catch (OperationCanceledException) { }
     }
 
     private static async Task RefreshContainerList() => 
@@ -134,7 +159,7 @@ public static class AppState
             switch(selectedEntry.Value.Type)
             {
                 case FSFileType.Directory:
-                    SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path)).Count}";
+                    SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}";
                     break;
                 case FSFileType.File:
                     break;
@@ -166,9 +191,9 @@ public static class AppState
         await list.Invalidate();
     }
 
-    private static async Task<(List<LabelSVSlim> newLabels, int previousSelectedIndex)> GetLabelsAndIndex(string path)
+    private static async Task<(List<LabelSVSlim> newLabels, int previousSelectedIndex)> GetLabelsAndIndex(string path, CancellationToken token = default)
     {
-        var entries = await GetEntries(path);
+        var entries = await GetEntries(path, token);
 
         var newLabels = new List<LabelSVSlim>(entries.Count);
         foreach (var entry in entries)
@@ -185,8 +210,8 @@ public static class AppState
         return (newLabels, previousSelectedIndex);
     }
 
-    private static async Task<List<FSEntry>> GetEntries(string path) =>
-        [.. OrderAndFilterEntries(await fsCache.GetEntries(path))];
+    private static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token = default) =>
+        [.. OrderAndFilterEntries(await fsCache.GetEntries(path, token))];
 
     private static IOrderedEnumerable<FSEntry> OrderAndFilterEntries(IEnumerable<FSEntry> entries)
     {
@@ -211,7 +236,7 @@ public static class AppState
             : 0; //If not found in entries use 0
     }
 
-    private static async Task<IRelativeSunfireView?> GetPreview(FSEntry? selectedEntry)
+    private static async Task<IRelativeSunfireView?> GetPreview(FSEntry? selectedEntry, CancellationToken token)
     {
         IRelativeSunfireView? view = null;
         if(selectedEntry is not null)
@@ -262,16 +287,24 @@ public static class AppState
 
             tcs.TrySetResult();
         });
-        await tcs.Task;
+        await tcs.Task;        
+        
+        var previewToken = SecurePreviewGenToken();
 
         var selectedEntry = await GetSelectedEntry();
-        var preview = await GetPreview(selectedEntry);
 
-        await Program.Renderer.EnqueueAction(async () =>
+        try
         {
-            await RefreshSelectionInfo(selectedEntry);
-            await RefreshPreview(preview);
-        });
+            var preview = await GetPreview(selectedEntry, previewToken);
+
+            if(!previewToken.IsCancellationRequested)
+                await Program.Renderer.EnqueueAction(async () =>
+                {
+                    await RefreshSelectionInfo(selectedEntry);
+                    await RefreshPreview(preview);
+                });
+        }
+        catch (OperationCanceledException) { }
     }
 
     public static async Task HandleFile()

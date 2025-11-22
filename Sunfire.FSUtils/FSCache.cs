@@ -8,7 +8,7 @@ public class FSCache
 {
     private readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
 
-    public async Task<List<FSEntry>> GetEntries(string path)
+    public async Task<List<FSEntry>> GetEntries(string path, CancellationToken token)
     {
         if(_cache.TryGetValue(path, out var entries))
             return entries;
@@ -28,7 +28,15 @@ public class FSCache
                 }
             );
             
-            return enumerator.ToList();
+            List<FSEntry> tmp = [];
+
+            foreach(var entry in enumerator)
+            {
+                token.ThrowIfCancellationRequested();
+                tmp.Add(entry);
+            }
+
+            return tmp;
         });
 
         _cache.TryAdd(path, entries);
