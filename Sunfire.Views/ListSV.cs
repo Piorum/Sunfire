@@ -45,6 +45,15 @@ public class ListSV : IRelativeSunfireView
         return Task.CompletedTask;
     }
 
+    public Task AddLabels(List<LabelSVSlim> labels)
+    {
+        foreach(var label in labels)
+            label.SizeY = 1;
+
+        Labels.AddRange(labels);
+        return Task.CompletedTask;
+    }
+
     public Task Clear()
     {
         Labels.Clear();

@@ -150,15 +150,27 @@ public static class AppState
     {
         await list.Clear();
 
+        Stopwatch sw = new();
+        sw.Start();
         var entries = GetEntries(path);
+        sw.Stop();
+        string time = sw.Elapsed.TotalMicroseconds.ToString();
+        await Logger.Debug(nameof(Sunfire), $"Get \"{path}\" Entries Time {time}us");
+        sw.Restart();
+
+        var labels = new List<LabelSVSlim>(entries.Count);
         foreach (var entry in entries)
         {
             LabelSVSlim label = new() { Text = entry.Name };
             if(entry.Type == FSFileType.Directory)
                 label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
             
-            await list.AddLabel(label);
+            labels.Add(label);
         }
+        await list.AddLabels(labels);
+        sw.Stop();
+        string time2 = sw.Elapsed.TotalMicroseconds.ToString();
+        await Logger.Debug(nameof(Sunfire), $"Add \"{path}\" Labels Time {time2}us");
 
         list.SelectedIndex = GetPreviousIndex(entries, path);
 
@@ -207,7 +219,7 @@ public static class AppState
     {
         if(SVRegistry.CurrentList.MaxIndex == -1)
             return; 
-            
+
         var targetIndex = SVRegistry.CurrentList.SelectedIndex + delta;
         targetIndex = Math.Clamp(targetIndex, 0, SVRegistry.CurrentList.MaxIndex);
 

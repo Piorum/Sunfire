@@ -1,49 +1,36 @@
 ﻿using System.Collections.Concurrent;
-using Sunfire.FSUtils.Enums;
+using System.IO.Enumeration;
 using Sunfire.FSUtils.Models;
 
 namespace Sunfire.FSUtils;
 
 public class FSCache
 {
-    private readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
+    private readonly Dictionary<string, List<FSEntry>> _cache = [];
 
     public List<FSEntry> GetEntries(string path)
     {
         if(_cache.TryGetValue(path, out var entries))
             return entries;
 
-        entries ??= [];
-
         if(!Directory.Exists(path))
-            return entries;
+            return [];
 
-        var directoryInfo = new DirectoryInfo(path);
-        var info = directoryInfo.GetFileSystemInfos();
-            //.OrderByDescending(e => Directory.Exists(e.FullName))
-            //.ThenByDescending(e => (e.Attributes & FileAttributes.Hidden) != 0)
-            //.ThenBy(e => e.Name.ToLowerInvariant());
+        var enumerator = new FileSystemEnumerable<FSEntry>(
+            path,
+            (ref FileSystemEntry entry) => new FSEntry(ref entry, path),
+            new EnumerationOptions { IgnoreInaccessible = true }
+        );
 
-        foreach (var entry in info.ToList())
-            entries.Add(
-                new FSEntry() 
-                { 
-                    Name = entry.Name, 
-                    Path = entry.FullName, 
-                    Type = Directory.Exists(entry.FullName) 
-                        ? FSFileType.Directory 
-                        : FSFileType.File,
-                    Attributes = entry.Attributes.HasFlag(FileAttributes.Hidden) ? FSFileAttributes.Hidden : FSFileAttributes.None
-                }
-            );
+        entries = [.. enumerator];
 
-        _cache.TryAdd(path, entries);
+        _cache.Add(path, entries);
 
         return entries;
     }
 
     public void Invalidate(string path)
     {
-        _cache.TryRemove(path, out var _);
+        _cache.Remove(path, out var _);
     }
 }
