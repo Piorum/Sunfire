@@ -107,7 +107,6 @@ internal class Program
                 .WithBind(async (inputData) => 
                 { 
                     await AppState.Reload();
-                    await Renderer.EnqueueAction(Renderer.RootView.Invalidate); 
                 }),
 
             //Nav
