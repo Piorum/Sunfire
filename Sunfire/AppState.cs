@@ -34,7 +34,7 @@ public static class AppState
     public static async Task ToggleHidden()
     {
         showHidden = !showHidden;
-        sortedEntriesCache.Clear();
+        ResetCache();
 
         await Refresh();
         await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
@@ -77,6 +77,7 @@ public static class AppState
 
     public static async Task Reload()
     {
+        fsCache.Clear();
         ResetCache();
 
         await Refresh();
@@ -84,7 +85,6 @@ public static class AppState
 
     private static void ResetCache()
     {
-        fsCache.Clear();
         sortedEntriesCache.Clear();
         builtLabelsCache.Clear();
     }
