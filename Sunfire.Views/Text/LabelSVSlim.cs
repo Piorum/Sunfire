@@ -1,7 +1,8 @@
-using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
+using Sunfire.Tui.Enums;
 using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
+using Sunfire.Views.Enums;
 using System.Text;
 
 namespace Sunfire.Views.Text;

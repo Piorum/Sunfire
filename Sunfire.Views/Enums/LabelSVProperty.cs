@@ -1,4 +1,4 @@
-namespace Sunfire.Tui.Enums;
+namespace Sunfire.Views.Enums;
 
 [Flags]
 public enum LabelSVProperty : byte

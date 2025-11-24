@@ -2,6 +2,7 @@ using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
+using Sunfire.Views.Enums;
 using Sunfire.Views.Text;
 
 namespace Sunfire.Views;
