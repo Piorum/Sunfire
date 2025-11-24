@@ -229,7 +229,7 @@ public static class AppState
                 else
                 {
                     if(!IconRegistry.SpecialIcons.TryGetValue(entry.Name, out iconInfo) && !IconRegistry.Icons.TryGetValue(entry.Extension, out iconInfo))
-                        iconInfo = (IconRegistry.FileIcon, fileStyle);
+                        iconInfo = (IconRegistry.FallbackFileIcon, fileStyle);
                     
                     style = fileStyle;
                 }
