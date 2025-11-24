@@ -116,7 +116,7 @@ public class BorderSV : IRelativeSunfireView
         if (TitleLabel is not null && SizeX >= 4 && SizeY > 0)
         {
             borderBuffer[1, 0] = templateCell with { Data = TitleLeft };
-            borderBuffer[2 + Math.Min(TitleLabel.Text.Length, SizeX - 4), 0] = templateCell with { Data = TitleRight };
+            borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = templateCell with { Data = TitleRight };
         }
 
         //Subpane setup
@@ -127,13 +127,11 @@ public class BorderSV : IRelativeSunfireView
 
         if (TitleLabel is not null)
         {
-            TitleLabel.SizeX = Math.Min(TitleLabel.Text.Length, SizeX - 4);
+            TitleLabel.SizeX = Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4);
             TitleLabel.SizeY = Math.Min(1, SizeY);
             TitleLabel.OriginX = OriginX + 2;
             TitleLabel.OriginY = OriginY;
-            TitleLabel.TextColor = BorderColor;
             TitleLabel.Alignment = Direction.Right;
-            TitleLabel.LabelProperties = LabelSVProperty.Trimmed;
         }
 
         return Task.CompletedTask;

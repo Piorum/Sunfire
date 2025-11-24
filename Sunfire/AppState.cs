@@ -7,6 +7,7 @@ using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.Tui.Interfaces;
 using System.Collections.Concurrent;
+using Sunfire.Ansi.Models;
 
 namespace Sunfire;
 
@@ -152,7 +153,7 @@ public static class AppState
     private static async Task RefreshDirectoryHint()
     {
         SVRegistry.CurrentBorder.TitleLabel ??= new();
-        SVRegistry.CurrentBorder.TitleLabel.Text = currentPath;
+        SVRegistry.CurrentBorder.TitleLabel.Segments = [new() { Text = currentPath }];
 
         await SVRegistry.CurrentBorder.Invalidate();
     }
@@ -164,18 +165,18 @@ public static class AppState
         if(selectedEntry is not null)
         {
             SVRegistry.BottomLeftBorder.TitleLabel ??= new();
-            SVRegistry.BottomLeftBorder.TitleLabel.Text = selectedEntry.Value.Path;
+            SVRegistry.BottomLeftBorder.TitleLabel.Segments = [new() { Text = selectedEntry.Value.Path }];
             
             if(selectedEntry.Value.IsDirectory)
-                SVRegistry.BottomLeftLabel.Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}";
+                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}" }];
             else
-                SVRegistry.BottomLeftLabel.Text = $" File {selectedEntry.Value.Size}B";
+                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" File {selectedEntry.Value.Size}B" }];
 
         }
         else
         {
             SVRegistry.BottomLeftBorder.TitleLabel = null;
-            SVRegistry.BottomLeftLabel.Text = string.Empty;
+            SVRegistry.BottomLeftLabel.Segments = null;
         }
 
         await SVRegistry.BottomLeftBorder.Invalidate();
@@ -211,18 +212,46 @@ public static class AppState
         if(!builtLabelsCache.TryGetValue(path, out var labels))
         {
             labels = new List<LabelSVSlim>(entries.Count);
+
+            SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
+            SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
+
             foreach (var entry in entries)
             {
-                char Icon;
-                if(entry.IsDirectory)
-                    Icon = '';
-                else if(!MediaRegistry.SpecialIcons.TryGetValue(entry.Name, out Icon) && !MediaRegistry.Icons.TryGetValue(entry.Extension, out Icon))
-                        Icon = '';
+                (string icon, SStyle iconStyle) iconInfo;
+                SStyle style;
 
-                LabelSVSlim label = new() { Text = $"{Icon} {entry.Name}" };
-                
                 if(entry.IsDirectory)
-                    label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
+                {
+                    iconInfo = (IconRegistry.DirectoryIcon, directoryStyle);
+                    style = directoryStyle;
+                }
+                else
+                {
+                    if(!IconRegistry.SpecialIcons.TryGetValue(entry.Name, out iconInfo) && !IconRegistry.Icons.TryGetValue(entry.Extension, out iconInfo))
+                        iconInfo = (IconRegistry.FileIcon, fileStyle);
+                    
+                    style = fileStyle;
+                }
+
+                var segments = new LabelSVSlim.LabelSegment[2]
+                {
+                    new() 
+                    { 
+                        Text = iconInfo.icon,
+                        Style = iconInfo.iconStyle
+                    },
+                    new() 
+                    { 
+                        Text = entry.Name, 
+                        Style = style
+                    }
+                };
+
+                LabelSVSlim label = new() 
+                { 
+                    Segments = segments
+                };
                 
                 labels.Add(label);
             }

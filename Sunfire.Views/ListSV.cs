@@ -132,9 +132,9 @@ public class ListSV : IRelativeSunfireView
             VisibleLabels[i].OriginX = OriginX;
             VisibleLabels[i].OriginY = OriginY + i;
             VisibleLabels[i].SizeX = SizeX;
-            VisibleLabels[i].TextProperties &= ~SAnsiProperty.Highlight;
+            VisibleLabels[i].LabelProperties &= ~LabelSVProperty.Selected;
         }
-        Labels[SelectedIndex].TextProperties |= SAnsiProperty.Highlight;
+        Labels[SelectedIndex].LabelProperties |= LabelSVProperty.Selected;
 
         await Task.WhenAll(VisibleLabels.Select(v => v.Invalidate()));
         await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));

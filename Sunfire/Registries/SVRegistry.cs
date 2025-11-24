@@ -26,7 +26,6 @@ public static class SVRegistry
     private static LabelSV? bottomLeftLabel;
     private static BorderSV? bottomLeftBorder;
 
-
     [ModuleInitializer]
     public static void Init()
     {
@@ -44,9 +43,9 @@ public static class SVRegistry
             X = 1,
             Y = 1,
             FillStyleX = FillStyle.Static,
-            Text = $"{Environment.UserName}@{Environment.UserDomainName}"
+            Segments = [new() { Text = $"{Environment.UserName}@{Environment.UserDomainName}" }]
         };
-        bottomRightLabel.StaticX = bottomRightLabel.Text.Length;
+        bottomRightLabel.StaticX = bottomRightLabel.Segments.Sum(e => e.Text.Length);
         bottomRightBorder = new()
         {
             SubView = bottomRightLabel
