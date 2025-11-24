@@ -51,10 +51,14 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         {
             try
             {
+
                 runningTasks.Clear();
 
                 //Get first action and start batch timer
                 var firstAction = await renderQueue.Reader.ReadAsync(token);
+
+                await Logger.Debug(nameof(Tui), $"[Starting New Render Cycle]");
+                var renderStartTime = DateTime.Now;
 
                 try { runningTasks.Add(firstAction()); }
                 catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
@@ -89,12 +93,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                         _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
                 }
 
-                await Logger.Debug(nameof(Tui), $"[Starting Render]");
-                var startTime = DateTime.Now;
+                await Logger.Debug(nameof(Tui), $" - (Tasks:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
+
                 //Skip render if cancelled basically
                 if (runningTasks.Count > 0 && !token.IsCancellationRequested)
                     await OnRender(asb);
-                await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - startTime).TotalMicroseconds}us)");
+
+                await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
             }
             catch (OperationCanceledException) { } //Non-Issue just allow to stop
         }

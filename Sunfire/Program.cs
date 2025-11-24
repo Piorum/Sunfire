@@ -6,6 +6,7 @@ using Sunfire.Input.Models;
 using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
+using Sunfire.Input.Builders;
 
 namespace Sunfire;
 
@@ -90,71 +91,69 @@ internal class Program
     {
         InputHandler.Context.Add(InputContext.Global);
 
-        //Exit
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => { await Stop(); })
-            .RegisterBind();
+        List<KeybindBuilder<InputContext>> binds = [
+            //Exit
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => { await Stop(); }),
 
-        //Try Redraw
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.R, Sunfire.Input.Enums.Modifier.Ctrl | Sunfire.Input.Enums.Modifier.Alt))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => { await Renderer.EnqueueAction(Renderer.RootView.Invalidate); })
-            .RegisterBind();
+            //Try Reload
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.R, Sunfire.Input.Enums.Modifier.Ctrl | Sunfire.Input.Enums.Modifier.Alt))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => 
+                { 
+                    await AppState.Reload();
+                    await Renderer.EnqueueAction(Renderer.RootView.Invalidate); 
+                }),
 
-        //Nav
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.W))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavUp())
-            .RegisterBind();
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.S))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavDown())
-            .RegisterBind();
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.A))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavOut())
-            .RegisterBind();
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.D))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavIn())
-            .RegisterBind();
+            //Nav
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.W))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavUp()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.S))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavDown()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.A))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavOut()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.D))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavIn()),
 
-        //Nav Ext
-        //Jump Top
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.G))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavList(-SVRegistry.CurrentList.SelectedIndex))
-            .RegisterBind();
-        //Jump Bottom
-        await InputHandler.CreateBinding()
-            .AsIndifferent()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.G, Sunfire.Input.Enums.Modifier.Shift))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex))
-            .RegisterBind();
-        
-        //Toggles
-        await InputHandler.CreateBinding()
-            .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
-            .WithSequence(Key.KeyboardBind(ConsoleKey.H))
-            .WithContext([InputContext.Global])
-            .WithBind(async (inputData) => await AppState.ToggleHidden())
-            .RegisterBind();
+            //Nav Ext
+            //Jump Top
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.G))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavList(-SVRegistry.CurrentList.SelectedIndex)),
+            //Jump Bottom
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.G, Sunfire.Input.Enums.Modifier.Shift))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex)),
+            
+            //Toggles
+            InputHandler.CreateBinding()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
+                .WithSequence(Key.KeyboardBind(ConsoleKey.H))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.ToggleHidden())
+        ];
+        await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 
         await InputHandler.Init(_cts.Token);
     }

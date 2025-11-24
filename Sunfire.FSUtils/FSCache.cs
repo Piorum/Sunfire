@@ -48,4 +48,9 @@ public class FSCache
     {
         _cache.Remove(path, out var _);
     }
+
+    public void Clear()
+    {
+        _cache.Clear();
+    }
 }

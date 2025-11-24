@@ -6,6 +6,7 @@ using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.Tui.Interfaces;
+using System.Collections.Concurrent;
 
 namespace Sunfire;
 
@@ -13,9 +14,10 @@ public static class AppState
 {
     private static readonly FSCache fsCache = new();
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
+    private static readonly ConcurrentDictionary<string, List<FSEntry>> sortedEntriesCache = [];
+    private static readonly ConcurrentDictionary<string, List<LabelSVSlim>> builtLabelsCache = [];
 
     private static string currentPath = "";
-
     private static bool showHidden = false;
 
     private static CancellationTokenSource? previewGenCts;
@@ -32,6 +34,8 @@ public static class AppState
     public static async Task ToggleHidden()
     {
         showHidden = !showHidden;
+        sortedEntriesCache.Clear();
+
         await Refresh();
         await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
     }
@@ -71,6 +75,20 @@ public static class AppState
         selectedEntryCache[basePath] = await GetSelectedEntry();
     }
 
+    public static async Task Reload()
+    {
+        ResetCache();
+
+        await Refresh();
+    }
+
+    private static void ResetCache()
+    {
+        fsCache.Clear();
+        sortedEntriesCache.Clear();
+        builtLabelsCache.Clear();
+    }
+
     private static async Task<FSEntry?> GetSelectedEntry() => SVRegistry.CurrentList.MaxIndex >= 0 
         ? (await GetEntries(currentPath))[SVRegistry.CurrentList.SelectedIndex] 
         : null;
@@ -80,7 +98,6 @@ public static class AppState
 
     private static async Task Refresh(string path)
     {
-
         currentPath = path;
 
         TaskCompletionSource tcs = new();
@@ -92,12 +109,6 @@ public static class AppState
             tcs.TrySetResult();
         });
         await tcs.Task;
-
-        try
-        {
-            previewGenCts?.Cancel();
-        }
-        catch { }
 
         var previewToken = SecurePreviewGenToken();
 
@@ -189,25 +200,53 @@ public static class AppState
 
     private static async Task<(List<LabelSVSlim> newLabels, int previousSelectedIndex)> GetLabelsAndIndex(string path, CancellationToken token = default)
     {
+        var entriesStartTime = DateTime.Now;
+
         var entries = await GetEntries(path, token);
 
-        var newLabels = new List<LabelSVSlim>(entries.Count);
-        foreach (var entry in entries)
+        await Logger.Debug(nameof(Sunfire), $"Get {path} Entries {(DateTime.Now - entriesStartTime).TotalMicroseconds}us");
+
+        var labelsStartTime = DateTime.Now;
+
+        if(!builtLabelsCache.TryGetValue(path, out var labels))
         {
-            LabelSVSlim label = new() { Text = $"{(entry.IsDirectory ? "D" : "F")} {entry.Name}" };
-            if(entry.IsDirectory)
-                label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
-            
-            newLabels.Add(label);
+            labels = new List<LabelSVSlim>(entries.Count);
+            foreach (var entry in entries)
+            {
+                char Icon;
+                if(entry.IsDirectory)
+                    Icon = '';
+                else if(!MediaRegistry.SpecialIcons.TryGetValue(entry.Name, out Icon) && !MediaRegistry.Icons.TryGetValue(entry.Extension, out Icon))
+                        Icon = '';
+
+                LabelSVSlim label = new() { Text = $"{Icon} {entry.Name}" };
+                
+                if(entry.IsDirectory)
+                    label.TextProperties |= Ansi.Models.SAnsiProperty.Bold;
+                
+                labels.Add(label);
+            }
+
+            builtLabelsCache.TryAdd(path, labels);
         }
+
+        await Logger.Debug(nameof(Sunfire), $"Build {path} Labels {(DateTime.Now - labelsStartTime).TotalMicroseconds}us");
 
         var previousSelectedIndex = GetPreviousIndex(entries, path);
 
-        return (newLabels, previousSelectedIndex);
+        return (labels, previousSelectedIndex);
     }
 
-    private static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token = default) =>
-        [.. OrderAndFilterEntries(await fsCache.GetEntries(path, token))];
+    private static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token = default)
+    {
+        if(sortedEntriesCache.TryGetValue(path, out var cachedEntries))
+            return cachedEntries;
+        
+        List<FSEntry> newEntries = [.. OrderAndFilterEntries(await fsCache.GetEntries(path, token))];
+        sortedEntriesCache.TryAdd(path, newEntries);
+
+        return newEntries;
+    }
 
     private static IOrderedEnumerable<FSEntry> OrderAndFilterEntries(IEnumerable<FSEntry> entries)
     {
