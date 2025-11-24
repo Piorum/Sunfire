@@ -130,6 +130,11 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.D))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.NavIn()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Enter))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.HandleFile()),
 
             //Nav Ext
             //Jump Top
