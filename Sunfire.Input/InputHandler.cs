@@ -17,10 +17,17 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
     private readonly IInputTranslator inputTranslator = InputTranslatorFactory.Create();
     private readonly Channel<TerminalInput> inputChannel = Channel.CreateUnbounded<TerminalInput>();
 
+    private readonly Channel<string> sequenceTextChannel = Channel.CreateUnbounded<string>();
+    public ChannelReader<string> SequenceTextReader => sequenceTextChannel.Reader;
+    
+    private Channel<char>? inputTextChannel;
+
     private TrieNode<TContextEnum> currentNode;
     private readonly List<Key> currentSequence = [];
 
     private readonly System.Timers.Timer sequenceTimeoutTimer;
+
+    private bool inputMode = false;
 
     public InputHandler(int sequenceTimeoutMs = 1000)
     {
@@ -49,6 +56,14 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         var handleTask = Task.Run(() => Handle(token), CancellationToken.None);
 
         await Task.WhenAll(pollTask, handleTask);
+    }
+
+    public Task<ChannelReader<char>> ToggleInputMode()
+    {
+        inputTextChannel = Channel.CreateUnbounded<char>();
+
+        inputMode = !inputMode;
+        return Task.FromResult(inputTextChannel.Reader);
     }
 
     public Task<string?> SequenceText()
@@ -92,70 +107,83 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         try
         {
             await foreach (var evt in inputChannel.Reader.ReadAllAsync(token))
-            {
-                var indifferentBindsTask = Task.Run(async () =>
-                {
-                    await ExecuteBindings(
-                        indifferentBinds,
-                        ctx => (evt.Key, ctx),
-                        evt.InputData
-                    );
-                }, CancellationToken.None);
-
-                var sequenceBindsTask = Task.Run(async () =>
-                {
-                    //Reset timeout
-                    await ResetTimer();
-
-                    currentNode.Children.TryGetValue(evt.Key, out var node);
-
-                    //Not valid keybind sequence
-                    if (node is null)
-                    {
-                        await ResetSequence();
-                        return;
-                    }
-
-                    currentNode = node;
-                    currentSequence.Add(evt.Key);
-
-                    //No binds at this node
-                    if (!node.IsTerminal)
-                        return;
-
-                    var executedBinds = await ExecuteBindings(
-                        node.Bindings,
-                        ctx => ctx,
-                        evt.InputData
-                    );
-
-                    if(executedBinds)
-                        await ResetSequence();
-                }, CancellationToken.None);
-                
-                await Logger.Debug(nameof(Input), $"[Bind Received]");
-                
-                await Logger.Debug(nameof(Input), evt.Key.InputType switch
-                {
-                    Enums.InputType.Mouse => $" - (Key: {evt.Key.MouseKey}, Modifiers: {evt.Key.Modifiers})",
-                    Enums.InputType.Keyboard => $" - (Key: {evt.Key.KeyboardKey}, Modifiers: {evt.Key.Modifiers})",
-                    _ => " - None"
-                });
-                await Logger.Debug(nameof(Input), evt.Key.InputType switch
-                {
-                    Enums.InputType.Mouse => (evt.InputData.ScrollDelta is null) switch
-                        {
-                            true => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y})",
-                            false => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y}, ScrollDelta: {evt.InputData.ScrollDelta})"
-                        },
-                    Enums.InputType.Keyboard => $" - (UTFChar: {evt.InputData.UTFChar})",
-                    _ => " - None"
-                });
-
-                await Task.WhenAll(indifferentBindsTask, sequenceBindsTask);
-            }
+                if(!inputMode)
+                    await HandleBind(evt);
+                else
+                    await HandleInput(evt);
         }
         catch (OperationCanceledException) { }
+    }
+
+    private async Task HandleBind(TerminalInput evt)
+    {
+        var indifferentBindsTask = Task.Run(async () =>
+        {
+            await ExecuteBindings(
+                indifferentBinds,
+                ctx => (evt.Key, ctx),
+                evt.InputData
+            );
+        }, CancellationToken.None);
+
+        var sequenceBindsTask = Task.Run(async () =>
+        {
+            //Reset timeout
+            await ResetTimer();
+
+            currentNode.Children.TryGetValue(evt.Key, out var node);
+
+            //Not valid keybind sequence
+            if (node is null)
+            {
+                await sequenceTextChannel.Writer.WriteAsync(string.Empty);
+                await ResetSequence();
+                return;
+            }
+
+            currentNode = node;
+            currentSequence.Add(evt.Key);
+
+            await sequenceTextChannel.Writer.WriteAsync(await SequenceText() ?? string.Empty);
+
+            //No binds at this node
+            if (!node.IsTerminal)
+                return;
+
+            var executedBinds = await ExecuteBindings(
+                node.Bindings,
+                ctx => ctx,
+                evt.InputData
+            );
+
+            if(executedBinds)
+            {
+                await sequenceTextChannel.Writer.WriteAsync(string.Empty);
+                await ResetSequence();
+            }
+
+        }, CancellationToken.None);
+        
+        await Logger.Debug(nameof(Input), $"[Bind Received]");
+        
+        await Logger.Debug(nameof(Input), evt.Key.InputType switch
+        {
+            Enums.InputType.Mouse => $" - (Key: {evt.Key.MouseKey}, Modifiers: {evt.Key.Modifiers})",
+            Enums.InputType.Keyboard => $" - (Key: {evt.Key.KeyboardKey}, Modifiers: {evt.Key.Modifiers})",
+            _ => " - None"
+        });
+        await Logger.Debug(nameof(Input), evt.Key.InputType switch
+        {
+            Enums.InputType.Mouse => (evt.InputData.ScrollDelta is null) switch
+                {
+                    true => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y})",
+                    false => $" - (X: {evt.InputData.X}, Y: {evt.InputData.Y}, ScrollDelta: {evt.InputData.ScrollDelta})"
+                },
+            Enums.InputType.Keyboard => $" - (UTFChar: {evt.InputData.UTFChar})",
+            _ => " - None"
+        });
+
+        await Task.WhenAll(indifferentBindsTask, sequenceBindsTask);
     }
 
     private Task<bool> ExecuteBindings<TKey>(Dictionary<TKey, Bind?> dictionary, Func<TContextEnum, TKey> keySelector, InputData inputData) where TKey : notnull
@@ -198,5 +226,17 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         sequenceTimeoutTimer.Stop();
         sequenceTimeoutTimer.Start();
         return Task.CompletedTask;
+    }
+
+    private async Task HandleInput(TerminalInput evt)
+    {
+        if(inputTextChannel is null)
+            return;
+
+        if(evt.Key.InputType == Enums.InputType.Keyboard)
+            if(evt.Key.KeyboardKey == ConsoleKey.Enter)
+                inputTextChannel.Writer.Complete();
+            else
+                await inputTextChannel.Writer.WriteAsync(evt.InputData.UTFChar!.Value);
     }
 }
