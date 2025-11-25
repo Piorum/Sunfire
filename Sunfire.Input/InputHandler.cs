@@ -20,7 +20,7 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
     private readonly Channel<string> sequenceTextChannel = Channel.CreateUnbounded<string>();
     public ChannelReader<string> SequenceTextReader => sequenceTextChannel.Reader;
     
-    private Channel<char>? inputTextChannel;
+    private Channel<TerminalInput>? inputTextChannel;
 
     private TrieNode<TContextEnum> currentNode;
     private readonly List<Key> currentSequence = [];
@@ -58,12 +58,20 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         await Task.WhenAll(pollTask, handleTask);
     }
 
-    public Task<ChannelReader<char>> ToggleInputMode()
+    public Task<ChannelReader<TerminalInput>> EnableInputMode()
     {
-        inputTextChannel = Channel.CreateUnbounded<char>();
-
-        inputMode = !inputMode;
+        inputTextChannel = Channel.CreateUnbounded<TerminalInput>();
+        inputMode = true;
+        
         return Task.FromResult(inputTextChannel.Reader);
+    }
+
+    public Task DisableInputMode()
+    {
+        inputMode = false;
+        inputTextChannel = null;
+
+        return Task.CompletedTask;
     }
 
     public Task<string?> SequenceText()
@@ -234,9 +242,6 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
             return;
 
         if(evt.Key.InputType == Enums.InputType.Keyboard)
-            if(evt.Key.KeyboardKey == ConsoleKey.Enter)
-                inputTextChannel.Writer.Complete();
-            else
-                await inputTextChannel.Writer.WriteAsync(evt.InputData.UTFChar!.Value);
+            await inputTextChannel.Writer.WriteAsync(evt);
     }
 }

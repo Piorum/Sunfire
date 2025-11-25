@@ -8,6 +8,7 @@ using Sunfire.Logging;
 using Sunfire.Tui.Interfaces;
 using System.Collections.Concurrent;
 using Sunfire.Ansi.Models;
+using System.Text;
 
 namespace Sunfire;
 
@@ -391,6 +392,121 @@ public static class AppState
             await NavDown();
         else
             await Program.Renderer.EnqueueAction(SVRegistry.CurrentList.Invalidate);
+    }
+
+    public static async Task Search()
+    {
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" /", Style = new() }];
+            return Task.CompletedTask;
+        });
+        
+        var currentEntries = await GetEntries(currentPath);
+        var initialIndex = SVRegistry.CurrentList.SelectedIndex;
+
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            //Ignore mouse input for search
+            if(input.Key.InputType != Input.Enums.InputType.Keyboard)
+                continue;
+
+            //Restore orignal selection
+            if (input.Key.KeyboardKey == ConsoleKey.Escape)
+            {
+                var initialIndexOffset = SVRegistry.CurrentList.SelectedIndex - initialIndex;
+                if(initialIndexOffset != 0)
+                    await NavList(-initialIndexOffset);
+
+                break;
+            }
+            //Stop getting input and leave new selection
+            else if (input.Key.KeyboardKey == ConsoleKey.Enter || input.Key.KeyboardKey == ConsoleKey.Tab)
+                break;
+
+            //Handle normal input
+            if(input.Key.KeyboardKey == ConsoleKey.Backspace)
+            {
+                if(sb.Length > 0)
+                    sb.Remove(sb.Length - 1, 1);
+            }
+            else if(input.InputData.UTFChar != default)
+            {
+                sb.Append(input.InputData.UTFChar);
+            }
+            
+            string search = sb.ToString();
+            bool isSearchEmpty = search.Length == 0;
+
+            var bestMatch = GetBestMatch(currentEntries, search);
+            bool matchFound = bestMatch is not null;
+
+            if(matchFound)
+            {
+                var newSelectedIndex = currentEntries.IndexOf(bestMatch!.Value);
+                int offset = SVRegistry.CurrentList.SelectedIndex - newSelectedIndex;
+
+                if(offset != 0)
+                {
+                    await NavList(-offset);
+                    await Logger.Debug(nameof(Sunfire), $"Searched \"{search}\" with result \"{bestMatch.Value.Name}\"");
+                }
+            }
+
+            SColor? searchTextColor = (!matchFound && !isSearchEmpty) ? ColorRegistry.Red : null;
+
+            await Program.Renderer.EnqueueAction(() =>
+            {
+                label.Segments = [new() { Text = $" /{sb}", Style = new(ForegroundColor: searchTextColor ) }]; 
+                return Task.CompletedTask;
+            });
+        }
+
+        await Program.InputHandler.DisableInputMode();
+        await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+    }
+
+    private static FSEntry? GetBestMatch(List<FSEntry> entries, string search)
+    {
+        if(string.IsNullOrEmpty(search)) return null;
+
+        return entries
+            .Select(entry => new { Entry = entry, Score = ScoreMatch(entry.Name, search)})
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Entry.Name.Length)
+            .Select(x => (FSEntry?)x.Entry)
+            .FirstOrDefault();
+    }
+
+    private static int ScoreMatch(string text, string search)
+    {
+        if (text.Equals(search, StringComparison.OrdinalIgnoreCase)) return 4; //Exact
+        if (text.StartsWith(search, StringComparison.OrdinalIgnoreCase)) return 3; //Starts With
+        if (text.Contains(search, StringComparison.OrdinalIgnoreCase)) return 2; //Contains
+        if (IsFuzzyMatch(text, search)) return 1; //Fuzzy
+        
+        return 0; //No Match
+    }
+
+    private static bool IsFuzzyMatch(string text, string search)
+    {
+        int searchIndex = 0;
+        int searchLength = search.Length;
+
+        foreach(char c in text)
+            if (char.ToUpperInvariant(c) == char.ToUpperInvariant(search[searchIndex]))
+            {
+                searchIndex++;
+                if(searchIndex == searchLength) return true;
+            }
+
+        return false;
     }
 
     public static async Task HandleFile()
