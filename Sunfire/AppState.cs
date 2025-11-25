@@ -403,7 +403,7 @@ public static class AppState
 
         await Program.Renderer.EnqueueAction(() =>
         {
-            label.Segments = [new() { Text = $" /", Style = new() }];
+            label.Segments = [new() { Text = $" /_", Style = new() }];
             return Task.CompletedTask;
         });
         
@@ -462,7 +462,7 @@ public static class AppState
 
             await Program.Renderer.EnqueueAction(() =>
             {
-                label.Segments = [new() { Text = $" /{sb}", Style = new(ForegroundColor: searchTextColor ) }]; 
+                label.Segments = [new() { Text = $" /{sb}", Style = new( ForegroundColor: searchTextColor ) }, new() { Text = " ", Style = new( ForegroundColor: searchTextColor, Properties: SAnsiProperty.Underline )}]; 
                 return Task.CompletedTask;
             });
         }
@@ -479,7 +479,7 @@ public static class AppState
             .Select(entry => new { Entry = entry, Score = ScoreMatch(entry.Name, search)})
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.Entry.Name.Length)
+            .ThenBy(x => x.Entry.Name.Length) //Prefer shorter
             .Select(x => (FSEntry?)x.Entry)
             .FirstOrDefault();
     }
