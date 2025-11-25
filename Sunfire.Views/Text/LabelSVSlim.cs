@@ -139,6 +139,10 @@ public class LabelSVSlim : ISunfireView
             for(int x = maxX; x < SizeX; x++)
                 context[x, y] = paddingCell;
         }
+
+        if(LabelProperties.HasFlag(LabelSVProperty.Tagged))
+            context[0, 0] = context[0, 0] with { Data = '*' };
+
         return Task.CompletedTask;
     }
 

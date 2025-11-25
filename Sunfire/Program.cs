@@ -155,7 +155,14 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
                 .WithSequence(Key.KeyboardBind(ConsoleKey.H))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.ToggleHidden())
+                .WithBind(async (inputData) => await AppState.ToggleHidden()),
+
+            //Editing Binds
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Spacebar))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.ToggleTagOnSelectedEntry()),
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 

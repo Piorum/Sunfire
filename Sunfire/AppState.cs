@@ -21,6 +21,8 @@ public static class AppState
     private static string currentPath = "";
     private static bool showHidden = false;
 
+    private static readonly List<(FSEntry entry, LabelSVSlim label)> taggedEntries = [];
+
     private static CancellationTokenSource? previewGenCts;
 
     private static CancellationToken SecurePreviewGenToken()
@@ -93,6 +95,9 @@ public static class AppState
     private static async Task<FSEntry?> GetSelectedEntry() => SVRegistry.CurrentList.MaxIndex >= 0 
         ? (await GetEntries(currentPath))[SVRegistry.CurrentList.SelectedIndex] 
         : null;
+
+    private static LabelSVSlim? GetSelectedLabel() => 
+        SVRegistry.CurrentList.GetSelected();
 
     private static async Task Refresh() => 
         await Refresh(currentPath);
@@ -216,6 +221,10 @@ public static class AppState
             SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
             SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
 
+            HashSet<string>? taggedPaths = taggedEntries.Count > 0 
+                ? [.. taggedEntries.Select(e => e.entry.Path)]
+                : null;
+              
             foreach (var entry in entries)
             {
                 (string icon, SStyle iconStyle) iconInfo;
@@ -236,22 +245,18 @@ public static class AppState
 
                 var segments = new LabelSVSlim.LabelSegment[2]
                 {
-                    new() 
-                    { 
-                        Text = iconInfo.icon,
-                        Style = iconInfo.iconStyle
-                    },
-                    new() 
-                    { 
-                        Text = entry.Name, 
-                        Style = style
-                    }
+                    new() { Text = iconInfo.icon, Style = iconInfo.iconStyle },
+                    new() { Text = entry.Name, Style = style }
                 };
 
-                LabelSVSlim label = new() 
-                { 
-                    Segments = segments
-                };
+                LabelSVSlim label = new() { Segments = segments };
+
+                if(taggedPaths is not null && taggedPaths.Contains(entry.Path))
+                {
+                    label.LabelProperties |= Views.Enums.LabelSVProperty.Tagged;
+                    taggedEntries.RemoveAll(e => e.entry.Path == entry.Path);
+                    taggedEntries.Add((entry, label));
+                }
                 
                 labels.Add(label);
             }
@@ -367,6 +372,25 @@ public static class AppState
                 });
         }
         catch (OperationCanceledException) { }
+    }
+
+    public static async Task ToggleTagOnSelectedEntry()
+    {
+        var currentEntry = await GetSelectedEntry();
+        var currentLabel = GetSelectedLabel();
+
+        if(currentEntry is null || currentLabel is null)
+            return;
+
+        currentLabel.LabelProperties ^= Views.Enums.LabelSVProperty.Tagged;
+        taggedEntries.Add((currentEntry.Value, currentLabel));
+
+        await Logger.Debug(nameof(Sunfire), $"Tagged {currentEntry.Value.Path}");
+
+        if(SVRegistry.CurrentList.MaxIndex != SVRegistry.CurrentList.SelectedIndex)
+            await NavDown();
+        else
+            await Program.Renderer.EnqueueAction(SVRegistry.CurrentList.Invalidate);
     }
 
     public static async Task HandleFile()
