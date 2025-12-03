@@ -163,13 +163,21 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Spacebar))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.ToggleTagOnSelectedEntry()),
-
-            //Editing Binds
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.C))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.ClearTags()),
             InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Divide))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.Search()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.OemPeriod))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.Command()),
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 

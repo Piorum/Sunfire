@@ -394,6 +394,13 @@ public static class AppState
             await Program.Renderer.EnqueueAction(SVRegistry.CurrentList.Invalidate);
     }
 
+    public static async Task ClearTags()
+    {
+        taggedEntries.Clear();
+
+        await Reload();
+    }
+
     public static async Task Search()
     {
         var channelReader = await Program.InputHandler.EnableInputMode();
@@ -403,7 +410,7 @@ public static class AppState
 
         await Program.Renderer.EnqueueAction(() =>
         {
-            label.Segments = [new() { Text = $" /_", Style = new() }];
+            label.Segments = [new() { Text = $" /", Style = new() }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline ) }];
             return Task.CompletedTask;
         });
         
@@ -508,6 +515,242 @@ public static class AppState
 
         return false;
     }
+
+
+    public static async Task Command()
+    {
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" .", Style = new() }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline ) }];
+            return Task.CompletedTask;
+        });
+
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            //Ignore mouse input for search
+            if(input.Key.InputType != Input.Enums.InputType.Keyboard)
+                continue;
+
+            //Restore orignal selection
+            if (input.Key.KeyboardKey == ConsoleKey.Escape)
+            {
+                await Program.InputHandler.DisableInputMode();
+                await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+                return;
+            }
+
+            //Stop getting input and leave new selection
+            else if (input.Key.KeyboardKey == ConsoleKey.Enter || input.Key.KeyboardKey == ConsoleKey.Tab)
+                break;
+
+            //Handle normal input
+            if(input.Key.KeyboardKey == ConsoleKey.Backspace)
+            {
+                if(sb.Length > 0)
+                    sb.Remove(sb.Length - 1, 1);
+            }
+            else if(input.InputData.UTFChar != default)
+            {
+                sb.Append(input.InputData.UTFChar);
+            }
+
+            await Program.Renderer.EnqueueAction(() =>
+            {
+                label.Segments = [new() { Text = $" .{sb}", Style = new( ForegroundColor: ColorRegistry.FileColor ) }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline )}]; 
+                return Task.CompletedTask;
+            });
+        }
+
+        var task = sb.ToString().ToLower() switch
+        {
+            "copy" => Copy(),
+            "cut" => Cut(),
+            "delete" => Delete(),
+            _ => Task.CompletedTask
+        };
+
+        await task;
+
+        await Program.InputHandler.DisableInputMode();
+        await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+    }
+
+    public static async Task Copy()
+    {
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" Copy {taggedEntries.Count} Entries? (Y/N)", Style = new() }];
+            return Task.CompletedTask;
+        });
+    
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            if (input.Key.KeyboardKey == ConsoleKey.Y)
+            {
+                var source = GetTaggedPaths();
+                var dest = currentPath;
+
+                if(!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(dest) && Directory.Exists(dest))
+                {
+                    await Logger.Info(nameof(Sunfire), $"Copying {source} to {dest}");
+
+                    Process.Start(
+                        new ProcessStartInfo()
+                        {
+                            FileName = "cp",
+                            Arguments = $"-n -r {source} \"{dest}\"",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                        }
+                    );
+                }
+                else
+                    await Logger.Info(nameof(Sunfire), $"Bad copy tried \"{source} to {dest}\"");
+
+                await Program.InputHandler.DisableInputMode();
+                await Reload();
+                
+                break;
+            }
+            else
+            {
+                await Program.InputHandler.DisableInputMode();
+                await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+                
+                break;
+            }
+        }
+
+        await Program.InputHandler.DisableInputMode();
+        await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+    }
+
+    public static async Task Cut()
+    {
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" Cut {taggedEntries.Count} Entries? (Y/N)", Style = new() }];
+            return Task.CompletedTask;
+        });
+    
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            if (input.Key.KeyboardKey == ConsoleKey.Y)
+            {
+                var source = GetTaggedPaths();
+                var dest = currentPath;
+
+                if(!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(dest) && Directory.Exists(dest))
+                {
+                    await Logger.Info(nameof(Sunfire), $"Cutting {source} to {dest}");
+
+                    Process.Start(
+                        new ProcessStartInfo()
+                        {
+                            FileName = "mv",
+                            Arguments = $"-n {source} \"{dest}\"",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                        }
+                    );
+                }
+                else
+                    await Logger.Info(nameof(Sunfire), $"Bad cut tried \"{source} to {dest}\"");
+
+                await Program.InputHandler.DisableInputMode();
+                await Reload();
+                
+                break;
+            }
+            else
+            {
+                await Program.InputHandler.DisableInputMode();
+                await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+                
+                break;
+            }
+        }
+
+        await Program.InputHandler.DisableInputMode();
+        await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+    }
+
+    public static async Task Delete()
+    {
+        string source;
+
+        if(taggedEntries.Count > 0)
+            source = GetTaggedPaths();
+        else
+            source = $"\"{(await GetSelectedEntry()).Value.Path}\"";
+
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" Remove {(taggedEntries.Count > 0 ? $"{taggedEntries.Count} Files" : source)}? (Y/N)", Style = new() }];
+            return Task.CompletedTask;
+        });
+
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            if (input.Key.KeyboardKey == ConsoleKey.Y)
+            {
+                await Logger.Info(nameof(Sunfire), $"Removing {source}");
+
+                Process.Start(
+                    new ProcessStartInfo()
+                    {
+                        FileName = "rm",
+                        Arguments = $"-r {source}",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    }
+                );
+
+                await Program.InputHandler.DisableInputMode();
+                await ClearTags();
+                await Reload();
+
+                break;
+            }
+            else
+            {
+                await Program.InputHandler.DisableInputMode();
+                await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+
+                break;
+            }
+        }
+    }
+
+    public static string GetTaggedPaths() =>
+        string.Join(' ', taggedEntries.Where(e => File.Exists(e.entry.Path) || Directory.Exists(e.entry.Path)).Select(e => $"\"{e.entry.Path}\""));
+
 
     public static async Task HandleFile()
     {
