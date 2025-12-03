@@ -178,6 +178,13 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.OemPeriod))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.Command()),
+
+            //Bash
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.OemComma))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.Bash()),
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 

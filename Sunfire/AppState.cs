@@ -526,7 +526,7 @@ public static class AppState
 
         await Program.Renderer.EnqueueAction(() =>
         {
-            label.Segments = [new() { Text = $" .", Style = new() }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline ) }];
+            label.Segments = [new() { Text = $" :", Style = new() }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline ) }];
             return Task.CompletedTask;
         });
 
@@ -561,7 +561,7 @@ public static class AppState
 
             await Program.Renderer.EnqueueAction(() =>
             {
-                label.Segments = [new() { Text = $" .{sb}", Style = new( ForegroundColor: ColorRegistry.FileColor ) }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline )}]; 
+                label.Segments = [new() { Text = $" :{sb}", Style = new( ForegroundColor: ColorRegistry.FileColor ) }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline )}]; 
                 return Task.CompletedTask;
             });
         }
@@ -751,6 +751,71 @@ public static class AppState
     public static string GetTaggedPaths() =>
         string.Join(' ', taggedEntries.Where(e => File.Exists(e.entry.Path) || Directory.Exists(e.entry.Path)).Select(e => $"\"{e.entry.Path}\""));
 
+    public static async Task Bash()
+    {
+        var channelReader = await Program.InputHandler.EnableInputMode();
+
+        StringBuilder sb = new();
+        LabelSVSlim label = SVRegistry.BottomLeftLabel;
+
+        await Program.Renderer.EnqueueAction(() =>
+        {
+            label.Segments = [new() { Text = $" $", Style = new() }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline ) }];
+            return Task.CompletedTask;
+        });
+
+        await foreach(var input in channelReader.ReadAllAsync())
+        {
+            //Ignore mouse input for search
+            if(input.Key.InputType != Input.Enums.InputType.Keyboard)
+                continue;
+
+            //Restore orignal selection
+            if (input.Key.KeyboardKey == ConsoleKey.Escape)
+            {
+                await Program.InputHandler.DisableInputMode();
+                await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
+                return;
+            }
+
+            //Stop getting input and leave new selection
+            else if (input.Key.KeyboardKey == ConsoleKey.Enter)
+                break;
+
+            //Handle normal input
+            if(input.Key.KeyboardKey == ConsoleKey.Backspace)
+            {
+                if(sb.Length > 0)
+                    sb.Remove(sb.Length - 1, 1);
+            }
+            else if(input.InputData.UTFChar != default)
+            {
+                sb.Append(input.InputData.UTFChar);
+            }
+
+            await Program.Renderer.EnqueueAction(() =>
+            {
+                label.Segments = [new() { Text = $" ${sb}", Style = new( ForegroundColor: ColorRegistry.FileColor ) }, new() { Text = " ", Style = new( ForegroundColor: ColorRegistry.FileColor, Properties: SAnsiProperty.Underline )}]; 
+                return Task.CompletedTask;
+            });
+        }
+
+        Process.Start(
+            new ProcessStartInfo()
+            {
+                FileName = "bash",
+                Arguments = $"-c \"{sb}\"",
+                WorkingDirectory = currentPath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            }
+        );
+
+        await Program.InputHandler.DisableInputMode();
+        await Reload();
+    }
 
     public static async Task HandleFile()
     {
