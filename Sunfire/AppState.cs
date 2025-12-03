@@ -710,7 +710,7 @@ public static class AppState
 
         await Program.Renderer.EnqueueAction(() =>
         {
-            label.Segments = [new() { Text = $" Remove {(taggedEntries.Count > 0 ? $"{taggedEntries.Count} Files" : source)}? (Y/N)", Style = new() }];
+            label.Segments = [new() { Text = $" Remove {(taggedEntries.Count > 0 ? $"{taggedEntries.Count} Entries" : source)}? (Y/N)", Style = new() }];
             return Task.CompletedTask;
         });
 
@@ -800,11 +800,15 @@ public static class AppState
             });
         }
 
+        string command = sb.ToString();
+
+        await Logger.Info(nameof(Sunfire), $"Executing bash \"{command}\"");
+
         Process.Start(
             new ProcessStartInfo()
             {
                 FileName = "bash",
-                Arguments = $"-c \"{sb}\"",
+                Arguments = $"-c \"{command}\"",
                 WorkingDirectory = currentPath,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
