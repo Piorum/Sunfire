@@ -1,132 +1,196 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 
 namespace Sunfire.FSUtils;
 
 public unsafe class MediaTypeScanner<TResult>
 {
-    private const int MaxSignatures = 512;
-    private const int MaxOffset = 256;
-    private const int TableSize = MaxOffset * 256;
+    private const int MaxFastSignatures = 512;
+    private const int MaxFastOffset = 256;
+    private const int LutSize = MaxFastOffset * 256;
 
-    //Primary LUT [Offset << 8 | ByteValue] -> Mask of valid signatures.
-    private readonly Vector512<byte>[] _lookupTable;
+    private readonly Vector512<byte>[] primaryLut = new Vector512<byte>[LutSize];
+    private readonly Vector512<byte>[] wildcardLut = new Vector512<byte>[MaxFastOffset];
+    private readonly Vector512<byte>[] endMasks = new Vector512<byte>[MaxFastOffset];
 
-    //Used to detect if a signature is fully matched.
-    private readonly Vector512<byte>[] _endMasks;
+    private readonly int[] fastSignatureLengths = new int[MaxFastSignatures];
 
-    //Maps signature ID to consumer result object.
-    private readonly TResult[] _results;
+    private readonly (TResult defaultResult, Dictionary<string, TResult>? extensionHints)[] fastResultMaps = new(TResult defaultResult, Dictionary<string, TResult>? extensionHints)[MaxFastSignatures];
 
-    private int _nextBitId = 0;
+    private int nextFastBitId = 0;
 
     public MediaTypeScanner()
     {
         if (!Vector512.IsHardwareAccelerated)
-        {
-            _ = Logger.Warn(nameof(FSUtils), "AVX-512/Vector512 hardware acceleration is not active.");
-        }
-
-        _lookupTable = new Vector512<byte>[TableSize];
-        _endMasks = new Vector512<byte>[MaxOffset];
-        _results = new TResult[MaxSignatures];
+            _ = Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow.");
     }
 
-    public void AddSignature(ReadOnlySpan<byte> bytes, int startOffset, TResult result)
+    public void AddSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
     {
-        //Return on invalid add.
-        if(_nextBitId >= MaxSignatures)
+        if(pattern.Length == 0)
         {
-            _ = Logger.Error(nameof(FSUtils), $"Attempted to add more than {MaxSignatures} signatures.");
-            return;
-        }
-        else if(startOffset + bytes.Length > MaxOffset)
-        {
-            _ = Logger.Error(nameof(FSUtils), $"Attempted to add a signature which exceeds {MaxOffset} offset.");
-            return;
-        }
-        else if(bytes.Length == 0)
-        {
-            _ = Logger.Error(nameof(FSUtils), "Attempted to add a signature with 0 bytes.");
+            _ = Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
             return;
         }
 
-        //Get signature Id
-        int sigId = _nextBitId++;
-        _results[sigId] = result;
+        if(offset + pattern.Length <= MaxFastOffset)
+            AddFastSignature(pattern, offset, resultMap);
+        else
+            AddSlowSignature(pattern, offset, resultMap);
+    }
 
+    private void AddFastSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
+    {
+        if(nextFastBitId >= MaxFastSignatures)
+        {
+            _ = Logger.Error(nameof(FSUtils), $"Fast signature limit {MaxFastSignatures} exceeded.");
+            return;
+        }
+
+        int sigId = nextFastBitId++;
+        fastResultMaps[sigId] = resultMap;
+        fastSignatureLengths[sigId] = pattern.Length;
+
+        //Signature Mask
         Span<byte> buffer = stackalloc byte[64];
-        int bytePos = sigId / 8;
-        int bitPos = sigId % 8;
-        buffer[bytePos] = (byte)(1 << bitPos);
+        buffer[sigId / 8] = (byte)(1 << (sigId % 8));
         Vector512<byte> sigMask = Vector512.Create<byte>(buffer);
 
-        //Populate wildcards into LUT if applicable
-        for(int i = 0; i < startOffset; i++)
+        for(int i = 0; i < offset; i++)
         {
-            //set wildcard for this offset
-            for (int val = 0; val < 256; val++)
+            wildcardLut[i] = Vector512.BitwiseOr(wildcardLut[i], sigMask);
+        }
+
+        for(int i = 0; i < pattern.Length; i++)
+        {
+            int absOffset = offset + i;
+            byte? val = pattern[i];
+
+            if(val is null)
             {
-                int key = (i << 8) | val;
-
-                _lookupTable[key] = Vector512.BitwiseOr(_lookupTable[key], sigMask);  
+                wildcardLut[absOffset] = Vector512.BitwiseOr(wildcardLut[absOffset], sigMask);
             }
+            else
+            {
+                var key = (absOffset << 8) | val.Value;
+
+                primaryLut[key] = Vector512.BitwiseOr(primaryLut[key], sigMask);
+            }
+            
         }
 
-        //Populate magic bytes into LUT
-        for(int i = 0; i < bytes.Length; i++)
+        int finalOffset = offset + pattern.Length - 1;
+        endMasks[finalOffset] = Vector512.BitwiseOr(endMasks[finalOffset], sigMask);
+    }
+
+    private void AddSlowSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
+    {
+        throw new NotImplementedException();
+    }
+
+    public TResult? Scan(FSEntry entry)
+    {
+        Span<byte> buffer = stackalloc byte[MaxFastOffset];
+
+        if(!TryReadHeader(entry.Path, buffer, out int bytesRead))
         {
-            byte val = bytes[i];
-
-            int absOffset = i + startOffset;
-            int key = (absOffset << 8) | val;
-
-            _lookupTable[key] = Vector512.BitwiseOr(_lookupTable[key], sigMask);
+            return default;
         }
+        
+        ReadOnlySpan<byte> validData = buffer[..bytesRead];
 
-        //Mark end of sequence
-        int endOffset = startOffset + bytes.Length - 1;
-        _endMasks[endOffset] = Vector512.BitwiseOr(_endMasks[endOffset], sigMask);
+        int bestMatch = ScanFast(validData);
+
+        if(bestMatch != -1)
+        {
+            ref var map = ref fastResultMaps[bestMatch];
+
+            return map.extensionHints is not null && map.extensionHints.TryGetValue(entry.Extension, out var result)
+                ? result
+                : map.defaultResult;
+        }
+        else
+            return ScanSlow(entry);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TResult? Lookup(ReadOnlySpan<byte> data)
+    public int ScanFast(ReadOnlySpan<byte> data)
     {
-        //Start assuming all candidates are possible
         Vector512<byte> candidates = Vector512<byte>.AllBitsSet;
 
-        int limit = Math.Min(data.Length, MaxOffset);
+        int limit = Math.Min(data.Length, MaxFastOffset);
 
-        for(int i = 0; i < limit; i ++)
+        int bestMatch = -1;
+        int bestMatchLength = -1;
+
+        ulong* ptr = stackalloc ulong[8];
+
+        fixed (Vector512<byte>* tableBase = primaryLut)
+        fixed (Vector512<byte>* wildcardBase = wildcardLut)
+        fixed (Vector512<byte>* endMaskBase = endMasks)
         {
-            int key = (i << 8) | data[i];
-
-            //Filter candidates
-            candidates = Vector512.BitwiseAnd(candidates, _lookupTable[key]);
-
-            //Check if any remaining candidates just finished.
-            Vector512<byte> winners = Vector512.BitwiseAnd(candidates, _endMasks[i]);
-
-            //Return first match found
-            if(winners != Vector512<byte>.Zero)
+            for(int i = 0; i < limit; i++)
             {
-                ulong* ptr = stackalloc ulong[8];
-                winners.Store((byte*)ptr);
-                for(int j = 0; j < 8; j++)
-                {
-                    if (ptr[j] != 0) 
-                        return _results[(j * 64) + BitOperations.TrailingZeroCount(ptr[j])];
-                }
-                return default;
-            }
+                int key = (i << 8) | data[i];
+                Vector512<byte> valid = Vector512.BitwiseOr(tableBase[key], wildcardBase[i]);
+                candidates = Vector512.BitwiseAnd(candidates, valid);
 
-            //Stop if no candidates left
-            if (candidates == Vector512<byte>.Zero)
-                return default;
+                if(candidates == Vector512<byte>.Zero) 
+                    return bestMatch;
+
+                Vector512<byte> winners = Vector512.BitwiseAnd(candidates, endMaskBase[i]);
+                if (winners != Vector512<byte>.Zero)
+                {
+                    winners.Store((byte*)ptr);
+                    for (int j = 0; j < 8; j++)
+                    {
+                        ulong segment = ptr[j];
+                        while(segment != 0)
+                        {
+                            int trail = BitOperations.TrailingZeroCount(segment);
+                            int id = (j * 64) + trail;
+
+                            if(fastSignatureLengths[id] > bestMatchLength)
+                            {
+                                bestMatchLength = fastSignatureLengths[id];
+                                bestMatch = id;
+                            }
+                            segment &= ~(1UL << trail);
+                        }
+                    }
+                }
+            }
         }
 
+        return bestMatch;
+    }
+
+    public TResult? ScanSlow(FSEntry entry)
+    {
+        //Implement slow scan
+
         return default;
+    }
+
+    public static bool TryReadHeader(string path, Span<byte> buffer, out int bytesRead)
+    {
+        bytesRead = 0;
+        try
+        {
+            using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, bufferSize: 1);
+
+            bytesRead = fs.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
+            return true;
+        }
+        catch (FileNotFoundException) { /* File vanished between listing and reading */ }
+        catch (DirectoryNotFoundException) { /* Parent moved */ }
+        catch (UnauthorizedAccessException) { /* Permission denied */ }
+        catch (IOException) { /* File strictly locked by another process (rare with FileShare.ReadWrite) */ }
+        catch (System.Security.SecurityException) { /* ACL issues */ }
+
+        return false;
     }
 }

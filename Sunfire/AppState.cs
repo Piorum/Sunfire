@@ -49,8 +49,9 @@ public static class AppState
 
     public static async Task Init()
     {
-        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], 4, MediaType.Type_mp4);
-        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x4D, 0x53, 0x4E, 0x56], 4, MediaType.Type_mp4);
+        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], 4, (MediaType.mp4, null));
+        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x4D, 0x53, 0x4E, 0x56], 4, (MediaType.mp4, null));
+        mediaTypeScanner.AddSignature([0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50], 0, (MediaType.webp, null));
 
         //Swap for finding directory program is opened in?
         string basePath;
@@ -182,23 +183,9 @@ public static class AppState
                 SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}" }];
             else
             {
-                byte[] buffer = new byte[256];
-
-                using (FileStream fs = new(selectedEntry.Value.Path, FileMode.Open, FileAccess.Read))
-                {
-                    int bytesRead = fs.Read(buffer, 0, buffer.Length);
-
-                    if (bytesRead < buffer.Length)
-                    {
-                        byte[] smallerBuffer = new byte[bytesRead];
-                        Array.Copy(buffer, smallerBuffer, bytesRead);
-                        buffer = smallerBuffer;
-                    }
-                }
-
-                var type = mediaTypeScanner.Lookup([.. buffer]);
+                var type = mediaTypeScanner.Scan(selectedEntry.Value);
                 
-                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" File {selectedEntry.Value.Size}B ({type})" }];
+                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" File {selectedEntry.Value.Size}B (Type: \"{type}\")" }];
             }
 
         }

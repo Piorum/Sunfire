@@ -3,5 +3,6 @@ namespace Sunfire.Enums;
 public enum MediaType
 {
     Unknown,
-    Type_mp4
+    mp4,
+    webp
 }
