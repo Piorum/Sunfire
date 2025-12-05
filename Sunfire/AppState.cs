@@ -52,6 +52,7 @@ public static class AppState
         mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], 4, (MediaType.mp4, null));
         mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x4D, 0x53, 0x4E, 0x56], 4, (MediaType.mp4, null));
         mediaTypeScanner.AddSignature([0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50], 0, (MediaType.webp, null));
+        mediaTypeScanner.AddSignature([0x50, 0x4B, 0x03, 0x04], 0, (MediaType.zip, new() { {".zip", MediaType.zip}, {".jar", MediaType.jar} }));
 
         //Swap for finding directory program is opened in?
         string basePath;
@@ -781,7 +782,7 @@ public static class AppState
                 continue;
 
             //Restore orignal selection
-            if (input.Key.KeyboardKey == ConsoleKey.Escape)
+            if (input.Key.KeyboardKey == ConsoleKey.Escape || input.Key.KeyboardKey == ConsoleKey.Tab)
             {
                 await Program.InputHandler.DisableInputMode();
                 await Program.Renderer.EnqueueAction(async () => await RefreshSelectionInfo(await GetSelectedEntry()));
@@ -838,7 +839,8 @@ public static class AppState
                 new ProcessStartInfo()
                 {
                     FileName = "xdg-open",
-                    Arguments = selectedEntry.Value.Path,
+                    Arguments = $"\"{selectedEntry.Value.Name}\"",
+                    WorkingDirectory = selectedEntry.Value.Directory,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
