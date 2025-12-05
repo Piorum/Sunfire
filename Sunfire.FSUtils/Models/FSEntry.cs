@@ -15,7 +15,6 @@ public readonly struct FSEntry
     public readonly FileAttributes Attributes { get; init; }
 
     public string Path => System.IO.Path.Combine(Directory, Name);
-    public string Type => MediaType.Lookup(this);
 
     public FSEntry(ref FileSystemEntry entry, string directory)
     {
