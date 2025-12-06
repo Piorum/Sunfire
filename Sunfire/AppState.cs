@@ -839,8 +839,7 @@ public static class AppState
                 new ProcessStartInfo()
                 {
                     FileName = "xdg-open",
-                    Arguments = $"\"{selectedEntry.Value.Name}\"",
-                    WorkingDirectory = selectedEntry.Value.Directory,
+                    Arguments = $"\"{selectedEntry.Value.Path}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

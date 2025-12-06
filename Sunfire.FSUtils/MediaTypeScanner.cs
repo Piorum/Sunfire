@@ -21,6 +21,7 @@ public unsafe class MediaTypeScanner<TResult>
     private readonly (TResult defaultResult, Dictionary<string, TResult>? extensionHints)[] fastResultMaps = new(TResult defaultResult, Dictionary<string, TResult>? extensionHints)[MaxFastSignatures];
 
     private int nextFastBitId = 0;
+    private int largestFastOffset = 0;
 
     public MediaTypeScanner()
     {
@@ -82,8 +83,12 @@ public unsafe class MediaTypeScanner<TResult>
             
         }
 
-        int finalOffset = offset + pattern.Length - 1;
+        int totalOffset = offset + pattern.Length;
+        int finalOffset = totalOffset - 1;
         endMasks[finalOffset] = Vector512.BitwiseOr(endMasks[finalOffset], sigMask);
+
+        if(totalOffset > largestFastOffset)
+            largestFastOffset = totalOffset;
     }
 
     private void AddSlowSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
@@ -121,7 +126,7 @@ public unsafe class MediaTypeScanner<TResult>
     {
         Vector512<byte> candidates = Vector512<byte>.AllBitsSet;
 
-        int limit = Math.Min(data.Length, MaxFastOffset);
+        int limit = Math.Min(data.Length, largestFastOffset);
 
         int bestMatch = -1;
         int bestMatchLength = -1;
