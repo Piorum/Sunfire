@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Sunfire.Enums;
 using Sunfire.FSUtils;
+using Sunfire.FSUtils.Models;
 
 namespace Sunfire.Registries;
 
@@ -8,6 +9,12 @@ public class MediaRegistry
 {
     public static readonly MediaTypeScanner<MediaType> Scanner = new();
 
+    private static readonly Dictionary<MediaType, (string handler, Func<string, string>? args)> OpenerMap = new()
+    {
+        {MediaType.unknown, ("xdg-open", null)},
+        
+        {MediaType.mp4, ("mpv", null)}
+    };
 
     [ModuleInitializer]
     public static void Init()
@@ -27,5 +34,16 @@ public class MediaRegistry
 
         //Misc
         Scanner.AddSlowSignature([0x6B, 0x6F, 0x6C, 0x79], [508], ".dmg", MediaType.dmg, fromEnd: true);
+    }
+
+    public static (string handler, string args) GetOpener(FSEntry entry)
+    {
+        if(!OpenerMap.TryGetValue(Scanner.Scan(entry), out var opener))
+            opener = OpenerMap[MediaType.unknown];
+
+        var path = $"\"{entry.Path}\"";
+
+        return (opener.handler, opener.args is not null ? opener.args(path) : path);
+
     }
 }

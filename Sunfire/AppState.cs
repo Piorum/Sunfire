@@ -828,16 +828,20 @@ public static class AppState
     public static async Task HandleFile()
     {
         if(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && !selectedEntry.Value.IsDirectory)
+        {
+            var (handler, args) = MediaRegistry.GetOpener(selectedEntry.Value);
+
             Process.Start(
                 new ProcessStartInfo()
                 {
-                    FileName = "xdg-open",
-                    Arguments = $"\"{selectedEntry.Value.Path}\"",
+                    FileName = handler,
+                    Arguments = args,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
                 }
             );
+        }
     }
 }
