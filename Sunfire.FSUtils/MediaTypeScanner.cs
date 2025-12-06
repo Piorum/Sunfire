@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -9,12 +10,12 @@ namespace Sunfire.FSUtils;
 public unsafe class MediaTypeScanner<TResult>
 {
     private const int MaxFastSignatures = 512;
-    private const int MaxFastOffset = 256;
-    private const int LutSize = MaxFastOffset * 256;
+    private int MaxFastOffset { get; init; }
+    private int LutSize { get; init; }
 
-    private readonly Vector512<byte>[] primaryLut = new Vector512<byte>[LutSize];
-    private readonly Vector512<byte>[] wildcardLut = new Vector512<byte>[MaxFastOffset];
-    private readonly Vector512<byte>[] endMasks = new Vector512<byte>[MaxFastOffset];
+    private readonly Vector512<byte>[] primaryLut;
+    private readonly Vector512<byte>[] wildcardLut;
+    private readonly Vector512<byte>[] endMasks;
 
     private readonly int[] fastSignatureLengths = new int[MaxFastSignatures];
 
@@ -23,31 +24,49 @@ public unsafe class MediaTypeScanner<TResult>
     private int nextFastBitId = 0;
     private int largestFastOffset = 0;
 
-    public MediaTypeScanner()
+    private readonly Dictionary<string, SlowSignature> slowSignatures = [];
+
+    private struct SlowSignature()
     {
-        if (!Vector512.IsHardwareAccelerated)
-            _ = Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow.");
+        required public byte?[] Pattern { get; init; }
+        required public List<int> Offsets { get; init; }
+        required public TResult ReturnValue;
+
+        public bool FromEnd { get; init; }
     }
 
-    public void AddSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
+    private readonly Dictionary<string, TResult> scanResultsCache = [];
+
+    public MediaTypeScanner(int maxFastOffset = 512)
+    {
+        if (!Vector512.IsHardwareAccelerated)
+            _ = Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow");
+
+        MaxFastOffset = maxFastOffset;
+        LutSize = MaxFastOffset * 256;
+
+        primaryLut = new Vector512<byte>[LutSize];
+        wildcardLut = new Vector512<byte>[MaxFastOffset]; 
+        endMasks = new Vector512<byte>[MaxFastOffset];
+    }
+
+    public void AddFastSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
     {
         if(pattern.Length == 0)
         {
             _ = Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
             return;
         }
+        
+        if(offset + pattern.Length >= MaxFastOffset)
+        {
+            _ = Logger.Error(nameof(FSUtils), $"Signature bounds extend past max offset of {MaxFastOffset}");
+            return;
+        }
 
-        if(offset + pattern.Length <= MaxFastOffset)
-            AddFastSignature(pattern, offset, resultMap);
-        else
-            AddSlowSignature(pattern, offset, resultMap);
-    }
-
-    private void AddFastSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
-    {
         if(nextFastBitId >= MaxFastSignatures)
         {
-            _ = Logger.Error(nameof(FSUtils), $"Fast signature limit {MaxFastSignatures} exceeded.");
+            _ = Logger.Error(nameof(FSUtils), $"Fast signature limit {MaxFastSignatures} exceeded");
             return;
         }
 
@@ -91,16 +110,39 @@ public unsafe class MediaTypeScanner<TResult>
             largestFastOffset = totalOffset;
     }
 
-    private void AddSlowSignature(ReadOnlySpan<byte?> pattern, int offset, (TResult defaultResult, Dictionary<string, TResult>? extensionHints) resultMap)
+    public void AddSlowSignature(ReadOnlySpan<byte?> pattern, List<int> offsets, string extension, TResult returnValue, bool fromEnd = false)
     {
-        throw new NotImplementedException();
+        if(pattern.Length == 0)
+        {
+            _ = Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
+            return;
+        }
+
+        var sig = new SlowSignature()
+        {
+            Pattern = [.. pattern],
+            Offsets = offsets,
+            ReturnValue = returnValue,
+
+            FromEnd = fromEnd
+        };
+
+        slowSignatures.Add(extension, sig);
     }
 
     public TResult? Scan(FSEntry entry)
     {
-        Span<byte> buffer = stackalloc byte[MaxFastOffset];
+        var path = entry.Path;
+        if(scanResultsCache.TryGetValue(path, out var returnValue))
+            return returnValue;
 
-        if(!TryReadHeader(entry.Path, buffer, out int bytesRead))
+        Stopwatch sw = new();
+        sw.Start();
+
+        int blockSize = 4096;
+        Span<byte> buffer = stackalloc byte[blockSize];
+
+        if(!FSHelpers.TryReadHeader(entry.Path, buffer, out int bytesRead))
         {
             return default;
         }
@@ -113,12 +155,20 @@ public unsafe class MediaTypeScanner<TResult>
         {
             ref var map = ref fastResultMaps[bestMatch];
 
-            return map.extensionHints is not null && map.extensionHints.TryGetValue(entry.Extension, out var result)
+            returnValue = map.extensionHints is not null && map.extensionHints.TryGetValue(entry.Extension, out var result)
                 ? result
                 : map.defaultResult;
         }
         else
-            return ScanSlow(entry);
+            returnValue = ScanSlow(entry, validData);
+
+        if(returnValue is not null)
+            scanResultsCache.Add(entry.Path, returnValue);
+
+        sw.Stop();
+        _ = Logger.Debug(nameof(FSUtils), $"Media type scan time {sw.Elapsed.TotalMicroseconds}us");
+
+        return returnValue;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -173,29 +223,61 @@ public unsafe class MediaTypeScanner<TResult>
         return bestMatch;
     }
 
-    public TResult? ScanSlow(FSEntry entry)
+    public TResult? ScanSlow(FSEntry entry, ReadOnlySpan<byte> firstBlock)
     {
-        //Implement slow scan
+        if(slowSignatures.Count == 0 || !slowSignatures.TryGetValue(entry.Extension, out var sig))
+            return default;
+
+        var pattern = sig.Pattern;
+
+        bool valid = true;
+        foreach(var offset in sig.Offsets)
+        {
+            ReadOnlySpan<byte> segment;
+
+            if(!sig.FromEnd && sig.Pattern.Length + offset <= firstBlock.Length)
+            {
+                segment = firstBlock.Slice(offset, pattern.Length);
+            }
+            else if(sig.FromEnd)
+            {
+                var totalLength = pattern.Length + offset;
+                byte[] buffer = new byte[totalLength];
+
+                if(!FSHelpers.TryReadTail(entry.Path, buffer, out var bytesRead))
+                    return default;
+
+                if(bytesRead < totalLength)
+                    return default;
+
+                segment = buffer.AsSpan()[..pattern.Length];
+            }
+            else
+            {
+                byte[] buffer = new byte[pattern.Length];
+
+                if(!FSHelpers.TryReadSegment(entry.Path, offset, pattern.Length, buffer))
+                    return default;
+
+                segment = buffer;
+            }
+
+            for(int i = 0; i < segment.Length; i++)
+            {
+                if(sig.Pattern[i] is not null && segment[i] != sig.Pattern[i])
+                {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if(!valid)
+                break;
+        }
+
+        if(valid)
+            return sig.ReturnValue;
 
         return default;
-    }
-
-    public static bool TryReadHeader(string path, Span<byte> buffer, out int bytesRead)
-    {
-        bytesRead = 0;
-        try
-        {
-            using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, bufferSize: 1);
-
-            bytesRead = fs.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
-            return true;
-        }
-        catch (FileNotFoundException) { /* File vanished between listing and reading */ }
-        catch (DirectoryNotFoundException) { /* Parent moved */ }
-        catch (UnauthorizedAccessException) { /* Permission denied */ }
-        catch (IOException) { /* File strictly locked by another process (rare with FileShare.ReadWrite) */ }
-        catch (System.Security.SecurityException) { /* ACL issues */ }
-
-        return false;
     }
 }

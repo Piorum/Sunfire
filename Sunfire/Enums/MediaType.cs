@@ -3,8 +3,20 @@ namespace Sunfire.Enums;
 public enum MediaType
 {
     unknown,
+
+    //Video
     mp4,
+
+    //Image
     webp,
+    jpg,
+    jpeg,
+
+    //Archive
     zip,
-    jar
+    jar,
+    tar,
+
+    //Misc
+    dmg
 }

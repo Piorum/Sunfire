@@ -9,7 +9,6 @@ using Sunfire.Tui.Interfaces;
 using System.Collections.Concurrent;
 using Sunfire.Ansi.Models;
 using System.Text;
-using Sunfire.Enums;
 
 namespace Sunfire;
 
@@ -24,8 +23,6 @@ public static class AppState
     private static bool showHidden = false;
 
     private static readonly List<(FSEntry entry, LabelSVSlim label)> taggedEntries = [];
-
-    private static readonly MediaTypeScanner<MediaType> mediaTypeScanner = new();
 
     private static CancellationTokenSource? previewGenCts;
 
@@ -49,11 +46,6 @@ public static class AppState
 
     public static async Task Init()
     {
-        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], 4, (MediaType.mp4, null));
-        mediaTypeScanner.AddSignature([0x66, 0x74, 0x79, 0x70, 0x4D, 0x53, 0x4E, 0x56], 4, (MediaType.mp4, null));
-        mediaTypeScanner.AddSignature([0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50], 0, (MediaType.webp, null));
-        mediaTypeScanner.AddSignature([0x50, 0x4B, 0x03, 0x04], 0, (MediaType.zip, new() { {".zip", MediaType.zip}, {".jar", MediaType.jar} }));
-
         //Swap for finding directory program is opened in?
         string basePath;
         if(Program.Options.UseUserProfileAsDefault)
@@ -184,7 +176,7 @@ public static class AppState
                 SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}" }];
             else
             {
-                var type = mediaTypeScanner.Scan(selectedEntry.Value);
+                var type = MediaRegistry.Scanner.Scan(selectedEntry.Value);
                 
                 SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" File {selectedEntry.Value.Size}B (Type: \"{type}\")" }];
             }
@@ -224,10 +216,11 @@ public static class AppState
 
         await Logger.Debug(nameof(Sunfire), $"Get {path} Entries {(DateTime.Now - entriesStartTime).TotalMicroseconds}us");
 
-        var labelsStartTime = DateTime.Now;
-
         if(!builtLabelsCache.TryGetValue(path, out var labels))
         {
+
+            var labelsStartTime = DateTime.Now;
+
             labels = new List<LabelSVSlim>(entries.Count);
 
             SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
@@ -274,9 +267,9 @@ public static class AppState
             }
 
             builtLabelsCache.TryAdd(path, labels);
-        }
 
-        await Logger.Debug(nameof(Sunfire), $"Build {path} Labels {(DateTime.Now - labelsStartTime).TotalMicroseconds}us");
+            await Logger.Debug(nameof(Sunfire), $"Build {path} Labels {(DateTime.Now - labelsStartTime).TotalMicroseconds}us");
+        }
 
         var previousSelectedIndex = GetPreviousIndex(entries, path);
 
