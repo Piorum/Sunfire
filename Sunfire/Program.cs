@@ -7,6 +7,7 @@ using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
 using Sunfire.Input.Builders;
+using System.Runtime.InteropServices;
 
 namespace Sunfire;
 
@@ -191,9 +192,18 @@ internal class Program
         await InputHandler.Init(_cts.Token);
     }
 
+    private static PosixSignalRegistration? sigwinchRegistration = null;
     private static async Task Render()
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
+
+        if(OperatingSystem.IsLinux())
+        {
+            sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
+            {
+                Task.Run(AppState.Reload);
+            });
+        }
 
         await AppState.Init();
 
