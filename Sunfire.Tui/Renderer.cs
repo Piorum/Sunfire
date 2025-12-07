@@ -30,6 +30,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     private readonly Channel<Func<Task>> renderQueue = Channel.CreateUnbounded<Func<Task>>();
 
+    private readonly List<(int x, int y, int w, int h)> clearTasks = [];
+
     /// <summary>
     /// Starts rendering loop.
     /// </summary>
@@ -115,15 +117,45 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await renderQueue.Writer.WriteAsync(action);
     }
 
+    public void Clear(int x, int y, int w, int h)
+    {
+        clearTasks.Add((x, y, w, h));
+    }
+
     private async Task OnRender(AnsiStringBuilder asb)
     {
         DateTime startTime;
-
 
         //Rearrange, returns true if anything was changed
         startTime = DateTime.Now;
         var invalidScreen = await RootView.Arrange();
         var arrangeTime = (DateTime.Now - startTime).TotalMicroseconds;
+
+        if(clearTasks.Count > 0)
+        {
+            foreach(var clearTask in clearTasks)
+            {
+                asb.Clear();
+                asb.HideCursor();
+
+                var (x, y, w, h) = clearTask;
+
+                var blankString = new string(' ', w);
+                for(int i = y; i < h; i++)
+                {
+                    asb.Append(blankString, new( CursorPosition: (x, i) ));
+                    for(int j = x; j < w; j++)
+                    {
+                        FrontBuffer[j, i] = SVCell.Blank;
+                    }
+                }
+
+                asb.ResetProperties();
+                await Write(asb.ToString());
+            }
+
+            clearTasks.Clear();
+        }
 
         if (!invalidScreen)
             return;

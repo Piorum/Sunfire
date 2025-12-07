@@ -154,16 +154,16 @@ public static class AppState
         {
             if(!clean)
             {
+                await Logger.Debug(nameof(Sunfire), "Cleaning");
+
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 string cleanerPath = Path.Combine(baseDir, "sunfire-kitty-cleaner");
-                string cleanerArgs = $"{SVRegistry.PreviewPane.SizeX} {SVRegistry.PreviewPane.SizeY} {SVRegistry.PreviewPane.OriginX} {SVRegistry.PreviewPane.OriginY}";
                 
                 var cleaner = new Process
                 {
                     StartInfo = new ProcessStartInfo()
                     {
                         FileName = cleanerPath,
-                        Arguments = cleanerArgs,
                         UseShellExecute = false,
                         RedirectStandardOutput = false,
                         RedirectStandardError = true,
@@ -173,7 +173,7 @@ public static class AppState
                 
                 cleaner.Start();
 
-                cleaner.WaitForExit();
+                Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
 
                 clean = true;
             }
