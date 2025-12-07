@@ -107,6 +107,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         }
 
         await Write(AnsiRegistry.ExitAlternateScreen);
+        await Write(AnsiRegistry.ShowCursor);
     }
 
     /// <summary>
@@ -135,23 +136,15 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         {
             foreach(var clearTask in clearTasks)
             {
-                asb.Clear();
-                asb.HideCursor();
-
                 var (x, y, w, h) = clearTask;
 
-                var blankString = new string(' ', w);
-                for(int i = y; i < h; i++)
+                for(int i = y; i < y + h; i++)
                 {
-                    asb.Append(blankString, new( CursorPosition: (x, i) ));
-                    for(int j = x; j < w; j++)
+                    for(int j = x; j < x + w; j++)
                     {
-                        FrontBuffer[j, i] = SVCell.Blank;
+                        FrontBuffer[j, i] = new();
                     }
                 }
-
-                asb.ResetProperties();
-                await Write(asb.ToString());
             }
 
             clearTasks.Clear();

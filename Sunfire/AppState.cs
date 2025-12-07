@@ -173,7 +173,27 @@ public static class AppState
                 
                 cleaner.Start();
 
-                Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
+                if(previewer is not null && !previewer.HasExited)
+                {
+                    var oldPreviewer = previewer;
+                    previewer = null;
+                    _ = Task.Run(async () =>
+                    {
+                        oldPreviewer.Kill(true);
+                        oldPreviewer.Dispose();
+
+                        await Program.Renderer.EnqueueAction(async () => 
+                        {
+                            Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
+                            await SVRegistry.PreviewPane.Invalidate();
+                        });
+                    });
+                }
+                else
+                {
+                    Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
+                    await SVRegistry.PreviewPane.Invalidate();
+                }
 
                 clean = true;
             }
@@ -182,11 +202,12 @@ public static class AppState
             
             await SVRegistry.PreviewPane.Invalidate();
         }
-        else
+        else if(await GetSelectedEntry() is not null)
         {
             if(previewer is not null && !previewer.HasExited)
             {
                 var oldPreviewer = previewer;
+                previewer = null;
                 _ = Task.Run(() =>
                 {
                     oldPreviewer.Kill(true);
