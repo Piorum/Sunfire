@@ -144,14 +144,78 @@ public static class AppState
     private static async Task RefreshCurrentList() =>
         await UpdateList(SVRegistry.CurrentList, await GetLabelsAndIndex(currentPath));
 
+    private static Process? previewer = null;
+    private static bool clean = true;
     private static async Task RefreshPreview(IRelativeSunfireView? view)
     {
         SVRegistry.PreviewPane.SubViews.Clear();
 
         if(view is not null)
-            SVRegistry.PreviewPane.SubViews.Add(view);
+        {
+            if(!clean)
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string cleanerPath = Path.Combine(baseDir, "sunfire-kitty-cleaner");
+                string cleanerArgs = $"{SVRegistry.PreviewPane.SizeX} {SVRegistry.PreviewPane.SizeY} {SVRegistry.PreviewPane.OriginX} {SVRegistry.PreviewPane.OriginY}";
                 
-        await SVRegistry.PreviewPane.Invalidate();
+                var cleaner = new Process
+                {
+                    StartInfo = new ProcessStartInfo()
+                    {
+                        FileName = cleanerPath,
+                        Arguments = cleanerArgs,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = false,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    }
+                };
+                
+                cleaner.Start();
+
+                cleaner.WaitForExit();
+
+                clean = true;
+            }
+
+            SVRegistry.PreviewPane.SubViews.Add(view);
+            
+            await SVRegistry.PreviewPane.Invalidate();
+        }
+        else
+        {
+            if(previewer is not null && !previewer.HasExited)
+            {
+                var oldPreviewer = previewer;
+                _ = Task.Run(() =>
+                {
+                    oldPreviewer.Kill(true);
+                    oldPreviewer.Dispose();
+                });
+            }
+
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string previewerPath = Path.Combine(baseDir, "sunfire-kitty-previewer");
+            string previewArgs = $"\"{(await GetSelectedEntry()).Value.Path}\" {SVRegistry.PreviewPane.SizeX} {SVRegistry.PreviewPane.SizeY} {SVRegistry.PreviewPane.OriginX} {SVRegistry.PreviewPane.OriginY}";
+            await Logger.Debug(nameof(Sunfire), $"Previewing with args: \"{previewArgs}\"");
+
+            previewer = new Process
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = previewerPath,
+                    Arguments = previewArgs,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                }
+            };
+            
+            previewer.Start();
+
+            clean = false;
+        }
 
     }
 

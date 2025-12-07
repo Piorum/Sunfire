@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+exec 200>/tmp/sunfire-kitty-lock
+flock 200 || exit 1
+
+#Wait a moment to prevent kitty from being overwhelmed and crashing
+sleep 0.01
+
+# 1. Tell Kitty to delete the graphics at this ID
+kitty-helper delete_img $SUNFIRE_KITTY_IMAGE_ID 0    
+
+if [[ -n "$1" ]] then
+    WIDTH="$1"
+    HEIGHT="$2"
+    POS_X="$3"
+    POS_Y="$4"
+
+    # 2. Overwrite the text area with spaces
+    # Generate a string of empty spaces matching the width
+    local empty_line
+    # This creates a string of spaces of length $WIDTH
+    printf -v empty_line "%*s" "$WIDTH" ""
+
+    local r
+    local row
+    # Loop through every row of the pane
+    for ((r=0; r<HEIGHT; r++)); do
+        row=$((POS_Y + r))
+        
+        # Move cursor to Start of line
+        tput cup "$row" "$POS_X"
+        
+        # Print the empty spaces
+        printf "%s" "$empty_line"
+    done
+fi

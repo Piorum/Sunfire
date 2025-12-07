@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+exec 200>/tmp/sunfire-kitty-lock
+flock 200 || exit 1
+
+#Wait a moment to prevent kitty from being overwhelmed and crashing
+sleep 0.01
+
+set -euo pipefail
+IFS=$'\n\t'
+
+MAX_PREVIEW_DIMENSION="1024x1024>"
+
+THUMBNAIL_FPATH="$SUNFIRE_KITTY_TEMPDIR/thumbnail.png"
+mime=$(file --mime-type -Lb "$1")
+
+FILE_PATH="$1"
+WIDTH="$2"
+HEIGHT="$3"
+POS_X="$4"
+POS_Y="$5"
+
+wipe_pane() {
+    # 1. Tell Kitty to delete the graphics at this ID
+    kitty-helper delete_img "$SUNFIRE_KITTY_IMAGE_ID" 1
+    
+    # 2. Overwrite the text area with spaces
+    # Generate a string of empty spaces matching the width
+    local empty_line
+    # This creates a string of spaces of length $WIDTH
+    printf -v empty_line "%*s" "$WIDTH" ""
+
+    local r
+    local row
+    # Loop through every row of the pane
+    for ((r=0; r<HEIGHT; r++)); do
+        row=$((POS_Y + r))
+        
+        # Move cursor to Start of line
+        tput cup "$row" "$POS_X"
+        
+        # Print the empty spaces
+        printf "%s" "$empty_line"
+    done
+}
+
+trap cleanup INT HUP EXIT
+
+case "$mime" in
+image/png|image/jpeg|image/bmp|image/svg+xml|image/webp)
+    gm convert "$1" -resize "$MAX_PREVIEW_DIMENSION" "$THUMBNAIL_FPATH" 2>/dev/null || exit 0
+    wipe_pane
+    kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
+    ;;
+image/gif)
+    gm convert "${1}[0]" -resize "$MAX_PREVIEW_DIMENSION" "$THUMBNAIL_FPATH" 2>/dev/null || exit 0
+    wipe_pane
+    kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
+    ;;
+application/pdf)
+    gs -o "$THUMBNAIL_FPATH" -sDEVICE=pngalpha -dLastPage=1 "$1" >/dev/null 2>&1 || exit 0
+    wipe_pane
+    kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
+    ;;
+video/*)
+    ffmpegthumbnailer -i "$1" -o "$THUMBNAIL_FPATH" -s 1024 >/dev/null 2>&1 || exit 0
+    wipe_pane
+    kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
+    ;;
+text/*|application/json)
+    wipe_pane
+
+    # 2. Draw text line by line respecting X/Y/W/H
+    # expand converts tabs to spaces to prevent alignment issues
+    # head -n limits the height
+    current_line=0
+    expand -t 4 "$FILE_PATH" | head -n "$HEIGHT" | while IFS= read -r line; do
+        # Truncate line to width
+        trimmed_line="${line:0:$WIDTH}"
+        
+        # Calculate screen row
+        row=$((POS_Y + current_line))
+        
+        # Move cursor to (Row, Col) and print
+        tput cup "$row" "$POS_X"
+        printf "%s" "$trimmed_line"
+        
+        current_line=$((current_line + 1))
+    done
+    ;;
+*)
+    wipe_pane
+
+        # Optional: Write "No Preview" text
+    tput cup "$POS_Y" "$POS_X"
+    echo "No preview available ($mime)"
+    ;;
+esac
+
+exit 0
