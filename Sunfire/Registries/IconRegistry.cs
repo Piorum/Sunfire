@@ -53,7 +53,7 @@ public static class IconRegistry
         { ".cc", ("  ", new(new(81,154,186))) },
         { ".cp", ("  ", new(new(81,154,186))) },
         { ".c", ("  ", new(new(89,158,255))) },
-        //{ ".cs", (" 󰌛 ", new(new(89,103,6))) }, //Breaks alignment
+        { ".cs", (" \udb80\udf1b", new(new(89,103,6))) },
         { ".h", ("  ", new(new(160,116,196))) },
         { ".hh", ("  ", new(new(160,116,196))) },
         { ".hpp", ("  ", new(new(160,116,196))) },

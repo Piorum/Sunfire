@@ -225,6 +225,12 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     outputBuffer[outputIndex] = cell.Data;
                     outputIndex++;
                 }
+
+                if(cell.DoubleWide)
+                {
+                    outputBuffer[outputIndex] = ' ';
+                    outputIndex++;
+                }
             }
             //Move command will be sent to each row to ensure consistently
             //End of row ensure current buffer is output and cleared

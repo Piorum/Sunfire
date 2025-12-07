@@ -11,10 +11,11 @@ namespace Sunfire.Tui.Models;
 /// <param name="Properties">Ansi properties cell should have.</param>
 public record struct SVCell(
     char Data,
+    bool DoubleWide,
     SColor? ForegroundColor,
     SColor? BackgroundColor,
     SAnsiProperty Properties
 )
 {
-    public static readonly SVCell Blank = new(' ', null, null, SAnsiProperty.None);
+    public static readonly SVCell Blank = new(' ', false, null, null, SAnsiProperty.None);
 }

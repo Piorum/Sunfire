@@ -77,6 +77,8 @@ public class LabelSVSlim : ISunfireView
         return Task.FromResult(false);
     }
 
+    private static readonly HashSet<char> doubleWideShitList = ['\udf1b'];
+
     public Task Draw(SVContext context)
     {
         if(Segments is null || Segments.Length == 0)
@@ -130,6 +132,7 @@ public class LabelSVSlim : ISunfireView
                 context[x, y] = context[x, y] with
                 {
                     Data = rawText[charIndex],
+                    DoubleWide = doubleWideShitList.Contains(rawText[charIndex]),
                     ForegroundColor = renderStyle.ForegroundColor,
                     BackgroundColor = renderStyle.BackgroundColor,
                     Properties = renderStyle.Properties
