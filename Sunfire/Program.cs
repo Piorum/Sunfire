@@ -192,18 +192,9 @@ internal class Program
         await InputHandler.Init(_cts.Token);
     }
 
-    private static PosixSignalRegistration? sigwinchRegistration = null;
     private static async Task Render()
     {
         var renderLoopTask = Renderer.Start(_cts.Token);
-
-        if(OperatingSystem.IsLinux())
-        {
-            sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, sig =>
-            {
-                Task.Run(AppState.Reload);
-            });
-        }
 
         await AppState.Init();
 

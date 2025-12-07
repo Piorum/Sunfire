@@ -99,7 +99,7 @@ public static class AppState
     private static LabelSVSlim? GetSelectedLabel() => 
         SVRegistry.CurrentList.GetSelected();
 
-    private static async Task Refresh() => 
+    public static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
