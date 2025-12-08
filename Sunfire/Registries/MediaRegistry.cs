@@ -11,7 +11,7 @@ public class MediaRegistry
 
     private static readonly Dictionary<MediaType, (string handler, Func<string, string>? args)> OpenerMap = new()
     {
-        {MediaType.unknown, ("hyprctl", path => $"dispatch exec \"xdg-open {path}\"")},
+        {MediaType.unknown, ("xdg-open", null)},
     };
 
     [ModuleInitializer]
@@ -39,9 +39,9 @@ public class MediaRegistry
         if(!OpenerMap.TryGetValue(Scanner.Scan(entry), out var opener))
             opener = OpenerMap[MediaType.unknown];
 
-        var path = $"\\\"{entry.Path}\\\"";
+        var path = $"{entry.Path}";
 
-        return (opener.handler, opener.args is not null ? opener.args(path) : path);
+        return (opener.handler, opener.args is not null ? opener.args(path) : $"\"{path}\"");
 
     }
 }

@@ -90,9 +90,15 @@ text/*|application/json)
 *)
     wipe_pane
 
-        # Optional: Write "No Preview" text
+    msg="No preview available ($mime)"
+
+    if (( ${#msg} > WIDTH )); then
+        msg="${msg:0:WIDTH}"   # truncate to maxlen characters
+    fi
+
+    # Write "No Preview" text
     tput cup "$POS_Y" "$POS_X"
-    echo "No preview available ($mime)"
+    echo "$msg"
     ;;
 esac
 

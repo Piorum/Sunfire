@@ -317,25 +317,15 @@ public static class AppState
               
             foreach (var entry in entries)
             {
-                (string icon, SStyle iconStyle) iconInfo;
                 SStyle style;
 
                 if(entry.IsDirectory)
-                {
-                    iconInfo = (IconRegistry.DirectoryIcon, directoryStyle);
                     style = directoryStyle;
-                }
                 else
-                {
-                    if(!IconRegistry.SpecialIcons.TryGetValue(entry.Name, out iconInfo) && !IconRegistry.Icons.TryGetValue(entry.Extension, out iconInfo))
-                        iconInfo = (IconRegistry.FallbackFileIcon, fileStyle);
-                    
                     style = fileStyle;
-                }
 
-                var segments = new LabelSVSlim.LabelSegment[2]
+                var segments = new LabelSVSlim.LabelSegment[1]
                 {
-                    new() { Text = iconInfo.icon, Style = iconInfo.iconStyle },
                     new() { Text = entry.Name, Style = style }
                 };
 
@@ -916,11 +906,12 @@ public static class AppState
         {
             var (handler, args) = MediaRegistry.GetOpener(selectedEntry.Value);
 
+            //Launched detached
             Process.Start(
                 new ProcessStartInfo()
                 {
-                    FileName = handler,
-                    Arguments = args,
+                    FileName = "sh",
+                    Arguments = $"-c \"setsid {handler} {args} >/dev/null 2>&1 </dev/null &\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

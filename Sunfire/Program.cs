@@ -7,7 +7,6 @@ using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
 using Sunfire.Input.Builders;
-using System.Runtime.InteropServices;
 
 namespace Sunfire;
 
