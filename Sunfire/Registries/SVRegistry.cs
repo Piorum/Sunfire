@@ -10,7 +10,7 @@ public static class SVRegistry
 {
     private static RootSV? rootSV;
 
-    private static ListSV? containerList;
+    private static EntriesListView? containerList;
     private static PaneSV? containerPane;
     private static BorderSV? containerBorder;
 
@@ -79,7 +79,7 @@ public static class SVRegistry
             SubView = currentPane
         };
 
-        containerList = new();
+        containerList = new(AppState.fsCache);
         containerPane = new()
         {
             X = 0,
@@ -115,7 +115,7 @@ public static class SVRegistry
     public static RootSV RootSV =>
         rootSV!;
 
-    public static ListSV ContainerList =>
+    public static EntriesListView ContainerList =>
         containerList!;
     public static PaneSV ContainerPane =>
         containerPane!;

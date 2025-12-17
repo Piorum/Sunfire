@@ -14,7 +14,7 @@ namespace Sunfire;
 
 public static class AppState
 {
-    private static readonly FSCache fsCache = new();
+    public static readonly FSCache fsCache = new();
     private static readonly Dictionary<string, FSEntry?> selectedEntryCache = [];
     private static readonly ConcurrentDictionary<string, List<FSEntry>> sortedEntriesCache = [];
     private static readonly ConcurrentDictionary<string, List<LabelSVSlim>> builtLabelsCache = [];
@@ -138,8 +138,8 @@ public static class AppState
 
     private static async Task RefreshContainerList() => 
         await (Directory.GetParent(currentPath) is var dirInfo && dirInfo is null 
-            ? ClearAndInvalidateList(SVRegistry.ContainerList) 
-            : UpdateList(SVRegistry.ContainerList, await GetLabelsAndIndex(dirInfo.FullName)));
+            ? SVRegistry.ContainerList.UpdateCurrentPath("") 
+            : SVRegistry.ContainerList.UpdateCurrentPath(dirInfo.FullName));
 
     private static async Task RefreshCurrentList() =>
         await UpdateList(SVRegistry.CurrentList, await GetLabelsAndIndex(currentPath));

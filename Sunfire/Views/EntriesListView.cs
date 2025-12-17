@@ -37,10 +37,17 @@ public class EntriesListView(FSCache fsCache) : ListSV
     private async Task UpdateBackLabels()
     {
         var token = SecureLabelsGenToken();
-        
-        //Cache even if this update phase gets cancelled
-        var entries = await _fsCache.GetEntries(currentPath, CancellationToken.None);
-        var labels = (await LabelsCache.GetAsync(entries)).Select(c => c.View);
+
+        IEnumerable<LabelSVSlim> labels;
+
+        if(!Directory.Exists(currentPath))
+            labels = [];
+        else
+        {
+            //Cache even if this update phase gets cancelled
+            var entries = await _fsCache.GetEntries(currentPath, CancellationToken.None);
+            labels = (await LabelsCache.GetAsync(entries)).Select(c => c.View);
+        }
 
         if(!token.IsCancellationRequested)
         {
