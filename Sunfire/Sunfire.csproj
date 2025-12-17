@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Previewers/" />
     <Folder Include="Views/" />
   </ItemGroup>
 

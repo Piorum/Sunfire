@@ -24,8 +24,8 @@ public class PaneSV : IRelativeSunfireView
 
     public bool Dirty { set; get; }
 
-    public int MinX => SubViews.Select(sv => sv.MinX).Max();
-    public int MinY => SubViews.Select(sv => sv.MinY).Max();
+    public int MinX => SubViews.Max(sv => sv.MinX);
+    public int MinY => SubViews.Max(sv => sv.MinY);
 
     required public List<IRelativeSunfireView> SubViews = [];
 
