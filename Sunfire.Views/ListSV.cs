@@ -85,7 +85,7 @@ public class ListSV : IRelativeSunfireView
         return false; //No Work Done
     }
 
-    private async Task OnArrange()
+    protected virtual async Task OnArrange()
     {
         //Don't bother with other adjustments if there is no labels anyways
         if (Labels.Count == 0)

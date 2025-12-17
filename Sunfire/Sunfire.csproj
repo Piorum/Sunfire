@@ -25,4 +25,9 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data/" />
+    <Folder Include="Views/" />
+  </ItemGroup>
+
 </Project>
