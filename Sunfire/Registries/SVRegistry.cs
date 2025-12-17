@@ -79,7 +79,7 @@ public static class SVRegistry
             SubView = currentPane
         };
 
-        containerList = new(AppState.fsCache);
+        containerList = new();
         containerPane = new()
         {
             X = 0,

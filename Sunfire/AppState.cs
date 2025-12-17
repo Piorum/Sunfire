@@ -391,9 +391,9 @@ public static class AppState
         if(selectedEntry is not null)
             if (selectedEntry.Value.IsDirectory)
             {
-                ListSV previewList = new();
+                EntriesListView previewList = new();
 
-                await UpdateList(previewList, await GetLabelsAndIndex(selectedEntry.Value.Path, token));
+                await previewList.UpdateCurrentPath(selectedEntry.Value.Path);
 
                 view = previewList;
             }
