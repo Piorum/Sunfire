@@ -39,7 +39,7 @@ public class SelectionInfoView : BorderSV
             {
                 try
                 {
-                    var entries = await FSCache.GetEntries(entry.Value.Directory, token);
+                    var entries = await FSCache.GetEntries(path, token);
 
                     subLabelSegments = [new() { Text = $" Directory {entries.Count}" }];
                 }

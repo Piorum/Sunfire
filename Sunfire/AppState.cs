@@ -1,10 +1,7 @@
 using System.Diagnostics;
 using Sunfire.Registries;
-using Sunfire.Views;
-using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
-using Sunfire.Tui.Interfaces;
 
 namespace Sunfire;
 
@@ -12,22 +9,11 @@ public static class AppState
 {
     private static string currentPath = "";
 
-    private static CancellationTokenSource? previewGenCts;
-
-    private static CancellationToken SecurePreviewGenToken()
-    {
-        previewGenCts?.Cancel();
-        previewGenCts?.Dispose();
-        
-        previewGenCts = new();
-        return previewGenCts.Token;
-    }
-
     public static async Task ToggleHidden()
     {
         await SVRegistry.ContainerList.ToggleHidden();
         await SVRegistry.CurrentList.ToggleHidden();
-        await previewEntriesList.ToggleHidden();
+        await SVRegistry.PreviewView.directoryPreviewer.ToggleHidden();
 
         await Refresh();
         await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
@@ -48,170 +34,20 @@ public static class AppState
         await Refresh(basePath);
     }
 
-    private static async Task<FSEntry?> GetSelectedEntry() => 
-        await SVRegistry.CurrentList.GetCurrentEntry();
-
     public static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
     {
         currentPath = path;
+        var containerPath = Directory.GetParent(currentPath) is var dirInfo && dirInfo is not null 
+            ? dirInfo.FullName 
+            : "";
 
-        await RefreshContainerList();
-        await RefreshCurrentList();
-
-        var previewToken = SecurePreviewGenToken();
-
-        var selectedEntry = await GetSelectedEntry();
-
-        await SVRegistry.PreviewView.Update(selectedEntry);
-        await SVRegistry.SelectionInfoView.Update(selectedEntry);
-
-        try
-        {   
-            if(!previewToken.IsCancellationRequested)
-                await Program.Renderer.EnqueueAction(async () =>
-                {
-
-                    await RefreshDirectoryHint();
-                });
-            }
-        catch (OperationCanceledException) { }
-    }
-
-    private static async Task RefreshContainerList() => 
-        await (Directory.GetParent(currentPath) is var dirInfo && dirInfo is null 
-            ? SVRegistry.ContainerList.UpdateCurrentPath("") 
-            : SVRegistry.ContainerList.UpdateCurrentPath(dirInfo.FullName));
-
-    private static async Task RefreshCurrentList() =>
+        await SVRegistry.ContainerList.UpdateCurrentPath(containerPath);
         await SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
 
-    private static Process? previewer = null;
-    private static bool clean = true;
-    private static async Task RefreshPreview(IRelativeSunfireView? view)
-    {
-        SVRegistry.PreviewView.SubViews.Clear();
-
-        if(view is not null)
-        {
-            if(!clean)
-            {
-                await Logger.Debug(nameof(Sunfire), "Cleaning");
-
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string cleanerPath = Path.Combine(baseDir, "sunfire-kitty-cleaner");
-                
-                var cleaner = new Process
-                {
-                    StartInfo = new ProcessStartInfo()
-                    {
-                        FileName = cleanerPath,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = false,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                    }
-                };
-                
-                cleaner.Start();
-
-                if(previewer is not null && !previewer.HasExited)
-                {
-                    var oldPreviewer = previewer;
-                    previewer = null;
-                    _ = Task.Run(async () =>
-                    {
-                        oldPreviewer.Kill(true);
-                        oldPreviewer.Dispose();
-
-                        await Program.Renderer.EnqueueAction(async () => 
-                        {
-                            Program.Renderer.Clear(SVRegistry.PreviewView.OriginX, SVRegistry.PreviewView.OriginY, SVRegistry.PreviewView.SizeX, SVRegistry.PreviewView.SizeY);
-                            await SVRegistry.PreviewView.Invalidate();
-                        });
-                    });
-                }
-                else
-                {
-                    Program.Renderer.Clear(SVRegistry.PreviewView.OriginX, SVRegistry.PreviewView.OriginY, SVRegistry.PreviewView.SizeX, SVRegistry.PreviewView.SizeY);
-                    await SVRegistry.PreviewView.Invalidate();
-                }
-
-                clean = true;
-            }
-
-            SVRegistry.PreviewView.SubViews.Add(view);
-            
-            await SVRegistry.PreviewView.Invalidate();
-        }
-        else if(await GetSelectedEntry() is not null)
-        {
-            if(previewer is not null && !previewer.HasExited)
-            {
-                var oldPreviewer = previewer;
-                previewer = null;
-                _ = Task.Run(() =>
-                {
-                    oldPreviewer.Kill(true);
-                    oldPreviewer.Dispose();
-                });
-            }
-
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string previewerPath = Path.Combine(baseDir, "sunfire-kitty-previewer");
-            string previewArgs = $"\"{(await GetSelectedEntry()).Value.Path}\" {SVRegistry.PreviewView.SizeX} {SVRegistry.PreviewView.SizeY} {SVRegistry.PreviewView.OriginX} {SVRegistry.PreviewView.OriginY}";
-            await Logger.Debug(nameof(Sunfire), $"Previewing with args: \"{previewArgs}\"");
-
-            previewer = new Process
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = previewerPath,
-                    Arguments = previewArgs,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                }
-            };
-            
-            previewer.Start();
-
-            clean = false;
-        }
-
-    }
-
-    private static async Task RefreshDirectoryHint()
-    {
-        SVRegistry.CurrentBorder.TitleLabel ??= new();
-        SVRegistry.CurrentBorder.TitleLabel.Segments = [new() { Text = currentPath }];
-
-        await SVRegistry.CurrentBorder.Invalidate();
-    }
-
-    private static async Task RefreshSelectionInfo(FSEntry? selectedEntry)
-    {
-        await SVRegistry.SelectionInfoView.Update(selectedEntry);
-    }
-
-    private static EntriesListView previewEntriesList = new();
-    private static async Task<IRelativeSunfireView?> GetPreview(FSEntry? selectedEntry, CancellationToken token)
-    {
-        IRelativeSunfireView? view = null;
-        if(selectedEntry is not null)
-            if (selectedEntry.Value.IsDirectory)
-            {
-                await Logger.Debug(nameof(Sunfire), $"Previewing Directory \"{selectedEntry.Value.Path}\"");
-
-                await previewEntriesList.UpdateCurrentPath(selectedEntry.Value.Path);
-
-                view = previewEntriesList;
-            }
-
-        return view;
+        await RefreshPreviews();
     }
 
     public static async Task NavUp() => await NavList(-1);
@@ -228,25 +64,9 @@ public static class AppState
     //Nav Helpers
     public static async Task NavList(int delta)
     {
-        await SVRegistry.CurrentList.Nav(delta);  
-        
-        var previewToken = SecurePreviewGenToken();
+        await SVRegistry.CurrentList.Nav(delta);
 
-        var selectedEntry = await GetSelectedEntry();
-
-        await SVRegistry.PreviewView.Update(selectedEntry);
-        await SVRegistry.SelectionInfoView.Update(selectedEntry);
-
-        try
-        {   
-            if(!previewToken.IsCancellationRequested)
-                await Program.Renderer.EnqueueAction(async () =>
-                {
-
-                    await RefreshDirectoryHint();
-                });
-            }
-        catch (OperationCanceledException) { }
+        await RefreshPreviews();
     }
 
     public static async Task HandleFile()
@@ -268,5 +88,16 @@ public static class AppState
                 }
             );
         }
+    }
+
+    private static async Task<FSEntry?> GetSelectedEntry() => 
+        await SVRegistry.CurrentList.GetCurrentEntry();
+
+    private static async Task RefreshPreviews()
+    {
+        var selectedEntry = await GetSelectedEntry();
+
+        await SVRegistry.PreviewView.Update(selectedEntry);
+        await SVRegistry.SelectionInfoView.Update(selectedEntry);
     }
 }

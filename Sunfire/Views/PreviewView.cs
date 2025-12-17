@@ -10,8 +10,8 @@ namespace Sunfire.Views;
 public class PreviewView : PaneSV
 {
     private readonly ConcurrentDictionary<MediaType, IPreviewer> previewers = [];
-    private readonly DirectoryPreviewer directoryPreviewer = new();
-    private readonly FallbackPreviewer fallbackPreviewer = new();
+    public readonly DirectoryPreviewer directoryPreviewer = new();
+    public readonly FallbackPreviewer fallbackPreviewer = new();
 
     private IRelativeSunfireView? backView = null;
 

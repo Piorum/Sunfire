@@ -15,4 +15,6 @@ public class DirectoryPreviewer : PreviewView.IPreviewer
         return previewEntriesList;
     }
 
+    public async Task ToggleHidden() =>
+        await previewEntriesList.ToggleHidden();
 }
