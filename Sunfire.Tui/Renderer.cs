@@ -31,6 +31,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     private readonly Channel<Func<Task>> renderQueue = Channel.CreateUnbounded<Func<Task>>();
 
     private readonly List<(int x, int y, int w, int h)> clearTasks = [];
+    private readonly List<Func<Task>> postRenderTasks = [];
 
     /// <summary>
     /// Starts rendering loop.
@@ -122,6 +123,10 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     {
         clearTasks.Add((x, y, w, h));
     }
+    public void PostRender(Func<Task> task)
+    {
+        postRenderTasks.Add(task);
+    }
 
     private async Task OnRender(AnsiStringBuilder asb)
     {
@@ -132,23 +137,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         var invalidScreen = await RootView.Arrange();
         var arrangeTime = (DateTime.Now - startTime).TotalMicroseconds;
 
-        if(clearTasks.Count > 0)
-        {
-            foreach(var clearTask in clearTasks)
-            {
-                var (x, y, w, h) = clearTask;
-
-                for(int i = y; i < y + h; i++)
-                {
-                    for(int j = x; j < x + w; j++)
-                    {
-                        FrontBuffer[j, i] = new();
-                    }
-                }
-            }
-
-            clearTasks.Clear();
-        }
+        HandleClearTasks();
 
         if (!invalidScreen)
             return;
@@ -242,6 +231,59 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await Logger.Debug(nameof(Tui), $" - (Build     {buildTime}us)");
         await Logger.Debug(nameof(Tui), $" - (Write:    {writeTime}us)");
         await Logger.Debug(nameof(Tui), $" - (Swap:     {swapTime}us)");
+
+        await HandlePostRenderTasks();
+    }
+
+    private void HandleClearTasks()
+    {
+        if(clearTasks.Count > 0)
+        {
+            foreach(var clearTask in clearTasks)
+            {
+                var (x, y, w, h) = clearTask;
+
+                for(int i = y; i < y + h; i++)
+                {
+                    for(int j = x; j < x + w; j++)
+                    {
+                        FrontBuffer[j, i] = new();
+                    }
+                }
+            }
+
+            clearTasks.Clear();
+        }
+    }   
+    
+    private async Task HandlePostRenderTasks()
+    {
+        if(postRenderTasks.Count > 0)
+        {
+            var startTime = DateTime.Now;
+
+            List<Task> tasks = [];
+
+            foreach(var task in postRenderTasks)
+                try { tasks.Add(task()); }
+                catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                var exs = ex is AggregateException ae ? ae.InnerExceptions : (IEnumerable<Exception>)[ex];
+                foreach(var ie in exs)
+                    _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
+            }
+
+            postRenderTasks.Clear();
+
+            var postRenderTime = (DateTime.Now - startTime).TotalMicroseconds;
+            await Logger.Debug(nameof(Tui), $" - (Ex-Tasks: {postRenderTime}us)");
+        }
     }
 
     private static async Task Write(string text)
