@@ -10,8 +10,6 @@ namespace Sunfire;
 
 public static class AppState
 {
-    public static readonly FSCache fsCache = new();
-
     private static string currentPath = "";
 
     private static CancellationTokenSource? previewGenCts;
@@ -68,6 +66,7 @@ public static class AppState
         var selectedEntry = await GetSelectedEntry();
 
         await SVRegistry.PreviewView.Update(selectedEntry);
+        await SVRegistry.SelectionInfoView.Update(selectedEntry);
 
         try
         {   
@@ -76,7 +75,6 @@ public static class AppState
                 {
 
                     await RefreshDirectoryHint();
-                    await RefreshSelectionInfo(selectedEntry);
                 });
             }
         catch (OperationCanceledException) { }
@@ -196,30 +194,7 @@ public static class AppState
 
     private static async Task RefreshSelectionInfo(FSEntry? selectedEntry)
     {
-        //Selection Full Path
-        //Misc File Info
-        if(selectedEntry is not null)
-        {
-            SVRegistry.BottomLeftBorder.TitleLabel ??= new();
-            SVRegistry.BottomLeftBorder.TitleLabel.Segments = [new() { Text = selectedEntry.Value.Path }];
-            
-            if(selectedEntry.Value.IsDirectory)
-                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" Directory {(await fsCache.GetEntries(selectedEntry.Value.Path, default)).Count}" }];
-            else
-            {
-                var type = MediaRegistry.Scanner.Scan(selectedEntry.Value);
-                
-                SVRegistry.BottomLeftLabel.Segments = [new() { Text = $" File {selectedEntry.Value.Size}B (Type: \"{type}\")" }];
-            }
-
-        }
-        else
-        {
-            SVRegistry.BottomLeftBorder.TitleLabel = null;
-            SVRegistry.BottomLeftLabel.Segments = null;
-        }
-
-        await SVRegistry.BottomLeftBorder.Invalidate();
+        await SVRegistry.SelectionInfoView.Update(selectedEntry);
     }
 
     private static EntriesListView previewEntriesList = new();
@@ -260,6 +235,7 @@ public static class AppState
         var selectedEntry = await GetSelectedEntry();
 
         await SVRegistry.PreviewView.Update(selectedEntry);
+        await SVRegistry.SelectionInfoView.Update(selectedEntry);
 
         try
         {   
@@ -268,7 +244,6 @@ public static class AppState
                 {
 
                     await RefreshDirectoryHint();
-                    await RefreshSelectionInfo(selectedEntry);
                 });
             }
         catch (OperationCanceledException) { }

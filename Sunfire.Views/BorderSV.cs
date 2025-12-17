@@ -74,7 +74,7 @@ public class BorderSV : IRelativeSunfireView
         return workDone || borderUpdated;
     }
 
-    private Task OnArrange()
+    protected virtual Task OnArrange()
     {
         templateCell = new SVCell
         {

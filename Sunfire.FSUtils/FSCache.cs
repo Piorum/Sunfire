@@ -4,11 +4,11 @@ using Sunfire.FSUtils.Models;
 
 namespace Sunfire.FSUtils;
 
-public class FSCache
+public static class FSCache
 {
-    private readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
+    private static readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
 
-    public async Task<List<FSEntry>> GetEntries(string path, CancellationToken token)
+    public static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token)
     {
         if(_cache.TryGetValue(path, out var entries))
             return entries;
@@ -44,12 +44,12 @@ public class FSCache
         return entries;
     }
 
-    public void Invalidate(string path)
+    public static void Invalidate(string path)
     {
         _cache.Remove(path, out var _);
     }
 
-    public void Clear()
+    public static void Clear()
     {
         _cache.Clear();
     }

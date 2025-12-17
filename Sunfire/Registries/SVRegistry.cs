@@ -23,21 +23,21 @@ public static class SVRegistry
 
     private static LabelSV? bottomRightLabel;
     private static BorderSV? bottomRightBorder;
-    private static LabelSV? bottomLeftLabel;
-    private static BorderSV? bottomLeftBorder;
+    private static SelectionInfoView? selectionInfoView;
 
     [ModuleInitializer]
     public static void Init()
     {
-        bottomLeftLabel = new()
+        var selectionInfoLabel = new LabelSV()
         {
             X = 0,
             Y = 1,
         };
-        bottomLeftBorder = new()
+        selectionInfoView = new(selectionInfoLabel)
         {
-            SubView = bottomLeftLabel
+            SubView = selectionInfoLabel
         };
+
         bottomRightLabel = new()
         {
             X = 1,
@@ -105,7 +105,7 @@ public static class SVRegistry
                     containerBorder,
                     currentBorder,
                     previewBorder,
-                    bottomLeftBorder,
+                    selectionInfoView,
                     bottomRightBorder
                 ]
             }
@@ -138,8 +138,6 @@ public static class SVRegistry
         bottomRightLabel!;
     public static BorderSV BottomRightBorder =>
         bottomRightBorder!;
-    public static LabelSV BottomLeftLabel =>
-        bottomLeftLabel!;
-    public static BorderSV BottomLeftBorder =>
-        bottomLeftBorder!;
+    public static SelectionInfoView SelectionInfoView =>
+        selectionInfoView!;
 }
