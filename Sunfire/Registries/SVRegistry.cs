@@ -18,7 +18,7 @@ public static class SVRegistry
     private static PaneSV? currentPane;
     private static BorderSV? currentBorder;
 
-    private static PaneSV? previewPane;
+    private static PreviewView? previewPane;
     private static BorderSV? previewBorder;
 
     private static LabelSV? bottomRightLabel;
@@ -129,7 +129,7 @@ public static class SVRegistry
     public static BorderSV CurrentBorder =>
         currentBorder!;
 
-    public static PaneSV PreviewPane =>
+    public static PreviewView PreviewView =>
         previewPane!;
     public static BorderSV PreviewBorder =>
         previewBorder!;

@@ -106,7 +106,7 @@ internal class Program
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => 
                 { 
-                    await AppState.Reload();
+                    await AppState.Refresh();
                 }),
 
             //Nav
@@ -158,7 +158,7 @@ internal class Program
                 .WithBind(async (inputData) => await AppState.ToggleHidden()),
 
             //Editing Binds
-            InputHandler.CreateBinding()
+            /*InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Spacebar))
                 .WithContext([InputContext.Global])
@@ -184,7 +184,7 @@ internal class Program
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.OemComma))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Bash()),
+                .WithBind(async (inputData) => await AppState.Bash()),*/
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 

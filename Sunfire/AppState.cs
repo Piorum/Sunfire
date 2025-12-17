@@ -67,18 +67,14 @@ public static class AppState
 
         var selectedEntry = await GetSelectedEntry();
 
-        if(selectedEntry is null)
-            await Logger.Debug(nameof(Sunfire), $"selectedEntry is null at {currentPath}");
+        await SVRegistry.PreviewView.Update(selectedEntry);
 
         try
         {   
-            var preview = await GetPreview(selectedEntry, previewToken);
-
             if(!previewToken.IsCancellationRequested)
                 await Program.Renderer.EnqueueAction(async () =>
                 {
 
-                    await RefreshPreview(preview);
                     await RefreshDirectoryHint();
                     await RefreshSelectionInfo(selectedEntry);
                 });
@@ -98,7 +94,7 @@ public static class AppState
     private static bool clean = true;
     private static async Task RefreshPreview(IRelativeSunfireView? view)
     {
-        SVRegistry.PreviewPane.SubViews.Clear();
+        SVRegistry.PreviewView.SubViews.Clear();
 
         if(view is not null)
         {
@@ -134,23 +130,23 @@ public static class AppState
 
                         await Program.Renderer.EnqueueAction(async () => 
                         {
-                            Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
-                            await SVRegistry.PreviewPane.Invalidate();
+                            Program.Renderer.Clear(SVRegistry.PreviewView.OriginX, SVRegistry.PreviewView.OriginY, SVRegistry.PreviewView.SizeX, SVRegistry.PreviewView.SizeY);
+                            await SVRegistry.PreviewView.Invalidate();
                         });
                     });
                 }
                 else
                 {
-                    Program.Renderer.Clear(SVRegistry.PreviewPane.OriginX, SVRegistry.PreviewPane.OriginY, SVRegistry.PreviewPane.SizeX, SVRegistry.PreviewPane.SizeY);
-                    await SVRegistry.PreviewPane.Invalidate();
+                    Program.Renderer.Clear(SVRegistry.PreviewView.OriginX, SVRegistry.PreviewView.OriginY, SVRegistry.PreviewView.SizeX, SVRegistry.PreviewView.SizeY);
+                    await SVRegistry.PreviewView.Invalidate();
                 }
 
                 clean = true;
             }
 
-            SVRegistry.PreviewPane.SubViews.Add(view);
+            SVRegistry.PreviewView.SubViews.Add(view);
             
-            await SVRegistry.PreviewPane.Invalidate();
+            await SVRegistry.PreviewView.Invalidate();
         }
         else if(await GetSelectedEntry() is not null)
         {
@@ -167,7 +163,7 @@ public static class AppState
 
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string previewerPath = Path.Combine(baseDir, "sunfire-kitty-previewer");
-            string previewArgs = $"\"{(await GetSelectedEntry()).Value.Path}\" {SVRegistry.PreviewPane.SizeX} {SVRegistry.PreviewPane.SizeY} {SVRegistry.PreviewPane.OriginX} {SVRegistry.PreviewPane.OriginY}";
+            string previewArgs = $"\"{(await GetSelectedEntry()).Value.Path}\" {SVRegistry.PreviewView.SizeX} {SVRegistry.PreviewView.SizeY} {SVRegistry.PreviewView.OriginX} {SVRegistry.PreviewView.OriginY}";
             await Logger.Debug(nameof(Sunfire), $"Previewing with args: \"{previewArgs}\"");
 
             previewer = new Process
@@ -263,17 +259,18 @@ public static class AppState
 
         var selectedEntry = await GetSelectedEntry();
 
-        try
-        {
-            var preview = await GetPreview(selectedEntry, previewToken);
+        await SVRegistry.PreviewView.Update(selectedEntry);
 
+        try
+        {   
             if(!previewToken.IsCancellationRequested)
                 await Program.Renderer.EnqueueAction(async () =>
                 {
+
+                    await RefreshDirectoryHint();
                     await RefreshSelectionInfo(selectedEntry);
-                    await RefreshPreview(preview);
                 });
-        }
+            }
         catch (OperationCanceledException) { }
     }
 

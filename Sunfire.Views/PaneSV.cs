@@ -44,7 +44,7 @@ public class PaneSV : IRelativeSunfireView
         return await PropagateArrange();
     }
 
-    private async Task OnArrange()
+    protected virtual async Task OnArrange()
     {
         await PopulateXYZLevels();
 

@@ -1,12 +1,14 @@
 using Sunfire.FSUtils.Models;
+using Sunfire.Tui.Interfaces;
 using Sunfire.Views;
 
 namespace Sunfire.Previewers;
 
 public class FallbackPreviewer : PreviewView.IPreviewer
 {
-    public Task Update(FSEntry entry)
+
+    public Task<IRelativeSunfireView?> Update(FSEntry entry, CancellationToken token)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<IRelativeSunfireView?>(null);
     }
 }

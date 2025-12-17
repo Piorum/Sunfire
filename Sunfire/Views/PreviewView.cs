@@ -3,39 +3,76 @@ using Sunfire.Enums;
 using Sunfire.FSUtils.Models;
 using Sunfire.Previewers;
 using Sunfire.Registries;
+using Sunfire.Tui.Interfaces;
 
 namespace Sunfire.Views;
 
-public class PreviewView
+public class PreviewView : PaneSV
 {
-    private FSEntry currentEntry;
+    private readonly ConcurrentDictionary<MediaType, IPreviewer> previewers = [];
+    private readonly DirectoryPreviewer directoryPreviewer = new();
+    private readonly FallbackPreviewer fallbackPreviewer = new();
 
-    private ConcurrentDictionary<MediaType, IPreviewer> previewers = [];
-    private DirectoryPreviewer directoryPreviewer = new();
-    private FallbackPreviewer fallbackPreviewer = new();
+    private IRelativeSunfireView? backView = null;
 
-    public async Task UpdateCurrentEntry(FSEntry entry)
+    private CancellationTokenSource? previewGenCts;
+
+    public async Task Update(FSEntry? entry)
     {
-        currentEntry = entry;
+        var token = SecurePreviewGenToken();
+
+        if(entry is null)
+        {
+            backView = null;
+            return;
+        }
 
         IPreviewer previewer;
-        if(entry.IsDirectory)
+        if(entry.Value.IsDirectory)
             previewer = directoryPreviewer;
         else
-            if(previewers.TryGetValue(MediaRegistry.Scanner.Scan(entry), out var mediaPreviewer))
+            if(previewers.TryGetValue(MediaRegistry.Scanner.Scan(entry.Value), out var mediaPreviewer))
                 previewer = mediaPreviewer;
             else
                 previewer = fallbackPreviewer;
-        
-        await previewer.Update(entry);
+        try
+        {
+            var updatedView = await previewer.Update(entry.Value, token);
+
+            if(!token.IsCancellationRequested)
+            {
+                backView = updatedView;
+                await Program.Renderer.EnqueueAction(Invalidate);
+            }
+        }
+        catch (OperationCanceledException){ }
     }
 
     public void AddPreviewer(MediaType mediaType, IPreviewer previewer) =>
         previewers.TryAdd(mediaType, previewer);
 
+    override protected async Task OnArrange()
+    {
+        SubViews.Clear();
+
+        if(backView is not null)
+            SubViews.Add(backView);
+
+        await base.OnArrange();
+    }
+
+    private CancellationToken SecurePreviewGenToken()
+    {
+        previewGenCts?.Cancel();
+        previewGenCts?.Dispose();
+        
+        previewGenCts = new();
+        return previewGenCts.Token;
+    }
+
     public interface IPreviewer
     {
-        public Task Update(FSEntry entry);
-    }
+        public Task<IRelativeSunfireView?> Update(FSEntry entry, CancellationToken token);
+    }    
 }
 
