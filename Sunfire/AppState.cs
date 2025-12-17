@@ -37,7 +37,9 @@ public static class AppState
 
     public static async Task ToggleHidden()
     {
-        showHidden = !showHidden;
+        await SVRegistry.ContainerList.ToggleHidden();
+        await SVRegistry.CurrentList.ToggleHidden();
+        await previewEntriesList.ToggleHidden();
         ResetCache();
 
         await Refresh();
@@ -46,7 +48,6 @@ public static class AppState
 
     public static async Task Init()
     {
-        //Swap for finding directory program is opened in?
         string basePath;
         if(Program.Options.UseUserProfileAsDefault)
             basePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -54,28 +55,10 @@ public static class AppState
             basePath = Environment.CurrentDirectory;
 
         if (!Directory.Exists(basePath)) 
-            throw new("CWD is invalid, Not a directory");
-
-        //Prepopulated selectedEntryCache
-        var curDir = new DirectoryInfo(basePath);
-
-        while(curDir?.Parent != null)
-        {
-            string containerPath = curDir.Parent.FullName;
-            string entryToSelectName = curDir.Name;
-
-            var entries = await fsCache.GetEntries(containerPath, default);
-
-            var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
-
-            selectedEntryCache[containerPath] = entry;
-
-            curDir = curDir.Parent;
-        }
+            throw new("basePath is invalid, Not a directory");
 
         //Populating Views && currentPath
         await Refresh(basePath);
-        selectedEntryCache[basePath] = await GetSelectedEntry();
     }
 
     public static async Task Reload()
@@ -92,9 +75,8 @@ public static class AppState
         builtLabelsCache.Clear();
     }
 
-    private static async Task<FSEntry?> GetSelectedEntry() => SVRegistry.CurrentList.MaxIndex >= 0 
-        ? (await GetEntries(currentPath))[SVRegistry.CurrentList.SelectedIndex] 
-        : null;
+    private static async Task<FSEntry?> GetSelectedEntry() => 
+        await SVRegistry.CurrentList.GetCurrentEntry();
 
     private static LabelSVSlim? GetSelectedLabel() => 
         SVRegistry.CurrentList.GetSelected();
@@ -106,19 +88,15 @@ public static class AppState
     {
         currentPath = path;
 
-        TaskCompletionSource tcs = new();
-        await Program.Renderer.EnqueueAction(async () =>
-        {
-
-            await RefreshContainerList();
-            await RefreshCurrentList();
-            tcs.TrySetResult();
-        });
-        await tcs.Task;
+        await RefreshContainerList();
+        await RefreshCurrentList();
 
         var previewToken = SecurePreviewGenToken();
 
         var selectedEntry = await GetSelectedEntry();
+
+        if(selectedEntry is null)
+            await Logger.Debug(nameof(Sunfire), $"selectedEntry is null at {currentPath}");
 
         try
         {   
@@ -142,7 +120,7 @@ public static class AppState
             : SVRegistry.ContainerList.UpdateCurrentPath(dirInfo.FullName));
 
     private static async Task RefreshCurrentList() =>
-        await UpdateList(SVRegistry.CurrentList, await GetLabelsAndIndex(currentPath));
+        await SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
 
     private static Process? previewer = null;
     private static bool clean = true;
@@ -385,17 +363,18 @@ public static class AppState
             : 0; //If not found in entries use 0
     }
 
+    private static EntriesListView previewEntriesList = new();
     private static async Task<IRelativeSunfireView?> GetPreview(FSEntry? selectedEntry, CancellationToken token)
     {
         IRelativeSunfireView? view = null;
         if(selectedEntry is not null)
             if (selectedEntry.Value.IsDirectory)
             {
-                EntriesListView previewList = new();
+                await Logger.Debug(nameof(Sunfire), $"Previewing Directory \"{selectedEntry.Value.Path}\"");
 
-                await previewList.UpdateCurrentPath(selectedEntry.Value.Path);
+                await previewEntriesList.UpdateCurrentPath(selectedEntry.Value.Path);
 
-                view = previewList;
+                view = previewEntriesList;
             }
 
         return view;
@@ -415,26 +394,7 @@ public static class AppState
     //Nav Helpers
     public static async Task NavList(int delta)
     {
-        if(SVRegistry.CurrentList.MaxIndex == -1)
-            return; 
-
-        var targetIndex = SVRegistry.CurrentList.SelectedIndex + delta;
-        targetIndex = Math.Clamp(targetIndex, 0, SVRegistry.CurrentList.MaxIndex);
-
-        if(targetIndex == SVRegistry.CurrentList.SelectedIndex)
-            return;
-
-        selectedEntryCache[currentPath] = (await GetEntries(currentPath))[targetIndex];
-
-        TaskCompletionSource tcs = new();
-        await Program.Renderer.EnqueueAction(async () =>
-        {
-            SVRegistry.CurrentList.SelectedIndex = targetIndex;
-            await SVRegistry.CurrentList.Invalidate();
-
-            tcs.TrySetResult();
-        });
-        await tcs.Task;        
+        await SVRegistry.CurrentList.Nav(delta);  
         
         var previewToken = SecurePreviewGenToken();
 

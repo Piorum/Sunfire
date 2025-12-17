@@ -14,7 +14,7 @@ public static class SVRegistry
     private static PaneSV? containerPane;
     private static BorderSV? containerBorder;
 
-    private static ListSV? currentList;
+    private static EntriesListView? currentList;
     private static PaneSV? currentPane;
     private static BorderSV? currentBorder;
 
@@ -122,7 +122,7 @@ public static class SVRegistry
     public static BorderSV ContainerBorder =>
         containerBorder!;
 
-    public static ListSV CurrentList =>
+    public static EntriesListView CurrentList =>
         currentList!;
     public static PaneSV CurrentPane =>
         currentPane!;
