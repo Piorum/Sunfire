@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Sunfire.Registries;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
+using Sunfire.FSUtils;
+using Sunfire.Views;
 
 namespace Sunfire;
 
@@ -11,6 +13,8 @@ public static class AppState
 
     public static async Task ToggleHidden()
     {
+        await SVRegistry.CurrentList.SaveCurrentEntry();
+
         await SVRegistry.ContainerList.ToggleHidden();
         await SVRegistry.CurrentList.ToggleHidden();
         await SVRegistry.PreviewView.directoryPreviewer.ToggleHidden();
@@ -30,6 +34,22 @@ public static class AppState
         if (!Directory.Exists(basePath)) 
             throw new("basePath is invalid, Not a directory");
 
+        var curDir = new DirectoryInfo(basePath);
+
+        while(curDir?.Parent != null)
+        {
+            string containerPath = curDir.Parent.FullName;
+            string entryToSelectName = curDir.Name;
+
+            var entries = await FSCache.GetEntries(containerPath, default);
+
+            var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
+
+            EntriesListView.SaveEntry(containerPath, entry);
+
+            curDir = curDir.Parent;
+        }
+
         //Populating Views && currentPath
         await Refresh(basePath);
     }
@@ -43,6 +63,8 @@ public static class AppState
         var containerPath = Directory.GetParent(currentPath) is var dirInfo && dirInfo is not null 
             ? dirInfo.FullName 
             : "";
+
+        await SVRegistry.CurrentList.SaveCurrentEntry();
 
         await SVRegistry.ContainerList.UpdateCurrentPath(containerPath);
         await SVRegistry.CurrentList.UpdateCurrentPath(currentPath);

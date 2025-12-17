@@ -10,6 +10,8 @@ namespace Sunfire.Views;
 
 public class EntriesListView : ListSV
 {
+    private static readonly ConcurrentDictionary<string, FSEntry> previouslySelectedEntries = [];
+
     private LabelsCache.LabelSortOptions sortOptions = LabelsCache.LabelSortOptions.None;
 
     private string currentPath = string.Empty;
@@ -34,6 +36,18 @@ public class EntriesListView : ListSV
         selectedIndex = targetIndex;
 
         await Program.Renderer.EnqueueAction(Invalidate);
+    }
+
+    public async Task SaveCurrentEntry()
+    {
+        var currentEntry = await LabelsCache.GetCurrentEntry((currentPath, sortOptions), selectedIndex);
+        if(currentEntry is not null)
+            previouslySelectedEntries[currentPath] = currentEntry.Value;
+    }
+
+    public static void SaveEntry(string path, FSEntry entry)
+    {
+        previouslySelectedEntries[path] = entry;
     }
 
     public async Task UpdateCurrentPath(string path)
@@ -63,6 +77,7 @@ public class EntriesListView : ListSV
         return labelsGenCts.Token;
     }
 
+
     private async Task UpdateBackLabels()
     {
         var token = SecureLabelsGenToken();
@@ -75,9 +90,19 @@ public class EntriesListView : ListSV
         else
             labels = await LabelsCache.GetAsync((currentPath, sortOptions));
 
+        int index;
+        int? previouslySelectedIndex = null;
+        if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
+            previouslySelectedIndex = await LabelsCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
+
+        if(previouslySelectedIndex is not null)
+            index = previouslySelectedIndex.Value;
+        else
+            index = 0;
+
         if(!token.IsCancellationRequested)
         {
-            selectedIndex = 0;
+            selectedIndex = index;
             backLabels = [.. labels];
             
             await Program.Renderer.EnqueueAction(Invalidate);
@@ -101,7 +126,6 @@ public class EntriesListView : ListSV
 
     private static class LabelsCache
     {
-
         private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
         private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<LabelSVSlim>>>> labelsCache = [];
 
@@ -135,6 +159,20 @@ public class EntriesListView : ListSV
             return null;
         }
 
+        public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry entry)
+        {
+            if(!sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy))
+                return null;
+
+            var currentEntries = await currentEntriesLazy.Value;
+            var indexOfEntry = currentEntries.IndexOf(entry);
+
+            if(indexOfEntry < 0)
+                return null;
+
+            return indexOfEntry;
+        }
+
         private static Lazy<Task<List<FSEntry>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key) =>
             sortedEntriesCache.GetOrAdd(key, k => new Lazy<Task<List<FSEntry>>>(async () =>
                 {
@@ -156,6 +194,13 @@ public class EntriesListView : ListSV
 
                     return list;
                 }));
+
+        private static Lazy<Task<List<FSEntry>>>? TryGetEntries((string path, LabelSortOptions options) key)
+        {
+            sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy);
+
+            return currentEntriesLazy;
+        }
         
         private static readonly SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
         private static readonly SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
