@@ -4,16 +4,13 @@ using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.Views;
-using System.Text;
-using Sunfire.Views.Text;
-using Sunfire.Ansi.Models;
-using System.Threading.Channels;
 
 namespace Sunfire;
 
 public static class AppState
 {
     private static string currentPath = "";
+    private static readonly InputModeHook inputModeHook = new(SVRegistry.RootPane);
 
     public static async Task ToggleHidden()
     {
@@ -83,6 +80,19 @@ public static class AppState
         await RefreshPreviews();
     }
 
+    //Refresh Helpers
+    private static async Task<FSEntry?> GetCurrentEntry() => 
+        await SVRegistry.CurrentList.GetCurrentEntry();
+
+    private static async Task RefreshPreviews()
+    {
+        var currentEntry = await GetCurrentEntry();
+
+        await SVRegistry.PreviewView.Update(currentEntry);
+        await SVRegistry.SelectionInfoView.Update(currentEntry);
+    }
+
+    //Nav
     public static async Task NavUp() => await NavList(-1);
     public static async Task NavDown() => await NavList(1);
     public static async Task NavOut() => 
@@ -102,6 +112,7 @@ public static class AppState
         await RefreshPreviews();
     }
 
+    //Actions
     public static async Task HandleFile()
     {
         if(await GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
@@ -122,11 +133,11 @@ public static class AppState
             );
         }
     }
-
     public static async Task Search()
     {
         FSEntry? startEntry = await SVRegistry.CurrentList.GetCurrentEntry();
         List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
+        EntrySearcher searcher = new(currentEntries);
 
         char preCharacter = '/';
 
@@ -135,7 +146,7 @@ public static class AppState
 
         async Task Search(string input)
         {
-            bestMatch = GetBestMatch(currentEntries, input);
+            bestMatch = searcher.GetBestMatch(input);
             invalidSearch = bestMatch is null;
 
             if(!invalidSearch)
@@ -145,7 +156,7 @@ public static class AppState
             }
         }
 
-        await EnableInputMode(
+        await inputModeHook.EnableInputMode(
             preCharacter: preCharacter, 
             warnSource: () => invalidSearch, 
             onUpdate: Search, 
@@ -157,13 +168,12 @@ public static class AppState
             specialHandlers: []
         );
     }
-
     public static async Task Sh()
     {
         char preCharacter = '$';
         bool cancelled = false;
 
-        var cmd = await EnableInputMode(
+        var cmd = await inputModeHook.EnableInputMode(
             preCharacter: preCharacter,
             warnSource: () => false,
             onUpdate: (_) => Task.CompletedTask,
@@ -197,149 +207,5 @@ public static class AppState
             bash?.WaitForExit();
             await InvalidateState();
         });
-    }
-
-    //Input Mode Helpers
-    public static async Task<string> EnableInputMode(char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
-    {
-        TaskCompletionSource<string> tcs = new();
-        StringBuilder text = new();
-
-        var textDisplay = await AddTextDisplay();
-        await UpdateTextDisplay(textDisplay, preCharacter, text.ToString(), warnSource());
-
-        async Task onExit()
-        {
-            await RemoveTextDisplay(textDisplay);
-            tcs.TrySetResult(text.ToString());
-        }
-
-        List<(ConsoleKey key, Func<Task> task)> completeExitHandlers = [];
-        foreach(var (key, task) in exitHandlers)
-        {
-            completeExitHandlers.Add((key, async () =>
-            {
-                await task();
-                await onExit();
-            }));
-        }
-
-        Program.InputHandler.EnableInputMode(
-            textHandler: async (a) =>
-            {
-                text.Append(a);
-                var textString = text.ToString();
-
-                await onUpdate(textString);
-                await UpdateTextDisplay(textDisplay, preCharacter, textString, warnSource());
-            },
-            deletionHandler: async () => 
-            {
-                if(text.Length > 0)
-                    text.Remove(text.Length - 1, 1);
-                var textString = text.ToString();
-
-                await onUpdate(textString);
-                await UpdateTextDisplay(textDisplay, preCharacter, textString, warnSource());
-            },            
-            exitHandlers: completeExitHandlers,
-            specialHandlers
-        );
-
-        return await tcs.Task;
-    }
-
-    private static async Task<(BorderSV searchTextLabelBorder, LabelSV searchTextLabel)> AddTextDisplay()
-    {
-        LabelSV searchTextLabel = new()
-        {
-            Y = 2
-        };
-        BorderSV searchTextLabelBorder = new()
-        {
-            SubView = searchTextLabel
-        };
-
-        await Program.Renderer.EnqueueAction(async () => 
-        {
-            SVRegistry.RootPane.SubViews.Add(searchTextLabelBorder);
-            await SVRegistry.RootPane.Invalidate();
-        });
-
-        return (searchTextLabelBorder, searchTextLabel);
-    }
-
-    private static async Task RemoveTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay)
-    {
-        await Program.Renderer.EnqueueAction(async () => 
-        {
-            SVRegistry.RootPane.SubViews.Remove(textDisplay.searchTextLabelBorder);
-            await SVRegistry.RootPane.Invalidate();
-        });
-    }
-
-    private static async Task UpdateTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay, char preCharacter, string text, bool warn)
-    {
-        SStyle baseStyle = new() { ForegroundColor = warn ? ColorRegistry.Red : null };
-
-        var segments = new LabelSVSlim.LabelSegment[2]
-        {
-            new() { Text = $" {preCharacter}{text}", Style = baseStyle },
-            new() { Text = " ", Style = baseStyle with { Properties = SAnsiProperty.Underline } }
-        };
-
-        await Program.Renderer.EnqueueAction(async () =>
-        {
-            textDisplay.searchTextLabel.Segments = segments;
-            await textDisplay.searchTextLabel.Invalidate();
-        });
-    }
-
-    //Search Helpers
-    private static FSEntry? GetBestMatch(List<FSEntry> entries, string search)
-    {
-        if(string.IsNullOrEmpty(search)) return null;
-
-        return entries
-            .Select(entry => new { Entry = entry, Score = ScoreMatch(entry.Name, search)})
-            .Where(x => x.Score > 0)
-            .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.Entry.Name.Length) //Prefer shorter
-            .Select(x => (FSEntry?)x.Entry)
-            .FirstOrDefault();
-    }
-    private static int ScoreMatch(string text, string search)
-    {
-        if (text.Equals(search, StringComparison.OrdinalIgnoreCase)) return 4; //Exact
-        if (text.StartsWith(search, StringComparison.OrdinalIgnoreCase)) return 3; //Starts With
-        if (text.Contains(search, StringComparison.OrdinalIgnoreCase)) return 2; //Contains
-        if (IsFuzzyMatch(text, search)) return 1; //Fuzzy
-        
-        return 0; //No Match
-    }
-    private static bool IsFuzzyMatch(string text, string search)
-    {
-        int searchIndex = 0;
-        int searchLength = search.Length;
-
-        foreach(char c in text)
-            if (char.ToUpperInvariant(c) == char.ToUpperInvariant(search[searchIndex]))
-            {
-                searchIndex++;
-                if(searchIndex == searchLength) return true;
-            }
-
-        return false;
-    }
-
-    private static async Task<FSEntry?> GetCurrentEntry() => 
-        await SVRegistry.CurrentList.GetCurrentEntry();
-
-    private static async Task RefreshPreviews()
-    {
-        var currentEntry = await GetCurrentEntry();
-
-        await SVRegistry.PreviewView.Update(currentEntry);
-        await SVRegistry.SelectionInfoView.Update(currentEntry);
     }
 }
