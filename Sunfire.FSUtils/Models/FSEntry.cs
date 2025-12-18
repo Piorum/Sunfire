@@ -2,7 +2,7 @@ using System.IO.Enumeration;
 
 namespace Sunfire.FSUtils.Models;
 
-public readonly struct FSEntry
+public readonly record struct FSEntry
 {
     public readonly string Name { get; init; }
     public readonly string Directory { get; init; }

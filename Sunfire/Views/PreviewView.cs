@@ -41,8 +41,14 @@ public class PreviewView : IRelativeSunfireView
 
     private readonly Lock gate = new();
 
+    private FSEntry? currentEntry;
+
     public async Task Update(FSEntry? entry)
     {
+        if(entry == currentEntry)
+            return;
+        currentEntry = entry;
+
         IPreviewer? next = entry is null ? null : SelectPreviewer(entry);
         IPreviewer? previous;
 

@@ -120,59 +120,80 @@ public static class AppState
         FSEntry? startEntry = await SVRegistry.CurrentList.GetCurrentEntry();
         List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
 
-        bool invalidSearch = false;
         char preCharacter = '/';
 
-        StringBuilder search = new();
         FSEntry? bestMatch = null;
+        bool invalidSearch = false;
+
+        async Task Search(string input)
+        {
+            bestMatch = GetBestMatch(currentEntries, input);
+            invalidSearch = bestMatch is null;
+
+            if(!invalidSearch)
+            {
+                await SVRegistry.CurrentList.Nav(bestMatch);
+                await RefreshPreviews();
+            }
+        }
+
+        await EnableInputMode(
+            preCharacter: preCharacter, 
+            warnSource: () => invalidSearch, 
+            onUpdate: Search, 
+            exitHandlers: [ 
+                (ConsoleKey.Escape, () => SVRegistry.CurrentList.Nav(startEntry)), 
+                (ConsoleKey.Tab, () => Task.CompletedTask), 
+                (ConsoleKey.Enter, () => Task.CompletedTask)
+            ], 
+            specialHandlers: []
+        );
+
+    }
+
+    //Input Mode Helpers
+    public static async Task<string> EnableInputMode(char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
+    {
+        StringBuilder text = new();
 
         var textDisplay = await AddTextDisplay();
-        await UpdateTextDisplay(textDisplay, preCharacter, search.ToString(), invalidSearch);
+        await UpdateTextDisplay(textDisplay, preCharacter, text.ToString(), warnSource());
 
-        async Task Search()
+        List<(ConsoleKey key, Func<Task> task)> completeExitHandlers = [];
+        foreach(var (key, task) in exitHandlers)
         {
-            var searchText = search.ToString();
-
-            bestMatch = GetBestMatch(currentEntries, searchText);
-            invalidSearch = bestMatch is null;
-            
-            await UpdateTextDisplay(textDisplay, preCharacter, searchText, invalidSearch);
+            completeExitHandlers.Add((key, async () =>
+            {
+                await task();
+                await RemoveTextDisplay(textDisplay);
+            }));
         }
 
         Program.InputHandler.EnableInputMode(
-            textHandler: async (a) => 
-            { 
-                search.Append(a);
+            textHandler: async (a) =>
+            {
+                text.Append(a);
+                var textString = text.ToString();
 
-                await Search();
-
-                if(!invalidSearch)
-                {
-                    await SVRegistry.CurrentList.Nav(bestMatch);
-                    await RefreshPreviews();
-                }
+                await onUpdate(textString);
+                await UpdateTextDisplay(textDisplay, preCharacter, textString, warnSource());
             },
             deletionHandler: async () => 
             {
-                if(search.Length > 0)
-                    search.Remove(search.Length - 1, 1);
+                if(text.Length > 0)
+                    text.Remove(text.Length - 1, 1);
+                var textString = text.ToString();
 
-                await Search();
-            },
-            exitHandlers: [
-                (ConsoleKey.Escape, async () => 
-                { 
-                    await SVRegistry.CurrentList.Nav(startEntry);
-                    await RemoveTextDisplay(textDisplay);
-                }),
-                (ConsoleKey.Tab, () => RemoveTextDisplay(textDisplay)),
-                (ConsoleKey.Enter, () => RemoveTextDisplay(textDisplay))
-            ],
-            null
+                await onUpdate(textString);
+                await UpdateTextDisplay(textDisplay, preCharacter, textString, warnSource());
+            },            
+            exitHandlers: completeExitHandlers,
+            specialHandlers
         );
+
+        return text.ToString();
     }
 
-    //InputModeHelpers
     private static async Task<(BorderSV searchTextLabelBorder, LabelSV searchTextLabel)> AddTextDisplay()
     {
         LabelSV searchTextLabel = new()
@@ -184,27 +205,39 @@ public static class AppState
             SubView = searchTextLabel
         };
 
-        SVRegistry.RootPane.SubViews.Add(searchTextLabelBorder);
-        await Program.Renderer.EnqueueAction(SVRegistry.RootPane.Invalidate);
+        await Program.Renderer.EnqueueAction(async () => 
+        {
+            SVRegistry.RootPane.SubViews.Add(searchTextLabelBorder);
+            await SVRegistry.RootPane.Invalidate();
+        });
 
         return (searchTextLabelBorder, searchTextLabel);
     }
 
     private static async Task RemoveTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay)
     {
-        SVRegistry.RootPane.SubViews.Remove(textDisplay.searchTextLabelBorder);
-        await Program.Renderer.EnqueueAction(SVRegistry.RootPane.Invalidate);
+        await Program.Renderer.EnqueueAction(async () => 
+        {
+            SVRegistry.RootPane.SubViews.Remove(textDisplay.searchTextLabelBorder);
+            await SVRegistry.RootPane.Invalidate();
+        });
     }
 
     private static async Task UpdateTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay, char preCharacter, string text, bool warn)
     {
         SStyle baseStyle = new() { ForegroundColor = warn ? ColorRegistry.Red : null };
 
-        textDisplay.searchTextLabel.Segments = [ 
-            new() { Text = $" {preCharacter}{text}", Style = baseStyle }, 
-            new() { Text = " ", Style = baseStyle with { Properties = SAnsiProperty.Underline } }];
+        var segments = new LabelSVSlim.LabelSegment[2]
+        {
+            new() { Text = $" {preCharacter}{text}", Style = baseStyle },
+            new() { Text = " ", Style = baseStyle with { Properties = SAnsiProperty.Underline } }
+        };
 
-        await Program.Renderer.EnqueueAction(textDisplay.searchTextLabel.Invalidate);
+        await Program.Renderer.EnqueueAction(async () =>
+        {
+            textDisplay.searchTextLabel.Segments = segments;
+            await textDisplay.searchTextLabel.Invalidate();
+        });
     }
 
     //Search Helpers

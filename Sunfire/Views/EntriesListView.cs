@@ -42,7 +42,7 @@ public class EntriesListView : ListSV
     {
         var index = await LabelsCache.GetIndexOfEntry((currentPath, sortOptions), entry);
 
-        if(index is not null)
+        if(index is not null && index != selectedIndex)
         {
             selectedIndex = index.Value;
             await Program.Renderer.EnqueueAction(Invalidate);
@@ -51,9 +51,10 @@ public class EntriesListView : ListSV
 
     public async Task SaveCurrentEntry()
     {
-        var currentEntry = await LabelsCache.GetCurrentEntry((currentPath, sortOptions), selectedIndex);
+        var path = currentPath;
+        var currentEntry = await GetCurrentEntry();
         if(currentEntry is not null)
-            previouslySelectedEntries[currentPath] = currentEntry.Value;
+            previouslySelectedEntries[path] = currentEntry.Value;
     }
 
     public static void SaveEntry(string path, FSEntry entry)
@@ -63,9 +64,6 @@ public class EntriesListView : ListSV
 
     public async Task UpdateCurrentPath(string path)
     {
-        if(path == currentPath)
-            return;
-
         currentPath = path;
         selectedIndex = 0;
         await UpdateBackLabels();
@@ -101,6 +99,7 @@ public class EntriesListView : ListSV
         else
             labels = await LabelsCache.GetAsync((currentPath, sortOptions));
 
+        await Logger.Debug(nameof(Sunfire), "Pulling Previous Entries");
         int index;
         int? previouslySelectedIndex = null;
         if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
@@ -205,13 +204,6 @@ public class EntriesListView : ListSV
 
                     return list;
                 }));
-
-        private static Lazy<Task<List<FSEntry>>>? TryGetEntries((string path, LabelSortOptions options) key)
-        {
-            sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy);
-
-            return currentEntriesLazy;
-        }
         
         private static readonly SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
         private static readonly SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
