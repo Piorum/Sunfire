@@ -38,6 +38,17 @@ public class EntriesListView : ListSV
         await Program.Renderer.EnqueueAction(Invalidate);
     }
 
+    public async Task Nav(FSEntry? entry)
+    {
+        var index = await LabelsCache.GetIndexOfEntry((currentPath, sortOptions), entry);
+
+        if(index is not null)
+        {
+            selectedIndex = index.Value;
+            await Program.Renderer.EnqueueAction(Invalidate);
+        }
+    }
+
     public async Task SaveCurrentEntry()
     {
         var currentEntry = await LabelsCache.GetCurrentEntry((currentPath, sortOptions), selectedIndex);
@@ -159,13 +170,13 @@ public class EntriesListView : ListSV
             return null;
         }
 
-        public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry entry)
+        public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
         {
-            if(!sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy))
+            if(entry is null || !sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy))
                 return null;
 
             var currentEntries = await currentEntriesLazy.Value;
-            var indexOfEntry = currentEntries.IndexOf(entry);
+            var indexOfEntry = currentEntries.IndexOf(entry.Value);
 
             if(indexOfEntry < 0)
                 return null;
