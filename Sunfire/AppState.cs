@@ -4,8 +4,9 @@ using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.Views;
-using Sunfire.Input;
 using System.Text;
+using Sunfire.Views.Text;
+using Sunfire.Ansi.Models;
 
 namespace Sunfire;
 
@@ -116,25 +117,94 @@ public static class AppState
 
     public static async Task Search()
     {
-        StringBuilder search = new();
-        List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
         FSEntry? startEntry = await SVRegistry.CurrentList.GetCurrentEntry();
+        List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
+
+        bool invalidSearch = false;
+        char preCharacter = '/';
+
+        StringBuilder search = new();
+        FSEntry? bestMatch = null;
+
+        var textDisplay = await AddTextDisplay();
+        await UpdateTextDisplay(textDisplay, preCharacter, search.ToString(), invalidSearch);
+
+        async Task Search()
+        {
+            var searchText = search.ToString();
+
+            bestMatch = GetBestMatch(currentEntries, searchText);
+            invalidSearch = bestMatch is null;
+            
+            await UpdateTextDisplay(textDisplay, preCharacter, searchText, invalidSearch);
+        }
 
         Program.InputHandler.EnableInputMode(
-            async (a) => { 
+            textHandler: async (a) => 
+            { 
                 search.Append(a);
 
-                var bestMatch = GetBestMatch(currentEntries, search.ToString());
+                await Search();
 
-                await SVRegistry.CurrentList.Nav(bestMatch);
+                if(!invalidSearch)
+                {
+                    await SVRegistry.CurrentList.Nav(bestMatch);
+                    await RefreshPreviews();
+                }
             },
-            [
-                (ConsoleKey.Escape, () => SVRegistry.CurrentList.Nav(startEntry) ),
-                (ConsoleKey.Tab, () => Task.CompletedTask ),
-                (ConsoleKey.Enter, () => Task.CompletedTask )
+            deletionHandler: async () => 
+            {
+                if(search.Length > 0)
+                    search.Remove(search.Length - 1, 1);
+
+                await Search();
+            },
+            exitHandlers: [
+                (ConsoleKey.Escape, async () => 
+                { 
+                    await SVRegistry.CurrentList.Nav(startEntry);
+                    await RemoveTextDisplay(textDisplay);
+                }),
+                (ConsoleKey.Tab, () => RemoveTextDisplay(textDisplay)),
+                (ConsoleKey.Enter, () => RemoveTextDisplay(textDisplay))
             ],
             null
         );
+    }
+
+    //InputModeHelpers
+    private static async Task<(BorderSV searchTextLabelBorder, LabelSV searchTextLabel)> AddTextDisplay()
+    {
+        LabelSV searchTextLabel = new()
+        {
+            Y = 2
+        };
+        BorderSV searchTextLabelBorder = new()
+        {
+            SubView = searchTextLabel
+        };
+
+        SVRegistry.RootPane.SubViews.Add(searchTextLabelBorder);
+        await Program.Renderer.EnqueueAction(SVRegistry.RootPane.Invalidate);
+
+        return (searchTextLabelBorder, searchTextLabel);
+    }
+
+    private static async Task RemoveTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay)
+    {
+        SVRegistry.RootPane.SubViews.Remove(textDisplay.searchTextLabelBorder);
+        await Program.Renderer.EnqueueAction(SVRegistry.RootPane.Invalidate);
+    }
+
+    private static async Task UpdateTextDisplay((BorderSV searchTextLabelBorder, LabelSV searchTextLabel) textDisplay, char preCharacter, string text, bool warn)
+    {
+        SStyle baseStyle = new() { ForegroundColor = warn ? ColorRegistry.Red : null };
+
+        textDisplay.searchTextLabel.Segments = [ 
+            new() { Text = $" {preCharacter}{text}", Style = baseStyle }, 
+            new() { Text = " ", Style = baseStyle with { Properties = SAnsiProperty.Underline } }];
+
+        await Program.Renderer.EnqueueAction(textDisplay.searchTextLabel.Invalidate);
     }
 
     //Search Helpers

@@ -58,7 +58,7 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
         await Task.WhenAll(pollTask, handleTask);
     }
 
-    public void EnableInputMode(Func<char, Task> textHandler, List<(ConsoleKey, Func<Task>)> exitHandlers, List<(ConsoleKey, Func<Task>)>? specialHandlers)
+    public void EnableInputMode(Func<char, Task> textHandler, Func<Task> deletionHandler, List<(ConsoleKey, Func<Task>)> exitHandlers, List<(ConsoleKey, Func<Task>)>? specialHandlers)
     {
         _textKeyHandlers.Clear();
         if(specialHandlers is not null)
@@ -75,6 +75,8 @@ public class InputHandler<TContextEnum> where TContextEnum : struct, Enum
                 DisableInputMode();
             };
         }
+
+        _textKeyHandlers[ConsoleKey.Backspace] = deletionHandler;
 
         _textHandler = textHandler;
 
