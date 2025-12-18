@@ -1,10 +1,7 @@
 using System.Collections.Concurrent;
-using Sunfire.Ansi.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
-using Sunfire.Registries;
-using Sunfire.Views.Text;
 
 namespace Sunfire.Views;
 
@@ -17,8 +14,8 @@ public class EntriesListView : ListSV
     private string currentPath = string.Empty;
     private int selectedIndex = 0;
 
-    private List<LabelSVSlim> backLabels = [];
-    private List<LabelSVSlim> frontLabels = [];    
+    private List<EntryLabelView> backLabels = [];
+    private List<EntryLabelView> frontLabels = [];    
     
     private CancellationTokenSource? labelsGenCts;
 
@@ -49,10 +46,10 @@ public class EntriesListView : ListSV
         }
     }
 
-    public async Task SaveCurrentEntry()
+    public void SaveCurrentEntry()
     {
         var path = currentPath;
-        var currentEntry = await GetCurrentEntry();
+        var currentEntry = GetCurrentEntry();
         if(currentEntry is not null)
             previouslySelectedEntries[path] = currentEntry.Value;
     }
@@ -75,8 +72,8 @@ public class EntriesListView : ListSV
         await UpdateBackLabels();
     }
 
-    public async Task<FSEntry?> GetCurrentEntry() =>
-        await LabelsCache.GetCurrentEntry((currentPath, sortOptions), selectedIndex);
+    public FSEntry? GetCurrentEntry() =>
+        selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex].Entry : null;
 
     public static void ClearCache() =>
         LabelsCache.Clear();
@@ -94,7 +91,7 @@ public class EntriesListView : ListSV
     {
         var token = SecureLabelsGenToken();
 
-        IEnumerable<LabelSVSlim> labels;
+        IEnumerable<EntryLabelView> labels;
 
         var path = currentPath;
         if(!Directory.Exists(path))
@@ -140,36 +137,15 @@ public class EntriesListView : ListSV
     private static class LabelsCache
     {
         private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
-        private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<LabelSVSlim>>>> labelsCache = [];
+        private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<EntryLabelView>>>> labelsCache = [];
 
-        public static async Task<List<LabelSVSlim>> GetAsync((string path, LabelSortOptions options) key)
+        public static async Task<List<EntryLabelView>> GetAsync((string path, LabelSortOptions options) key)
         {
             var sortedEntriesLazy = GetOrAddSortedEntries(key);
 
             var labelsLazy = GetOrAddLabels(key, sortedEntriesLazy.Value);
 
             return await labelsLazy.Value;
-        }
-
-        public static async Task<FSEntry?> GetCurrentEntry((string path, LabelSortOptions options) key, int selectedIndex)
-        {
-            if(selectedIndex < 0)
-                return null;
-
-            if(sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy))
-            {
-                var currentEntries = await currentEntriesLazy.Value;
-                if(selectedIndex < currentEntries.Count)
-                {
-                    var currentEntry = currentEntries[selectedIndex];
-
-                    await Logger.Debug(nameof(Sunfire), $"Current Entry \"{currentEntry.Path}\"");
-
-                    return currentEntry;
-                }
-            }
-
-            return null;
         }
 
         public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
@@ -194,42 +170,19 @@ public class EntriesListView : ListSV
                     return [.. SortEntries(entries, k.sortOptions)];
                 }));
 
-        private static Lazy<Task<List<LabelSVSlim>>> GetOrAddLabels((string path, LabelSortOptions options) key, Task<List<FSEntry>> sortedEntriesTask) =>
-            labelsCache.GetOrAdd(key, k => new Lazy<Task<List<LabelSVSlim>>>(async () =>
+        private static Lazy<Task<List<EntryLabelView>>> GetOrAddLabels((string path, LabelSortOptions options) key, Task<List<FSEntry>> sortedEntriesTask) =>
+            labelsCache.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
                 {
                     var entries = await sortedEntriesTask;
 
-                    var list = new List<LabelSVSlim>(entries.Count);
+                    var list = new List<EntryLabelView>(entries.Count);
                     foreach(var entry in entries)
                     {
-                        list.Add(BuildLabel(entry));
+                        list.Add(new EntryLabelView() { Entry = entry });
                     }
 
                     return list;
                 }));
-        
-        private static readonly SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
-        private static readonly SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
-
-        private static LabelSVSlim BuildLabel(FSEntry entry)
-        {
-            SStyle style;
-
-            if(entry.IsDirectory)
-                style = directoryStyle;
-            else
-                style = fileStyle;
-
-            var segments = new LabelSVSlim.LabelSegment[2]
-            {
-                new() { Text = " ", Style = style },
-                new() { Text = entry.Name, Style = style }
-            };
-
-            LabelSVSlim label = new() { Segments = segments };
-
-            return label;
-        }
 
         private static IOrderedEnumerable<FSEntry> SortEntries(IEnumerable<FSEntry> entries, LabelSortOptions options)
         {

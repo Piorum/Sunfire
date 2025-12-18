@@ -39,10 +39,12 @@ public class LabelSVSlim : ISunfireView
         readonly public SStyle Style { get; init; } = new();
     }
 
-    public Task<bool> Arrange()
+    public async Task<bool> Arrange()
     {
         if (Dirty)
         {
+            await OnArrange();
+
             if(Segments is not null && Segments.Length > 0)
             {
                 int totalLength = Segments.Sum(s => s.Text.Length);
@@ -72,10 +74,13 @@ public class LabelSVSlim : ISunfireView
             }
 
             Dirty = false;
-            return Task.FromResult(true);
+            return true;
         }
-        return Task.FromResult(false);
-    }
+        return false;
+    }   
+
+    protected virtual Task OnArrange() => Task.CompletedTask;
+    
 
     public Task Draw(SVContext context)
     {

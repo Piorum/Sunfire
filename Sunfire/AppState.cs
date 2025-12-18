@@ -14,7 +14,7 @@ public static class AppState
 
     public static async Task ToggleHidden()
     {
-        await SVRegistry.CurrentList.SaveCurrentEntry();
+        SVRegistry.CurrentList.SaveCurrentEntry();
 
         await SVRegistry.ContainerList.ToggleHidden();
         await SVRegistry.CurrentList.ToggleHidden();
@@ -57,6 +57,8 @@ public static class AppState
 
     public static async Task InvalidateState()
     {
+        SVRegistry.CurrentList.SaveCurrentEntry();
+
         FSCache.Clear();
         EntriesListView.ClearCache();
 
@@ -72,7 +74,7 @@ public static class AppState
             ? dirInfo.FullName 
             : "";
 
-        await SVRegistry.CurrentList.SaveCurrentEntry();
+        SVRegistry.CurrentList.SaveCurrentEntry();
 
         await SVRegistry.ContainerList.UpdateCurrentPath(containerPath);
         await SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
@@ -81,12 +83,12 @@ public static class AppState
     }
 
     //Refresh Helpers
-    private static async Task<FSEntry?> GetCurrentEntry() => 
-        await SVRegistry.CurrentList.GetCurrentEntry();
+    private static FSEntry? GetCurrentEntry() => 
+        SVRegistry.CurrentList.GetCurrentEntry();
 
     private static async Task RefreshPreviews()
     {
-        var currentEntry = await GetCurrentEntry();
+        var currentEntry = GetCurrentEntry();
 
         await SVRegistry.PreviewView.Update(currentEntry);
         await SVRegistry.SelectionInfoView.Update(currentEntry);
@@ -100,7 +102,7 @@ public static class AppState
             ? Refresh(dirInfo.FullName) 
             : Task.CompletedTask);
     public static async Task NavIn() => 
-        await(await GetCurrentEntry() is var currentEntry && currentEntry is not null && currentEntry.Value.IsDirectory 
+        await(GetCurrentEntry() is var currentEntry && currentEntry is not null && currentEntry.Value.IsDirectory 
             ? Refresh(currentEntry.Value.Path) 
             : HandleFile());
 
@@ -113,9 +115,9 @@ public static class AppState
     }
 
     //Actions
-    public static async Task HandleFile()
+    public static Task HandleFile()
     {
-        if(await GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
+        if(GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
         {
             var (handler, args) = MediaRegistry.GetOpener(currentEntry.Value);
 
@@ -132,10 +134,12 @@ public static class AppState
                 }
             );
         }
+
+        return Task.CompletedTask;
     }
     public static async Task Search()
     {
-        FSEntry? startEntry = await SVRegistry.CurrentList.GetCurrentEntry();
+        FSEntry? startEntry = SVRegistry.CurrentList.GetCurrentEntry();
         List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
         EntrySearcher searcher = new(currentEntries);
 
