@@ -56,6 +56,7 @@ public class EntriesListView : ListSV
             return;
 
         currentPath = path;
+        selectedIndex = 0;
         await UpdateBackLabels();
     }
 
@@ -76,7 +77,6 @@ public class EntriesListView : ListSV
         labelsGenCts = new();
         return labelsGenCts.Token;
     }
-
 
     private async Task UpdateBackLabels()
     {
@@ -102,8 +102,8 @@ public class EntriesListView : ListSV
 
         if(!token.IsCancellationRequested)
         {
-            selectedIndex = index;
             backLabels = [.. labels];
+            selectedIndex = index;
             
             await Program.Renderer.EnqueueAction(Invalidate);
         }

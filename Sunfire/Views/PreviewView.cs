@@ -3,76 +3,140 @@ using Sunfire.Enums;
 using Sunfire.FSUtils.Models;
 using Sunfire.Previewers;
 using Sunfire.Registries;
+using Sunfire.Tui.Enums;
 using Sunfire.Tui.Interfaces;
+using Sunfire.Tui.Models;
 
 namespace Sunfire.Views;
 
-public class PreviewView : PaneSV
+public class PreviewView : IRelativeSunfireView
 {
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Z { get; set; }
+
+    public FillStyle FillStyleX { set; get; } = FillStyle.Max;
+    public FillStyle FillStyleY { set; get; } = FillStyle.Max;
+    public int StaticX { set; get; } = 1; //1 = 1 Cell
+    public int StaticY { set; get; } = 1; //1 = 1 Cell
+    public float PercentX { set; get; } = 1.0f; //1.0f == 100%
+    public float PercentY { set; get; } = 1.0f; //1.0f == 100%
+
+    public int OriginX { set; get; }
+    public int OriginY { set; get; }
+    public int SizeX { set; get; }
+    public int SizeY { set; get; }
+
+    public int MinX { get; } = 0;
+    public int MinY { get; } = 0;
+
+    private volatile bool Dirty;
+
     private readonly ConcurrentDictionary<MediaType, IPreviewer> previewers = [];
     public readonly DirectoryPreviewer directoryPreviewer = new();
     public readonly FallbackPreviewer fallbackPreviewer = new();
 
-    private IRelativeSunfireView? backView = null;
+    private IPreviewer? activePreviewer = null;
+    private IRelativeSunfireView? activeView = null;
 
-    private CancellationTokenSource? previewGenCts;
+    private readonly Lock gate = new();
 
     public async Task Update(FSEntry? entry)
     {
-        var token = SecurePreviewGenToken();
+        IPreviewer? next = entry is null ? null : SelectPreviewer(entry);
+        IPreviewer? previous;
 
-        if(entry is null)
+        bool previewerChanged;
+
+        lock(gate)
         {
-            backView = null;
+            previous = activePreviewer;
+            previewerChanged = next != activePreviewer;
+            activePreviewer = next;
+
+            if (previewerChanged)
+                activeView = null;
+        }
+
+        if (previewerChanged && previous is not null)
+            await previous.CleanUp();
+
+        if (next is null)
+        {
+            await Program.Renderer.EnqueueAction(async () => 
+            {
+                activeView = null;
+                await Invalidate();
+            });
+
             return;
         }
 
-        IPreviewer previewer;
-        if(entry.Value.IsDirectory)
-            previewer = directoryPreviewer;
-        else
-            if(previewers.TryGetValue(MediaRegistry.Scanner.Scan(entry.Value), out var mediaPreviewer))
-                previewer = mediaPreviewer;
-            else
-                previewer = fallbackPreviewer;
-        try
-        {
-            var updatedView = await previewer.Update(entry.Value, token);
+        var view = await next.Update(entry!.Value);
 
-            if(!token.IsCancellationRequested)
-            {
-                backView = updatedView;
-                await Program.Renderer.EnqueueAction(Invalidate);
-            }
+        lock(gate)
+        {
+            if (activePreviewer != next)
+                return;
+
+            activeView = view;
         }
-        catch (OperationCanceledException){ }
+
+        await Program.Renderer.EnqueueAction(Invalidate);
     }
 
     public void AddPreviewer(MediaType mediaType, IPreviewer previewer) =>
         previewers.TryAdd(mediaType, previewer);
 
-    override protected async Task OnArrange()
+    public Task<bool> Arrange()
     {
-        SubViews.Clear();
+        if(Dirty)
+        {
+            var view = activeView;
+            if(view is not null)
+            {
+                (view.OriginX, view.OriginY, view.SizeX, view.SizeY) = (OriginX, OriginY, SizeX, SizeY);
+                view.Arrange();
+            }
 
-        if(backView is not null)
-            SubViews.Add(backView);
+            Dirty = false;
 
-        await base.OnArrange();
+            return Task.FromResult(true);
+        }
+
+        return Task.FromResult(false);
+
     }
 
-    private CancellationToken SecurePreviewGenToken()
+    public async Task Draw(SVContext context)
     {
-        previewGenCts?.Cancel();
-        previewGenCts?.Dispose();
-        
-        previewGenCts = new();
-        return previewGenCts.Token;
+        var view = activeView;
+        if(view is not null)
+            await view.Draw(context);
     }
+
+    public async Task Invalidate()
+    {
+        Dirty = true;
+
+        var view = activeView;
+        if(view is not null)
+            await view.Invalidate();
+    }
+
+    private IPreviewer? SelectPreviewer(FSEntry? entry) =>
+        entry is null
+            ? null
+            : entry.Value.IsDirectory
+                ? directoryPreviewer
+                : previewers.TryGetValue(MediaRegistry.Scanner.Scan(entry.Value), out var previewer)
+                    ? previewer
+                    : fallbackPreviewer;
 
     public interface IPreviewer
     {
-        public Task<IRelativeSunfireView?> Update(FSEntry entry, CancellationToken token);
+        Task<IRelativeSunfireView?> Update(FSEntry entry);
+        Task CleanUp();
     }    
 }
 

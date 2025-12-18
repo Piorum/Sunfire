@@ -106,6 +106,8 @@ internal class Program
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => 
                 { 
+                    Renderer.Clear(Renderer.RootView.OriginX, Renderer.RootView.OriginY, Renderer.RootView.SizeX, Renderer.RootView.SizeY);
+                    await Renderer.EnqueueAction(Renderer.RootView.Invalidate);
                     await AppState.Refresh();
                 }),
 

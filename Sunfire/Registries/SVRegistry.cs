@@ -55,7 +55,6 @@ public static class SVRegistry
         {
             X = 2,
             Y = 0,
-            SubViews = []
         };
         previewBorder = new()
         {

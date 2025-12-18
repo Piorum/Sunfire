@@ -79,8 +79,8 @@ public static class AppState
             ? Refresh(dirInfo.FullName) 
             : Task.CompletedTask);
     public static async Task NavIn() => 
-        await(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && selectedEntry.Value.IsDirectory 
-            ? Refresh(selectedEntry.Value.Path) 
+        await(await GetCurrentEntry() is var currentEntry && currentEntry is not null && currentEntry.Value.IsDirectory 
+            ? Refresh(currentEntry.Value.Path) 
             : HandleFile());
 
     //Nav Helpers
@@ -93,9 +93,9 @@ public static class AppState
 
     public static async Task HandleFile()
     {
-        if(await GetSelectedEntry() is var selectedEntry && selectedEntry is not null && !selectedEntry.Value.IsDirectory)
+        if(await GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
         {
-            var (handler, args) = MediaRegistry.GetOpener(selectedEntry.Value);
+            var (handler, args) = MediaRegistry.GetOpener(currentEntry.Value);
 
             //Launched detached
             Process.Start(
@@ -112,14 +112,14 @@ public static class AppState
         }
     }
 
-    private static async Task<FSEntry?> GetSelectedEntry() => 
+    private static async Task<FSEntry?> GetCurrentEntry() => 
         await SVRegistry.CurrentList.GetCurrentEntry();
 
     private static async Task RefreshPreviews()
     {
-        var selectedEntry = await GetSelectedEntry();
+        var currentEntry = await GetCurrentEntry();
 
-        await SVRegistry.PreviewView.Update(selectedEntry);
-        await SVRegistry.SelectionInfoView.Update(selectedEntry);
+        await SVRegistry.PreviewView.Update(currentEntry);
+        await SVRegistry.SelectionInfoView.Update(currentEntry);
     }
 }

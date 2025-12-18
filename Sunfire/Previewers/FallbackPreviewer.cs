@@ -9,111 +9,24 @@ namespace Sunfire.Previewers;
 
 public class FallbackPreviewer : PreviewView.IPreviewer
 {
-    BashPreviewView previewView = new();
+    private BashPreviewView? view;
 
-    public Task<IRelativeSunfireView?> Update(FSEntry entry, CancellationToken token)
+    public Task<IRelativeSunfireView?> Update(FSEntry entry)
     {
-        previewView.TargetEntry = entry;
-
-        return Task.FromResult<IRelativeSunfireView?>(previewView);
+        view ??= new();
+        view.UpdateEntry(entry);
+        return Task.FromResult<IRelativeSunfireView?>(view);
     }
 
-    private class BashPreviewView : ReservedSpaceView
+    public Task CleanUp()
     {
-        private static readonly string baseDir;
-        private static readonly string cleanerPath;
-        private static readonly string previewerPath;
+        view?.Dispose();
+        view = null;
 
-        private static readonly Process cleaner;
-        private static Process? previewer = null;
-
-        public FSEntry? TargetEntry = null;
-
-
-        static BashPreviewView()
-        {
-            baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            cleanerPath = Path.Combine(baseDir, "sunfire-kitty-cleaner");
-            previewerPath = Path.Combine(baseDir, "sunfire-kitty-previewer");
-
-            cleaner = new() 
-            {
-                StartInfo = new()
-                {
-                    FileName = cleanerPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                }
-            };
-        }
-
-        protected override Task OnArrange()
-        {
-            Program.Renderer.Clear(OriginX, OriginY, X, Y);
-
-            return Task.CompletedTask;
-        }
-
-        protected override Task OnDraw()
-        {
-            EnsurePreviewerIsDead();
-
-            if(TargetEntry is null)
-                return Task.CompletedTask;
-
-            string previewArgs = $"\"{TargetEntry.Value.Path}\" {SizeX} {SizeY} {OriginX} {OriginY}";
-
-            previewer = new()
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = previewerPath,
-                    Arguments = previewArgs,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                }
-            };
-
-            Program.Renderer.PostRender(() => 
-            {
-                previewer.Start(); 
-                return Task.CompletedTask; 
-            });
-
-            return Task.CompletedTask;
-        }
-
-        protected override Task OnInvalidate()
-        {
-            EnsurePreviewerIsDead();
-
-            cleaner.Start();
-
-            return Task.CompletedTask;
-        }
-
-        private static void EnsurePreviewerIsDead()
-        {
-            if(previewer is not null && !previewer.HasExited)
-            {
-                var oldPreviewer = previewer;
-                previewer = null;
-
-                _ = Task.Run(() =>
-                {
-                    oldPreviewer.Kill(true);
-                    oldPreviewer.Dispose();
-                });
-            }
-        }
-
+        return Task.CompletedTask;
     }
 
-    private abstract class ReservedSpaceView : IRelativeSunfireView
+    private class BashPreviewView : IRelativeSunfireView, IDisposable
     {
         public int X { get; set; }
         public int Y { get; set; }
@@ -121,52 +34,124 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 
         public FillStyle FillStyleX { get; private set; } = FillStyle.Max;
         public FillStyle FillStyleY { get; private set; } = FillStyle.Max;
-
-        public int StaticX { get; private set; } = 0;
-        public int StaticY { get; private set; } = 0;
-        public float PercentX { get; private set; } = 0;
-        public float PercentY { get; private set; } = 0;
-
-        public int MinX { get; set; } = 0;
-        public int MinY { get; set; } = 0;
+        public int StaticX { get; private set; } = 1;
+        public int StaticY { get; private set; } = 1;
+        public float PercentX { get; private set; } = 1.0f;
+        public float PercentY { get; private set; } = 1.0f;
 
         public int OriginX { get; set; }
         public int OriginY { get; set; }
         public int SizeX { get; set; }
         public int SizeY { get; set; }
 
+        public int MinX { get; private set; } = 0;
+        public int MinY { get; private set; } = 0;
+
+        private FSEntry? _entry;
+
+        private Process? process;
         private bool Dirty;
 
-        public async Task<bool> Arrange()
+        private (int, int, int, int)? lastLayout;
+
+        public void UpdateEntry(FSEntry entry)
         {
-            if(Dirty)
+            _entry = entry;
+            Dirty = true;
+        }
+
+        public Task<bool> Arrange()
+        {
+            var layout = (OriginX, OriginY, SizeX, SizeY);
+            bool layoutChanged = layout != lastLayout;
+            lastLayout = layout;
+
+            if(Dirty || layoutChanged)
             {
                 Dirty = false;
+                
+                StopProcess();
+                ClearRegion();
 
-                await OnArrange();
+                Program.Renderer.PostRender(() =>
+                {
+                    StartProcess();
+                    
+                    return Task.CompletedTask;
+                });
 
-                return true;
+                return Task.FromResult(true);
             }
 
-            return false;
+            return Task.FromResult(false);
         }
 
-        protected abstract Task OnArrange();
+        public Task Draw(SVContext _) => Task.CompletedTask;
 
-        public async Task Draw(SVContext context)
+        public Task Invalidate() => Task.CompletedTask;
+
+        public void Dispose()
         {
-            await OnDraw();
+            StopProcess();
+            ClearRegion();
+            RunCleaner();
         }
 
-        protected abstract Task OnDraw();
-
-        public async Task Invalidate()
+        private void ClearRegion()
         {
-            Dirty = true;
-
-            await OnInvalidate();
+            Program.Renderer.Clear(OriginX, OriginY, SizeX, SizeY);
         }
 
-        protected abstract Task OnInvalidate();
+        private void StartProcess()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string previewerPath = Path.Combine(baseDir, "sunfire-kitty-previewer");
+
+            process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = previewerPath,
+                    Arguments = $"\"{_entry!.Value.Path}\" {SizeX} {SizeY} {OriginX} {OriginY}",
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+        }   
+
+        private void StopProcess()
+        {
+            if (process is not null && !process.HasExited)
+            {
+                var oldProcess = process;
+                process = null;
+                _ = Task.Run(() =>
+                {
+                    oldProcess.Kill(true);
+                    oldProcess.Dispose();
+                });
+            }
+        }
+
+        public static void RunCleaner()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string cleanerPath = Path.Combine(baseDir, "sunfire-kitty-cleaner");
+
+            var cleaner = Process.Start(new ProcessStartInfo
+            {
+                FileName = cleanerPath,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            _ = Task.Run(() =>
+            {
+                cleaner?.WaitForExit();
+            });
+        }
     }
 }
