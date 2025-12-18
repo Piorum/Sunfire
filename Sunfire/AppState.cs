@@ -7,6 +7,7 @@ using Sunfire.Views;
 using System.Text;
 using Sunfire.Views.Text;
 using Sunfire.Ansi.Models;
+using System.Threading.Channels;
 
 namespace Sunfire;
 
@@ -57,7 +58,14 @@ public static class AppState
         await Refresh(basePath);
     }
 
-    public static async Task Refresh() => 
+    public static async Task InvalidateState()
+    {
+        FSCache.Clear();
+        EntriesListView.ClearCache();
+
+        await Refresh();
+    }
+    private static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
@@ -148,16 +156,63 @@ public static class AppState
             ], 
             specialHandlers: []
         );
+    }
 
+    public static async Task Sh()
+    {
+        char preCharacter = '$';
+        bool cancelled = false;
+
+        var cmd = await EnableInputMode(
+            preCharacter: preCharacter,
+            warnSource: () => false,
+            onUpdate: (_) => Task.CompletedTask,
+            exitHandlers:[
+                (ConsoleKey.Escape, () => { cancelled = true; return Task.CompletedTask; }), 
+                (ConsoleKey.Tab, () => Task.CompletedTask), 
+                (ConsoleKey.Enter, () => Task.CompletedTask)
+            ], 
+            specialHandlers: []
+        );
+
+        if(cancelled)
+            return;
+
+        await Logger.Debug(nameof(Sunfire), $"Running shell command: \"{cmd}\" in \"{currentPath}\"");
+        var bash = Process.Start(
+            new ProcessStartInfo()
+            {
+                FileName = "sh",
+                Arguments = $"-c \"{cmd}\"",
+                WorkingDirectory = currentPath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            }
+        );
+
+        _ = Task.Run(async () =>
+        {
+            bash?.WaitForExit();
+            await InvalidateState();
+        });
     }
 
     //Input Mode Helpers
     public static async Task<string> EnableInputMode(char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
     {
+        TaskCompletionSource<string> tcs = new();
         StringBuilder text = new();
 
         var textDisplay = await AddTextDisplay();
         await UpdateTextDisplay(textDisplay, preCharacter, text.ToString(), warnSource());
+
+        async Task onExit()
+        {
+            await RemoveTextDisplay(textDisplay);
+            tcs.TrySetResult(text.ToString());
+        }
 
         List<(ConsoleKey key, Func<Task> task)> completeExitHandlers = [];
         foreach(var (key, task) in exitHandlers)
@@ -165,7 +220,7 @@ public static class AppState
             completeExitHandlers.Add((key, async () =>
             {
                 await task();
-                await RemoveTextDisplay(textDisplay);
+                await onExit();
             }));
         }
 
@@ -191,7 +246,7 @@ public static class AppState
             specialHandlers
         );
 
-        return text.ToString();
+        return await tcs.Task;
     }
 
     private static async Task<(BorderSV searchTextLabelBorder, LabelSV searchTextLabel)> AddTextDisplay()

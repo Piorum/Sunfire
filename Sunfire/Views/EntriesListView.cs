@@ -78,6 +78,9 @@ public class EntriesListView : ListSV
     public async Task<FSEntry?> GetCurrentEntry() =>
         await LabelsCache.GetCurrentEntry((currentPath, sortOptions), selectedIndex);
 
+    public static void ClearCache() =>
+        LabelsCache.Clear();
+
     private CancellationToken SecureLabelsGenToken()
     {
         labelsGenCts?.Cancel();
@@ -237,6 +240,12 @@ public class EntriesListView : ListSV
                 .OrderByDescending(e => e.IsDirectory)
                 .ThenByDescending(e => e.Attributes.HasFlag(FileAttributes.Hidden))
                 .ThenBy(e => e.Name.ToLowerInvariant());
+        }
+
+        public static void Clear()
+        {
+            sortedEntriesCache.Clear();
+            labelsCache.Clear();
         }
 
         [Flags]

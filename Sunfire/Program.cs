@@ -108,7 +108,7 @@ internal class Program
                 { 
                     Renderer.Clear(Renderer.RootView.OriginX, Renderer.RootView.OriginY, Renderer.RootView.SizeX, Renderer.RootView.SizeY);
                     await Renderer.EnqueueAction(Renderer.RootView.Invalidate);
-                    await AppState.Refresh();
+                    await AppState.InvalidateState();
                 }),
 
             //Nav
@@ -151,6 +151,12 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.G, Sunfire.Input.Enums.Modifier.Shift))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex)),
+            //Search
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.Divide))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.Search()),
             
             //Toggles
             InputHandler.CreateBinding()
@@ -160,11 +166,6 @@ internal class Program
                 .WithBind(async (inputData) => await AppState.ToggleHidden()),
 
             //Editing Binds
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Divide))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Search()),
             /*InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.Spacebar))
@@ -179,14 +180,14 @@ internal class Program
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.OemPeriod))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Command()),
+                .WithBind(async (inputData) => await AppState.Command()),*/
 
-            //Bash
+            //Shell
             InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.OemComma))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Bash()),*/
+                .WithBind(async (inputData) => await AppState.Sh()),
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
 
