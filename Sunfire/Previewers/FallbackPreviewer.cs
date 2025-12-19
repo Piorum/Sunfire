@@ -52,6 +52,8 @@ public class FallbackPreviewer : PreviewView.IPreviewer
         private Process? process;
         private bool Dirty;
 
+        private bool disposed = false;
+
         private (int, int, int, int)? lastLayout;
 
         public void UpdateEntry(FSEntry entry)
@@ -75,7 +77,8 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 
                 Program.Renderer.PostRender(() =>
                 {
-                    StartProcess();
+                    if(!disposed)
+                        StartProcess();
                     
                     return Task.CompletedTask;
                 });
@@ -92,6 +95,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 
         public void Dispose()
         {
+            disposed = true;
             StopProcess();
             ClearRegion();
             RunCleaner();

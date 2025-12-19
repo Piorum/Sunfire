@@ -22,83 +22,54 @@ POS_Y="$5"
 wipe_pane() {
     # 1. Tell Kitty to delete the graphics at this ID
     kitty-helper delete_img "$SUNFIRE_KITTY_IMAGE_ID" 1
-    
-    # 2. Overwrite the text area with spaces
-    # Generate a string of empty spaces matching the width
-    local empty_line
-    # This creates a string of spaces of length $WIDTH
-    printf -v empty_line "%*s" "$WIDTH" ""
-
-    local r
-    local row
-    # Loop through every row of the pane
-    for ((r=0; r<HEIGHT; r++)); do
-        row=$((POS_Y + r))
-        
-        # Move cursor to Start of line
-        tput cup "$row" "$POS_X"
-        
-        # Print the empty spaces
-        printf "%s" "$empty_line"
-    done
 }
 
 trap cleanup INT HUP EXIT
 
+wipe_pane
+
 case "$mime" in
 image/png|image/jpeg|image/bmp|image/svg+xml|image/webp)
     gm convert "$1" -resize "$MAX_PREVIEW_DIMENSION" "$THUMBNAIL_FPATH" 2>/dev/null || exit 0
-    wipe_pane
     kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
     ;;
 image/gif)
     gm convert "${1}[0]" -resize "$MAX_PREVIEW_DIMENSION" "$THUMBNAIL_FPATH" 2>/dev/null || exit 0
-    wipe_pane
     kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
     ;;
 application/pdf)
     gs -o "$THUMBNAIL_FPATH" -sDEVICE=pngalpha -dLastPage=1 "$1" >/dev/null 2>&1 || exit 0
-    wipe_pane
     kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
     ;;
 video/*)
     ffmpegthumbnailer -i "$1" -o "$THUMBNAIL_FPATH" -s 1024 >/dev/null 2>&1 || exit 0
-    wipe_pane
     kitty-helper show "$THUMBNAIL_FPATH" "$SUNFIRE_KITTY_IMAGE_ID" 1 "$4" "$5" "$2" "$3"
     ;;
 text/*|application/json)
-    wipe_pane
 
-    # 2. Draw text line by line respecting X/Y/W/H
-    # expand converts tabs to spaces to prevent alignment issues
-    # head -n limits the height
-    current_line=0
-    expand -t 4 "$FILE_PATH" | head -n "$HEIGHT" | while IFS= read -r line; do
-        # Truncate line to width
-        trimmed_line="${line:0:$WIDTH}"
-        
-        # Calculate screen row
-        row=$((POS_Y + current_line))
-        
-        # Move cursor to (Row, Col) and print
-        tput cup "$row" "$POS_X"
-        printf "%s" "$trimmed_line"
-        
-        current_line=$((current_line + 1))
-    done
+    expand -t 4 "$FILE_PATH" | head -n "$HEIGHT" | awk \
+        -v x=$((POS_X + 1)) \
+        -v y=$((POS_Y + 1)) \
+        -v w="$WIDTH" \
+        '{
+            # Truncate the line to the max width
+            line = substr($0, 1, w)
+            # Construct the "Move Cursor" + "Line Text" string
+            # NR is the current line number (starts at 1)
+            printf "\033[%d;%dH%s", y + (NR - 1), x, line
+        }'
     ;;
 *)
-    wipe_pane
-
     msg="No preview available ($mime)"
 
+    # Truncate message if it's too long
     if (( ${#msg} > WIDTH )); then
-        msg="${msg:0:WIDTH}"   # truncate to maxlen characters
+        msg="${msg:0:WIDTH}"
     fi
 
-    # Write "No Preview" text
-    tput cup "$POS_Y" "$POS_X"
-    echo "$msg"
+    # Output move command and text as a single string
+    # ANSI format: \033[Line;ColumnH
+    printf "\033[%d;%dH%s" $((POS_Y + 1)) $((POS_X + 1)) "$msg"
     ;;
 esac
 
