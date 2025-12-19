@@ -8,7 +8,7 @@ sleep 0.01
 set -euo pipefail
 IFS=$'\n\t'
 
-MAX_PREVIEW_DIMENSION="1024x1024>"
+MAX_PREVIEW_DIMENSION="3840x2160>"
 
 THUMBNAIL_FPATH="$SUNFIRE_KITTY_TEMPDIR/thumbnail.png"
 mime=$(file --mime-type -Lb "$1")
