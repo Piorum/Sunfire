@@ -30,6 +30,8 @@ public class LabelSVSlim : ISunfireView
         }
     }
 
+    protected SColor? tagColor = null;
+
     public string rawText = "";
     public SStyle[] styleMap = [];
 
@@ -41,10 +43,10 @@ public class LabelSVSlim : ISunfireView
 
     public async Task<bool> Arrange()
     {
+        await OnArrange();
+
         if (Dirty)
         {
-            await OnArrange();
-
             if(Segments is not null && Segments.Length > 0)
             {
                 int totalLength = Segments.Sum(s => s.Text.Length);
@@ -80,7 +82,6 @@ public class LabelSVSlim : ISunfireView
     }   
 
     protected virtual Task OnArrange() => Task.CompletedTask;
-    
 
     public Task Draw(SVContext context)
     {
@@ -103,7 +104,9 @@ public class LabelSVSlim : ISunfireView
 
         if(isSelected)
         {
-            var lastSegmentStyle = Segments[^1].Style;
+            var lastSegmentStyle = Alignment == Direction.Left 
+                ? Segments[^1].Style
+                : Segments[1].Style;
 
             selectedStyle = lastSegmentStyle with { Properties = lastSegmentStyle.Properties | SAnsiProperty.Highlight };
 
@@ -113,7 +116,6 @@ public class LabelSVSlim : ISunfireView
                 BackgroundColor = selectedStyle.BackgroundColor,
                 Properties = selectedStyle.Properties
             };
-            
         }
         else
             paddingCell = SVCell.Blank;
@@ -128,25 +130,28 @@ public class LabelSVSlim : ISunfireView
                 int charIndex = x - startX;
                 var style = styleMap[charIndex];
 
-                var renderStyle = isSelected
+                var renderStyle = isSelected && style.BackgroundColor is null
                     ? selectedStyle
                     : style;
 
-                context[x, y] = context[x, y] with
-                {
-                    Data = rawText[charIndex],
-                    ForegroundColor = renderStyle.ForegroundColor,
-                    BackgroundColor = renderStyle.BackgroundColor,
-                    Properties = renderStyle.Properties
-                };
+                var newCell = new SVCell(
+                    rawText[charIndex], 
+                    renderStyle.ForegroundColor, 
+                    renderStyle.BackgroundColor, 
+                    renderStyle.Properties);
+
+                context[x, y] = newCell;
             }
 
             for(int x = maxX; x < SizeX; x++)
                 context[x, y] = paddingCell;
         }
 
-        if(LabelProperties.HasFlag(LabelSVProperty.Tagged))
-            context[0, 0] = context[0, 0] with { Data = '*' };
+        if(tagColor is not null)
+            if(Alignment == Direction.Left)
+                context[SizeX - 1, SizeY - 1] = SVCell.Blank with { BackgroundColor = tagColor };
+            else
+                context[0, 0] = SVCell.Blank with { BackgroundColor = tagColor };
 
         return Task.CompletedTask;
     }

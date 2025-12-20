@@ -4,6 +4,7 @@ using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.Views;
+using Sunfire.Ansi.Models;
 
 namespace Sunfire;
 
@@ -115,6 +116,26 @@ public static class AppState
     }
 
     //Actions
+    public static async Task Tag()
+    {
+        await ToggleOrUpdateCurrentEntryTag(new(255, 0, 0));
+        await NavDown();
+    }
+    public static async Task ToggleOrUpdateCurrentEntryTag(SColor color)
+    {
+        await SVRegistry.CurrentList.ToggleOrUpdateCurrentEntryTag(color);
+    }
+    public static async Task ClearTags()
+    {
+        EntriesListView.ClearTags();
+        
+        await Program.Renderer.EnqueueAction(async () =>
+        {
+            await SVRegistry.ContainerList.Invalidate();
+            await SVRegistry.CurrentList.Invalidate();
+            await SVRegistry.PreviewView.Invalidate(); 
+        });
+    }
     public static Task HandleFile()
     {
         if(GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)

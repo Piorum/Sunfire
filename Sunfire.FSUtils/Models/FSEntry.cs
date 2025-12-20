@@ -13,7 +13,7 @@ public readonly record struct FSEntry
     public readonly bool IsDirectory { get; init; }
 
     public readonly FileAttributes Attributes { get; init; }
-
+    
     public string Path => System.IO.Path.Combine(Directory, Name);
 
     public FSEntry(ref FileSystemEntry entry, string directory)

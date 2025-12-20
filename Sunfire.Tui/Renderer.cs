@@ -159,7 +159,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         (int X, int Y) outputStartPos = (0, 0);
         (int X, int Y) cursorPos = (-1, -1);
 
-        //Function that outputs the buffer to the screen and clears
+        //Function that appends the small buffer to the asb
         void Flush()
         {
             if (outputIndex > 0)

@@ -1,7 +1,11 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using Sunfire.Ansi.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
+using Sunfire.Registries;
+using Sunfire.Views.Text;
 
 namespace Sunfire.Views;
 
@@ -19,6 +23,7 @@ public class EntriesListView : ListSV
     
     private CancellationTokenSource? labelsGenCts;
 
+    //Nav
     public async Task Nav(int delta)
     {
         if(MaxIndex == -1)
@@ -27,14 +32,10 @@ public class EntriesListView : ListSV
         var targetIndex = selectedIndex + delta;
         targetIndex = Math.Clamp(targetIndex, 0, MaxIndex);
 
-        if(targetIndex == selectedIndex)
-            return;
-
         selectedIndex = targetIndex;
 
         await Program.Renderer.EnqueueAction(Invalidate);
     }
-
     public async Task Nav(FSEntry? entry)
     {
         var index = await LabelsCache.GetIndexOfEntry((currentPath, sortOptions), entry);
@@ -46,6 +47,22 @@ public class EntriesListView : ListSV
         }
     }
 
+    //Tag Helpers
+    public async Task<FSEntry?> ToggleOrUpdateCurrentEntryTag(SColor color)
+    {
+        var currentLabel = GetCurrentLabel();
+        if(currentLabel is null)
+            return null;
+
+        TagCache.ToggleOrUpdateTag(currentLabel.Entry, color);
+        await Program.Renderer.EnqueueAction(currentLabel.Invalidate);
+
+        return currentLabel.Entry;
+    }
+    public static void ClearTags() =>
+        TagCache.Clear();
+
+    //Caching Selected Entry
     public void SaveCurrentEntry()
     {
         var path = currentPath;
@@ -53,28 +70,29 @@ public class EntriesListView : ListSV
         if(currentEntry is not null)
             previouslySelectedEntries[path] = currentEntry.Value;
     }
-
     public static void SaveEntry(string path, FSEntry entry)
     {
         previouslySelectedEntries[path] = entry;
     }
 
+    //Update Helpers
     public async Task UpdateCurrentPath(string path)
     {
         currentPath = path;
         selectedIndex = 0;
         await UpdateBackLabels();
     }
-
     public async Task ToggleHidden()
     {
         sortOptions ^= LabelsCache.LabelSortOptions.ShowHidden;
         await UpdateBackLabels();
     }
 
+    //Helpers
     public FSEntry? GetCurrentEntry() =>
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex].Entry : null;
-
+    private EntryLabelView? GetCurrentLabel() =>
+        selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex] : null;
     public static void ClearCache() =>
         LabelsCache.Clear();
 
@@ -99,7 +117,6 @@ public class EntriesListView : ListSV
         else
             labels = await LabelsCache.GetAsync((currentPath, sortOptions));
 
-        await Logger.Debug(nameof(Sunfire), "Pulling Previous Entries");
         int index;
         int? previouslySelectedIndex = null;
         if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
@@ -132,6 +149,114 @@ public class EntriesListView : ListSV
         SelectedIndex = selectedIndex;
 
         await base.OnArrange();
+    }
+
+    private class EntryLabelView : LabelSVSlim
+    {
+        private static readonly SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
+        private static readonly SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
+
+        private FSEntry _entry;
+        public FSEntry Entry 
+        {
+            get => _entry;
+            set => (_entry, built) = (value, false);
+        }
+
+        private int tagCacheVersion = -1;
+        
+        private bool built = false;
+
+        override protected Task OnArrange()
+        {
+            CheckTag();
+
+            if(built)
+                return Task.CompletedTask;
+
+            BuildSegments();
+
+            return Task.CompletedTask;
+        }
+
+        private void CheckTag()
+        {
+            //If tag cache version changed, check for tag color (Found color or Null(No Tag)), if color changed rebuild
+            if(tagCacheVersion != TagCache.Version)
+            {
+                SColor? newColor = TagCache.TryGetValue(_entry, out var color)
+                    ? color
+                    : null;
+
+                if(newColor != tagColor)
+                    (tagColor, tagCacheVersion) = (newColor, TagCache.Version);
+            }
+        }
+
+        private void BuildSegments()
+        {
+            SStyle style = Entry.IsDirectory
+                ? directoryStyle
+                : fileStyle;
+
+            var segments = new LabelSegment[1]
+            {
+                new() { Text = $" {Entry.Name}", Style = style }
+            };
+
+            (Segments, built, Dirty) = (segments, true, true);
+        }
+    }
+
+    private static class TagCache
+    {
+        private static readonly ConcurrentDictionary<FSEntry, SColor> cache = new(FSEntryTagComparer.Default);
+        public static int Version = 0;
+
+        public static bool TryGetValue(FSEntry entry, out SColor color) =>
+            cache.TryGetValue(entry, out color);
+
+        public static void ToggleOrUpdateTag(FSEntry entry, SColor newColor)
+        {
+            if(cache.TryGetValue(entry, out var oldColor))
+                if(oldColor == newColor)
+                {
+                    UnTagEntry(entry);
+                    return;
+                }
+
+            TagEntry(entry, newColor);
+        }
+
+        public static void TagEntry(FSEntry entry, SColor color)
+        {
+            cache[entry] = color;
+            Interlocked.Increment(ref Version);
+        }
+
+        public static void UnTagEntry(FSEntry entry)
+        {
+            cache.TryRemove(entry, out _);
+            Interlocked.Increment(ref Version);
+        }
+
+        public static void Clear()
+        {
+            cache.Clear();
+            Interlocked.Increment(ref Version);
+        }
+        
+        private class FSEntryTagComparer : IEqualityComparer<FSEntry>
+        {
+            public static readonly FSEntryTagComparer Default = new();
+
+            public bool Equals(FSEntry x, FSEntry y) =>
+                string.Equals(x.Name, y.Name) && string.Equals(x.Directory, y.Directory);
+
+            public int GetHashCode([DisallowNull] FSEntry obj) =>
+                HashCode.Combine(obj.Name.GetHashCode(StringComparison.Ordinal), obj.Directory.GetHashCode(StringComparison.Ordinal));
+
+        }
     }
 
     private static class LabelsCache
