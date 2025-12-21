@@ -11,13 +11,15 @@ public class InputModeHook(PaneSV pane)
     private readonly PaneSV _pane = pane;
 
     private (BorderSV border, LabelSV label) textDisplay;
+    private string? _title;
     private char? _preCharacter;
     private readonly StringBuilder text = new();
     private Func<bool>? _warnSource;
 
-    public async Task<string> EnableInputMode(char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
+    public async Task<string> EnableInputMode(string? title, char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
     {
         text.Clear();
+        _title = title;
         _preCharacter = preCharacter;
         _warnSource = warnSource;
         TaskCompletionSource<string> tcs = new();
@@ -76,6 +78,9 @@ public class InputModeHook(PaneSV pane)
         {
             SubView = label
         };
+        if(_title is not null)
+            border.TitleLabel = new() { Segments = [ new() { Text = _title }]};
+
         textDisplay = (border, label);
 
         await Program.Renderer.EnqueueAction(async () => 

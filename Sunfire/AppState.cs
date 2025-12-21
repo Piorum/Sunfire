@@ -189,6 +189,7 @@ public static class AppState
         }
 
         await inputModeHook.EnableInputMode(
+            title: "Search",
             preCharacter: preCharacter, 
             warnSource: () => invalidSearch, 
             onUpdate: Search, 
@@ -206,6 +207,7 @@ public static class AppState
         bool cancelled = false;
 
         var cmd = await inputModeHook.EnableInputMode(
+            title: "Shell",
             preCharacter: preCharacter,
             warnSource: () => false,
             onUpdate: (_) => Task.CompletedTask,
