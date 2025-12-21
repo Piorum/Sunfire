@@ -4,7 +4,6 @@ using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.Views;
-using Sunfire.Ansi.Models;
 
 namespace Sunfire;
 
@@ -12,6 +11,8 @@ public static class AppState
 {
     private static string currentPath = "";
     private static readonly InputModeHook inputModeHook = new(SVRegistry.RootPane);
+
+    private static readonly List<FSEntry> taggedEntries = [];
 
     public static async Task ToggleHidden()
     {
@@ -118,15 +119,21 @@ public static class AppState
     //Actions
     public static async Task Tag()
     {
-        await ToggleOrUpdateCurrentEntryTag(new(255, 0, 0));
-        await NavDown();
-    }
-    public static async Task ToggleOrUpdateCurrentEntryTag(SColor color)
-    {
-        await SVRegistry.CurrentList.ToggleOrUpdateCurrentEntryTag(color);
+        var (entry, enabled) = await SVRegistry.CurrentList.ToggleOrUpdateCurrentEntryTag(ColorRegistry.Yellow);
+
+        if(entry is not null)
+        {
+            if(enabled)
+                taggedEntries.Add(entry.Value);
+            else
+                taggedEntries.Remove(entry.Value);
+
+            await NavDown();
+        }
     }
     public static async Task ClearTags()
     {
+        taggedEntries.Clear();
         EntriesListView.ClearTags();
         
         await Program.Renderer.EnqueueAction(async () =>

@@ -48,16 +48,16 @@ public class EntriesListView : ListSV
     }
 
     //Tag Helpers
-    public async Task<FSEntry?> ToggleOrUpdateCurrentEntryTag(SColor color)
+    public async Task<(FSEntry? entry, bool enabled)> ToggleOrUpdateCurrentEntryTag(SColor color)
     {
         var currentLabel = GetCurrentLabel();
         if(currentLabel is null)
-            return null;
+            return (null, false);
 
-        TagCache.ToggleOrUpdateTag(currentLabel.Entry, color);
+        var enabled = TagCache.ToggleOrUpdateTag(currentLabel.Entry, color);
         await Program.Renderer.EnqueueAction(currentLabel.Invalidate);
 
-        return currentLabel.Entry;
+        return (currentLabel.Entry, enabled);
     }
     public static void ClearTags() =>
         TagCache.Clear();
@@ -216,16 +216,18 @@ public class EntriesListView : ListSV
         public static bool TryGetValue(FSEntry entry, out SColor color) =>
             cache.TryGetValue(entry, out color);
 
-        public static void ToggleOrUpdateTag(FSEntry entry, SColor newColor)
+        public static bool ToggleOrUpdateTag(FSEntry entry, SColor newColor)
         {
             if(cache.TryGetValue(entry, out var oldColor))
                 if(oldColor == newColor)
                 {
                     UnTagEntry(entry);
-                    return;
+                    return false;
                 }
 
             TagEntry(entry, newColor);
+
+            return true;
         }
 
         public static void TagEntry(FSEntry entry, SColor color)
