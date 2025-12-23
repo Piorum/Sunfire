@@ -147,14 +147,24 @@ public static class AppState
     {
         if(GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
         {
-            var (handler, args) = MediaRegistry.GetOpener(currentEntry.Value);
+            var opener = MediaRegistry.GetOpener(currentEntry.Value);
 
+            static string ShellQuote(string s)
+            {
+                return "'" + s.Replace("'", "'\"'\"'") + "'";
+            }
+            
             //Launched detached
             Process.Start(
                 new ProcessStartInfo()
                 {
                     FileName = "sh",
-                    Arguments = $"-c \"setsid {handler} {args} >/dev/null 2>&1 </dev/null &\"",
+                    ArgumentList =
+                    {
+                        "-c",
+                        $"setsid {ShellQuote(opener.handler)} {ShellQuote(opener.args(currentEntry.Value))} >/dev/null 2>&1 </dev/null &" 
+                    },
+                    //Arguments = $"-c \"setsid \\\"{opener.handler.Replace("\"", "\\\"")}\\\" \\\"{opener.args(currentEntry.Value).Replace("\"", "\\\"")}\\\" >/dev/null 2>&1 </dev/null &\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

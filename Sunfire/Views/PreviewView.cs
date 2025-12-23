@@ -135,7 +135,7 @@ public class PreviewView : IRelativeSunfireView
             ? null
             : entry.Value.IsDirectory
                 ? directoryPreviewer
-                : previewers.TryGetValue(MediaRegistry.Scanner.Scan(entry.Value), out var previewer)
+                : previewers.TryGetValue(MediaRegistry.GetMediaType(entry.Value), out var previewer)
                     ? previewer
                     : fallbackPreviewer;
 

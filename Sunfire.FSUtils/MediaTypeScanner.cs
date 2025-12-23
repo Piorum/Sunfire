@@ -7,7 +7,7 @@ using Sunfire.Logging;
 
 namespace Sunfire.FSUtils;
 
-public unsafe class MediaTypeScanner<TResult>
+public unsafe class FileTypeScanner<TResult>
 {
     private const int MaxFastSignatures = 512;
     private int MaxFastOffset { get; init; }
@@ -37,7 +37,7 @@ public unsafe class MediaTypeScanner<TResult>
 
     private readonly Dictionary<string, TResult> scanResultsCache = [];
 
-    public MediaTypeScanner(int maxFastOffset = 512)
+    public FileTypeScanner(int maxFastOffset = 512)
     {
         if (!Vector512.IsHardwareAccelerated)
             _ = Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow");
