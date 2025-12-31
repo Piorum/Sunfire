@@ -149,10 +149,8 @@ public static class AppState
         {
             var opener = MediaRegistry.GetOpener(currentEntry.Value);
 
-            static string ShellQuote(string s)
-            {
-                return "'" + s.Replace("'", "'\"'\"'") + "'";
-            }
+            static string ShellQuote(string s) =>
+                "'" + s.Replace("'", "'\"'\"'") + "'";
             
             //Launched detached
             Process.Start(
@@ -164,7 +162,6 @@ public static class AppState
                         "-c",
                         $"setsid {ShellQuote(opener.handler)} {ShellQuote(opener.args(currentEntry.Value))} >/dev/null 2>&1 </dev/null &" 
                     },
-                    //Arguments = $"-c \"setsid \\\"{opener.handler.Replace("\"", "\\\"")}\\\" \\\"{opener.args(currentEntry.Value).Replace("\"", "\\\"")}\\\" >/dev/null 2>&1 </dev/null &\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -237,7 +234,10 @@ public static class AppState
             new ProcessStartInfo()
             {
                 FileName = "sh",
-                Arguments = $"-c \"{cmd}\"",
+                ArgumentList = {
+                    "-c",
+                    $"{cmd}"
+                },
                 WorkingDirectory = currentPath,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
