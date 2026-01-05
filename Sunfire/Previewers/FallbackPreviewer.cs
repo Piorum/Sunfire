@@ -121,6 +121,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                     FileName = previewerPath,
                     Arguments = $"\"{_entry!.Value.Path}\" {SizeX} {SizeY} {OriginX} {OriginY}",
                     UseShellExecute = false,
+                    RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true
                 }
@@ -152,6 +153,8 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             {
                 FileName = cleanerPath,
                 UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 CreateNoWindow = true
             });
 
