@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using Sunfire.Ansi.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views.Text;
 

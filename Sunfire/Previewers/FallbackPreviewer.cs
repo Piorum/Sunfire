@@ -58,8 +58,11 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 
         public void UpdateEntry(FSEntry entry)
         {
-            _entry = entry;
-            Dirty = true;
+            if(entry != _entry)
+            {
+                _entry = entry;
+                Dirty = true;
+            }
         }
 
         public Task<bool> Arrange()

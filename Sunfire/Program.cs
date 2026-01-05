@@ -176,11 +176,11 @@ internal class Program
                 .WithSequence(Key.KeyboardBind(ConsoleKey.C))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.ClearTags()),
-            /*InputHandler.CreateBinding()
+            InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.OemPeriod))
                 .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Command()),*/
+                .WithBind(async (inputData) => await AppState.Action()),
 
             //Shell
             InputHandler.CreateBinding()

@@ -43,7 +43,7 @@ public class InputModeHook(PaneSV pane)
             }));
         }
 
-        Program.InputHandler.EnableInputMode(
+        await Program.InputHandler.EnableInputMode(
             textHandler: async (a) =>
             {
                 text.Append(a);
@@ -65,7 +65,7 @@ public class InputModeHook(PaneSV pane)
             specialHandlers
         );
 
-        return await tcs.Task;
+        return text.ToString();
     }
 
     private async Task AddTextDisplay()

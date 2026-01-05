@@ -9,10 +9,10 @@ namespace Sunfire;
 
 public static class AppState
 {
+    public static readonly List<FSEntry> TaggedEntries = [];
+
     private static string currentPath = "";
     private static readonly InputModeHook inputModeHook = new(SVRegistry.RootPane);
-
-    private static readonly List<FSEntry> taggedEntries = [];
 
     public static async Task ToggleHidden()
     {
@@ -66,7 +66,7 @@ public static class AppState
 
         await Refresh();
     }
-    private static async Task Refresh() => 
+    public static async Task Refresh() => 
         await Refresh(currentPath);
 
     private static async Task Refresh(string path)
@@ -124,16 +124,16 @@ public static class AppState
         if(entry is not null)
         {
             if(enabled)
-                taggedEntries.Add(entry.Value);
+                TaggedEntries.Add(entry.Value);
             else
-                taggedEntries.Remove(entry.Value);
+                TaggedEntries.Remove(entry.Value);
 
             await NavDown();
         }
     }
     public static async Task ClearTags()
     {
-        taggedEntries.Clear();
+        TaggedEntries.Clear();
         EntriesListView.ClearTags();
         
         await Program.Renderer.EnqueueAction(async () =>
@@ -207,6 +207,31 @@ public static class AppState
             ], 
             specialHandlers: []
         );
+    }
+    public static async Task Action()
+    {
+        char preCharacter = ':';
+        bool cancelled = false;
+
+        var action = await inputModeHook.EnableInputMode(
+            title: "Action",
+            preCharacter: preCharacter,
+            warnSource: () => false,
+            onUpdate: (_) => Task.CompletedTask,
+            exitHandlers:[
+                (ConsoleKey.Escape, () => { cancelled = true; return Task.CompletedTask; }), 
+                (ConsoleKey.Tab, () => Task.CompletedTask), 
+                (ConsoleKey.Enter, () => Task.CompletedTask)
+            ],
+            specialHandlers: []
+        );
+
+        if(cancelled)
+            return;
+
+        await Logger.Debug(nameof(Sunfire), $"Trying to parse action: \"{action}\"");
+
+        await ActionHandler.Run(action, currentPath);
     }
     public static async Task Sh()
     {
