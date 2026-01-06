@@ -119,11 +119,24 @@ public static class ActionHandler
     {
         await Logger.Debug(nameof(Sunfire), $"Trying {nameof(Delete)} Action");
 
+        string dialogue;
         var entriesToDelete = AppState.TaggedEntries;
         if(entriesToDelete.Count == 0)
-            return;
+        {
+            var entryToDelete = SVRegistry.CurrentList.GetCurrentEntry();
 
-        var confirmed = await ConfirmationDialogue($"Delete {entriesToDelete.Count} Entries?");
+            if(entryToDelete is null)
+                return;
+
+            entriesToDelete.Add(entryToDelete.Value);
+            dialogue = $"Delete \"{entryToDelete.Value.Name}\"?";
+        }
+        else
+        {
+            dialogue = $"Delete {entriesToDelete.Count} Entries?";
+        }
+
+        var confirmed = await ConfirmationDialogue(dialogue);
 
         if(!confirmed)
             return;
