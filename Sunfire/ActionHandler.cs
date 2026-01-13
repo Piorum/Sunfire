@@ -30,7 +30,7 @@ public static class ActionHandler
 
         var errorView = InfoView.New("");
 
-        errorView.UpdateInfo([new() { Text = result.errorMessage, Style = new() { ForegroundColor = ColorRegistry.Red }}]);
+        errorView.UpdateInfo([new() { Text = $" {result.errorMessage}", Style = new() { ForegroundColor = ColorRegistry.Red }}]);
 
         await Program.Renderer.EnqueueAction(async () =>
         {
