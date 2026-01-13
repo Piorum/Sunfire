@@ -25,6 +25,8 @@ public static class SVRegistry
     private static BorderSV? bottomRightBorder;
     private static SelectionInfoView? selectionInfoView;
 
+    private static InfosView? infosView;
+
     private static PaneSV? rootPane;
 
     [ModuleInitializer]
@@ -97,6 +99,12 @@ public static class SVRegistry
             SubView = containerPane
         };
 
+        infosView = new()
+        {
+            X = 0,
+            Y = 2,
+        };
+
         rootPane = new()
         {
             SubViews =
@@ -105,7 +113,8 @@ public static class SVRegistry
                     currentBorder,
                     previewBorder,
                     selectionInfoView,
-                    bottomRightBorder
+                    bottomRightBorder,
+                    infosView
                 ]
         };
     
@@ -143,6 +152,9 @@ public static class SVRegistry
         bottomRightBorder!;
     public static SelectionInfoView SelectionInfoView =>
         selectionInfoView!;
+
+    public static InfosView InfosView =>
+        infosView!;
 
     public static PaneSV RootPane =>
         rootPane!;

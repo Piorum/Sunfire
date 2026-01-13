@@ -12,7 +12,7 @@ public static class AppState
     public static readonly List<FSEntry> TaggedEntries = [];
 
     private static string currentPath = "";
-    private static readonly InputModeHook inputModeHook = new(SVRegistry.RootPane);
+    private static readonly InputModeHook inputModeHook = new();
 
     public static async Task ToggleHidden()
     {

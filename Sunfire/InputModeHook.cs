@@ -6,11 +6,10 @@ using Sunfire.Views.Text;
 
 namespace Sunfire;
 
-public class InputModeHook(PaneSV pane)
+public class InputModeHook()
 {
-    private readonly PaneSV _pane = pane;
 
-    private (BorderSV border, LabelSV label) textDisplay;
+    private InfoView? textDisplay;
     private string? _title;
     private char? _preCharacter;
     private readonly StringBuilder text = new();
@@ -70,34 +69,25 @@ public class InputModeHook(PaneSV pane)
 
     private async Task AddTextDisplay()
     {
-        LabelSV label = new()
-        {
-            Y = 2
-        };
-        BorderSV border = new()
-        {
-            SubView = label
-        };
-        if(_title is not null)
-            border.TitleLabel = new() { Segments = [ new() { Text = _title }]};
-
-        textDisplay = (border, label);
+        var view = InfoView.New("", _title);
+        textDisplay = view;
 
         await Program.Renderer.EnqueueAction(async () => 
         {
-            _pane.SubViews.Add(border);
-            await _pane.Invalidate();
+            SVRegistry.InfosView.SubViews.Add(textDisplay);
+            await SVRegistry.RootPane.Invalidate();
         });
 
     }
 
     private async Task RemoveTextDisplay()
     {
-        await Program.Renderer.EnqueueAction(async () => 
-        {
-            _pane.SubViews.Remove(textDisplay.border);
-            await _pane.Invalidate();
-        });
+        if(textDisplay is not null)
+            await Program.Renderer.EnqueueAction(async () => 
+            {
+                SVRegistry.InfosView.SubViews.Remove(textDisplay);
+                await SVRegistry.RootPane.Invalidate();
+            });
     }
 
     private async Task UpdateTextDisplay()
@@ -112,8 +102,8 @@ public class InputModeHook(PaneSV pane)
 
         await Program.Renderer.EnqueueAction(async () =>
         {
-            textDisplay.label.Segments = segments;
-            await textDisplay.label.Invalidate();
+            textDisplay?.UpdateInfo(segments);
+            await SVRegistry.InfosView.Invalidate();
         });
     }
 }
