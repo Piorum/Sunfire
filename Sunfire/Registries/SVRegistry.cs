@@ -35,7 +35,7 @@ public static class SVRegistry
         var selectionInfoLabel = new LabelSV()
         {
             X = 0,
-            Y = 1,
+            Y = 2,
         };
         selectionInfoView = new(selectionInfoLabel)
         {
@@ -45,7 +45,7 @@ public static class SVRegistry
         bottomRightLabel = new()
         {
             X = 1,
-            Y = 1,
+            Y = 2,
             FillStyleX = FillStyle.Static,
             Segments = [new() { Text = $"{Environment.UserName}@{Environment.UserDomainName}" }]
         };
@@ -102,7 +102,7 @@ public static class SVRegistry
         infosView = new()
         {
             X = 0,
-            Y = 2,
+            Y = 1,
         };
 
         rootPane = new()
@@ -112,9 +112,9 @@ public static class SVRegistry
                     containerBorder,
                     currentBorder,
                     previewBorder,
+                    infosView,
                     selectionInfoView,
                     bottomRightBorder,
-                    infosView
                 ]
         };
     

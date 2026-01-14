@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Sunfire.FSUtils;
+using Sunfire.FSUtils.Models;
 using Sunfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views;
@@ -57,7 +59,7 @@ public static class ActionHandler
         if(cwd is null || !Directory.Exists(cwd))
             return new() { Success = false, errorMessage = "Current working directory is null or does not exist."};
 
-        var entriesToCopy = AppState.TaggedEntries;
+        List<FSEntry> entriesToCopy = [.. AppState.TaggedEntries];
         if(entriesToCopy.Count == 0)
             return new() { Success = false, errorMessage = "No tagged entries to perform action on."};
 
@@ -93,7 +95,18 @@ public static class ActionHandler
             copy?.WaitForExit();
 
             await AppState.ClearTags();
-            await AppState.InvalidateState();
+
+            SVRegistry.CurrentList.SaveCurrentEntry();
+
+            var directoriesToInvalidate = entriesToCopy.Select(e => e.Directory).Distinct().ToList();
+            directoriesToInvalidate.Add(cwd);
+            foreach(var directory in directoriesToInvalidate)
+            {
+                FSCache.Invalidate(directory);
+                EntriesListView.ClearCache(directory);
+            }
+
+            await AppState.Refresh();
         });
 
         return new() { Success = true };
@@ -105,7 +118,7 @@ public static class ActionHandler
         if(cwd is null || !Directory.Exists(cwd))
             return new() { Success = false, errorMessage = "Current working directory is null or does not exist."};
 
-        var entriesToCut = AppState.TaggedEntries;
+        List<FSEntry> entriesToCut = [.. AppState.TaggedEntries];
         if(entriesToCut.Count == 0)
             return new() { Success = false, errorMessage = "No tagged entries to perform action on."};
 
@@ -140,7 +153,18 @@ public static class ActionHandler
             cut?.WaitForExit();
 
             await AppState.ClearTags();
-            await AppState.InvalidateState();
+
+            SVRegistry.CurrentList.SaveCurrentEntry();
+
+            var directoriesToInvalidate = entriesToCut.Select(e => e.Directory).Distinct().ToList();
+            directoriesToInvalidate.Add(cwd);
+            foreach(var directory in directoriesToInvalidate)
+            {
+                FSCache.Invalidate(directory);
+                EntriesListView.ClearCache(directory);
+            }
+
+            await AppState.Refresh();
         });
 
         return new() { Success = true };
@@ -150,7 +174,7 @@ public static class ActionHandler
         await Logger.Debug(nameof(Sunfire), $"Trying {nameof(Delete)} Action");
 
         string dialogue;
-        var entriesToDelete = AppState.TaggedEntries;
+        List<FSEntry> entriesToDelete = [.. AppState.TaggedEntries];
         if(entriesToDelete.Count == 0)
         {
             var entryToDelete = SVRegistry.CurrentList.GetCurrentEntry();
@@ -195,7 +219,17 @@ public static class ActionHandler
             delete?.WaitForExit();
 
             await AppState.ClearTags();
-            await AppState.InvalidateState();
+
+            SVRegistry.CurrentList.SaveCurrentEntry();
+
+            var directoriesToInvalidate = entriesToDelete.Select(e => e.Directory).Distinct().ToList();
+            foreach(var directory in directoriesToInvalidate)
+            {
+                FSCache.Invalidate(directory);
+                EntriesListView.ClearCache(directory);
+            }
+
+            await AppState.Refresh();
         });
 
         return new() { Success = true };

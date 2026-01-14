@@ -92,6 +92,8 @@ public class EntriesListView : ListSV
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex].Entry : null;
     private EntryLabelView? GetCurrentLabel() =>
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex] : null;
+    public static void ClearCache(string directory) =>
+        LabelsCache.Clear(directory);
     public static void ClearCache() =>
         LabelsCache.Clear();
 
@@ -319,6 +321,17 @@ public class EntriesListView : ListSV
                 .OrderByDescending(e => e.IsDirectory)
                 .ThenByDescending(e => e.Attributes.HasFlag(FileAttributes.Hidden))
                 .ThenBy(e => e.Name.ToLowerInvariant());
+        }
+
+        public static void Clear(string directory)
+        {
+            var sortedEntriesToRemove = sortedEntriesCache.Where(e => e.Key.path == directory);
+            var labelsToRemove = labelsCache.Where(e => e.Key.path == directory);
+
+            foreach(var val in sortedEntriesToRemove)
+                sortedEntriesCache.TryRemove(val);
+            foreach(var val in labelsToRemove)
+                labelsCache.TryRemove(val);
         }
 
         public static void Clear()
