@@ -21,15 +21,18 @@ public class RootSV(int? sizeX = null, int? sizeY = null) : ISunfireView
 
     public async Task<bool> Arrange()
     {
+        //Tracking wasDirty to avoid resizing edge case
+        bool wasDirty = false;
         if (Dirty)
         {
             await OnArrange();
             Dirty = false;
+            wasDirty = true;
         }
 
         var workDone = await RootView.Arrange();
 
-        return workDone;
+        return workDone || wasDirty;
     }
 
     private Task OnArrange()
