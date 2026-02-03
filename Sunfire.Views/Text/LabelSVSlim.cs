@@ -135,7 +135,7 @@ public class LabelSVSlim : ISunfireView
                     : style;
 
                 var newCell = new SVCell(
-                    rawText[charIndex], 
+                    new(rawText[charIndex]), 
                     renderStyle.ForegroundColor, 
                     renderStyle.BackgroundColor, 
                     renderStyle.Properties);

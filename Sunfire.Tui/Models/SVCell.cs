@@ -1,3 +1,4 @@
+using System.Text;
 using Sunfire.Ansi.Models;
 
 namespace Sunfire.Tui.Models;
@@ -10,11 +11,11 @@ namespace Sunfire.Tui.Models;
 /// <param name="BackgroundColor">Background color cell should be.</param>
 /// <param name="Properties">Ansi properties cell should have.</param>
 public record struct SVCell(
-    char Data,
+    Rune Data,
     SColor? ForegroundColor,
     SColor? BackgroundColor,
     SAnsiProperty Properties
 )
 {
-    public static readonly SVCell Blank = new(' ', null, null, SAnsiProperty.None);
+    public static readonly SVCell Blank = new(new(' '), null, null, SAnsiProperty.None);
 }

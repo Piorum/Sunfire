@@ -1,3 +1,4 @@
+using System.Text;
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Interfaces;
@@ -38,12 +39,15 @@ public class BorderSV : IRelativeSunfireView
     private SVBuffer? borderBuffer;
     private SVCell templateCell = SVCell.Blank;
 
+    //Blank
+    private static readonly Rune Blank = new(' ');
+
     //Corners
     //Rounded
-    private const char TopLeft = '╭';
-    private const char TopRight = '╮';
-    private const char BottomLeft = '╰';
-    private const char BottomRight = '╯';
+    private static readonly Rune TopLeft = new('╭');
+    private static readonly Rune TopRight = new('╮');
+    private static readonly Rune BottomLeft = new('╰');
+    private static readonly Rune BottomRight = new('╯');
     //Squared
     //private const char TopLeft = (char)9484;
     //private const char TopRight = (char)9488;
@@ -51,10 +55,10 @@ public class BorderSV : IRelativeSunfireView
     //private const char BottomRight = (char)9496;
 
     //Sides
-    private const char Horizontal = '─';
-    private const char Vertical = '│';
-    private const char TitleLeft = '╴';
-    private const char TitleRight = '╶';
+    private static readonly Rune Horizontal = new('─');
+    private static readonly Rune Vertical = new('│');
+    private static readonly Rune TitleLeft = new('╴');
+    private static readonly Rune TitleRight = new('╶');
 
     public async Task<bool> Arrange()
     {
@@ -78,7 +82,7 @@ public class BorderSV : IRelativeSunfireView
     {
         templateCell = new SVCell
         {
-            Data = ' ',
+            Data = Blank,
             ForegroundColor = BorderColor,
             BackgroundColor = BackgroundColor
         };

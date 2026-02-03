@@ -151,7 +151,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         asb.Clear();
         asb.HideCursor();
 
-        char[] outputBuffer = new char[RootView.SizeX];
+        //SizeX*2 to account for double-width characters
+        char[] outputBuffer = new char[RootView.SizeX * 2];
         int outputIndex = 0;
 
         SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
@@ -164,13 +165,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         {
             if (outputIndex > 0)
             {
-                var outputData = string.Join("", outputBuffer.AsSpan(0, outputIndex).ToArray());
-
                 //Change to new style, append text, move cursor if cursor not in the correct place already
-                asb.Append(outputData, currentStyle with { CursorPosition = cursorPos == outputStartPos ? null : outputStartPos });
-                cursorPos = (outputStartPos.X + outputIndex, outputStartPos.Y);
+                asb.Append(
+                    outputBuffer.AsSpan(0, outputIndex), 
+                    currentStyle with { CursorPosition = cursorPos == outputStartPos ? null : outputStartPos }
+                );
 
-                outputBuffer.AsSpan(0, outputIndex).Clear();
+                cursorPos = (outputStartPos.X + outputIndex, outputStartPos.Y);
                 outputIndex = 0;
             }
         }
@@ -198,14 +199,15 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                     currentStyle = cellStyle;
                     outputStartPos = (x, y);
-                    outputBuffer[0] = cell.Data;
-                    outputIndex = 1;
+
+                    //Encodes data to the output buffer. Returns number of chars written
+                    outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
                 }
                 //Style is the same add to buffer, inc, continue
                 else
                 {
-                    outputBuffer[outputIndex] = cell.Data;
-                    outputIndex++;
+                    //Encodes data to the output buffer. Returns number of chars written
+                    outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
                 }
             }
             //Move command will be sent to each row to ensure consistently

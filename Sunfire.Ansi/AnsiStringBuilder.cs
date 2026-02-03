@@ -18,10 +18,13 @@ public class AnsiStringBuilder()
         (SAnsiProperty.Strikethrough, AnsiRegistry.Strikethrough, AnsiRegistry.DisableStrikethrough)
     ];
     
-    public AnsiStringBuilder Append(string text, SStyle desiredState)
+    public AnsiStringBuilder Append(string text, SStyle desiredState) =>
+        Append(text.AsSpan(), desiredState);
+
+    public AnsiStringBuilder Append(ReadOnlySpan<char> text, SStyle desiredState)
     {
         UpdateStyle(desiredState);
-        if (!string.IsNullOrEmpty(text))
+        if (text.Length > 0)
             sb.Append(text);
 
         return this;
