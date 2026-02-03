@@ -7,6 +7,8 @@ using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
+using Sunfire.Glyph;
+using System.Runtime.InteropServices;
 
 namespace Sunfire.Tui;
 
@@ -39,6 +41,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     /// </summary>
     public async Task Start(CancellationToken token)
     {
+        GlyphLibrary.AddOrUpdate("\uf114", 2);
+
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
 
@@ -55,7 +59,6 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         {
             try
             {
-
                 runningTasks.Clear();
 
                 //Get first action and start batch timer
@@ -152,10 +155,9 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         asb.Clear();
         asb.HideCursor();
 
-        //SizeX*2 to account for double-width characters
-        char[] outputBuffer = new char[RootView.SizeX * 2];
+        //SizeX*4 to account for some wide characters + ZWC
+        char[] outputBuffer = new char[RootView.SizeX * 4];
         int outputIndex = 0;
-
         int cursorMovement = 0;
 
         SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
@@ -179,14 +181,12 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             }
         }
 
-        int visualX;
         for (int y = 0; y < RootView.SizeY; y++)
         {
-            visualX = 0;
             for (int x = 0; x < RootView.SizeX; x++)
             {
                 var cell = _backBuffer[x, y];
-                var width = UnicodeCalculator.GetWidth(cell.Data);
+                var width = cell.Data.Width;
 
                 //Cell is same as already drawn continue
                 if (cell == FrontBuffer[x, y])
@@ -194,8 +194,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     //Since we don't know if this is the first cell that isn't being added to the buffer, just ensure buffer is cleared
                     Flush();
 
-                    visualX += width;
-                    if(width == 2 && x + 1 < RootView.SizeX)
+                    //Account for wide characters in the skip branch
+                    if(width == 2)
                         x++;
 
                     continue;
@@ -209,19 +209,31 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     Flush();
 
                     currentStyle = cellStyle;
-                    outputStartPos = (visualX, y);
+                    outputStartPos = (x, y);
                 }
 
                 //Encodes data to the output buffer. Returns number of chars written
-                outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
+                var cluster = GlyphLibrary.Get(cell.Data);
+                var text = cluster.GraphemeCluster.AsSpan();
+                
+                text.CopyTo(outputBuffer.AsSpan(outputIndex));
+                outputIndex += text.Length;
 
                 //Track batch movement
-                cursorMovement += width;
-                //Track overall line movement
-                visualX += width;
+                cursorMovement += cluster.Width;
 
-                if(width == 2 && x + 1 < RootView.SizeX)
+                //Account for wide characters in the append branch
+                if(width == 2)
+                {
                     x++;
+
+                    if(cluster.RealWidth < width)
+                    {
+                        outputBuffer[outputIndex++] = ' ';
+                        FrontBuffer[x, y] = SVCell.Blank;
+                    }
+                    FrontBuffer[x, y] = new();
+                }
             }
             //Move command will be sent to each row to ensure consistently
             //End of row ensure current buffer is output and cleared

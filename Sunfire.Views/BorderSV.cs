@@ -4,6 +4,8 @@ using Sunfire.Tui.Models;
 using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
 using Sunfire.Views.Text;
+using Sunfire.Glyph;
+using Sunfire.Glyph.Models;
 
 namespace Sunfire.Views;
 
@@ -40,14 +42,14 @@ public class BorderSV : IRelativeSunfireView
     private SVCell templateCell = SVCell.Blank;
 
     //Blank
-    private static readonly Rune Blank = new(' ');
+    private static readonly GlyphInfo Blank = GlyphFactory.GetGlyphs(" ").First();
 
     //Corners
     //Rounded
-    private static readonly Rune TopLeft = new('╭');
-    private static readonly Rune TopRight = new('╮');
-    private static readonly Rune BottomLeft = new('╰');
-    private static readonly Rune BottomRight = new('╯');
+    private static readonly GlyphInfo TopLeft = GlyphFactory.GetGlyphs("╭").First();
+    private static readonly GlyphInfo TopRight = GlyphFactory.GetGlyphs("╮").First();
+    private static readonly GlyphInfo BottomLeft = GlyphFactory.GetGlyphs("╰").First();
+    private static readonly GlyphInfo BottomRight = GlyphFactory.GetGlyphs("╯").First();
     //Squared
     //private const char TopLeft = (char)9484;
     //private const char TopRight = (char)9488;
@@ -55,11 +57,10 @@ public class BorderSV : IRelativeSunfireView
     //private const char BottomRight = (char)9496;
 
     //Sides
-    private static readonly Rune Horizontal = new('─');
-    private static readonly Rune Vertical = new('│');
-    private static readonly Rune TitleLeft = new('╴');
-    private static readonly Rune TitleRight = new('╶');
-
+    private static readonly GlyphInfo Horizontal = GlyphFactory.GetGlyphs("─").First();
+    private static readonly GlyphInfo Vertical = GlyphFactory.GetGlyphs("│").First();
+    private static readonly GlyphInfo TitleLeft = GlyphFactory.GetGlyphs("╴").First();
+    private static readonly GlyphInfo TitleRight = GlyphFactory.GetGlyphs("╶").First();
     public async Task<bool> Arrange()
     {
         bool borderUpdated = false;

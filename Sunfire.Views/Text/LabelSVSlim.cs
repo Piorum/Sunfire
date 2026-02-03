@@ -4,6 +4,8 @@ using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
 using Sunfire.Views.Enums;
 using System.Text;
+using Sunfire.Glyph.Models;
+using Sunfire.Glyph;
 
 namespace Sunfire.Views.Text;
 
@@ -32,7 +34,7 @@ public class LabelSVSlim : ISunfireView
 
     protected SColor? tagColor = null;
 
-    public List<Rune> rawText = [];
+    public List<GlyphInfo> rawText = [];
     public SStyle[] styleMap = [];
 
     public readonly struct LabelSegment()
@@ -67,7 +69,7 @@ public class LabelSVSlim : ISunfireView
                     currentIndex += segment.Text.Length;
                 }
 
-                rawText = [.. sb.ToString().EnumerateRunes()];
+                rawText = GlyphFactory.GetGlyphs(sb.ToString());
             }
             else
             {
@@ -88,7 +90,7 @@ public class LabelSVSlim : ISunfireView
         if(Segments is null || Segments.Length == 0)
             return Task.CompletedTask;
 
-        var textLen = rawText.Count;
+        var textLen = rawText.Sum(g => g.Width);
 
         int startX = Alignment == Direction.Right
             ? SizeX - textLen
@@ -125,22 +127,31 @@ public class LabelSVSlim : ISunfireView
             for(int x = 0; x < minX; x++)
                 context[x, y] = paddingCell;
 
+            int charIndex = minX - startX;
             for (int x = minX; x < maxX; x++)
             {
-                int charIndex = x - startX;
                 var style = styleMap[charIndex];
 
                 var renderStyle = isSelected && style.BackgroundColor is null
                     ? selectedStyle
                     : style;
 
+                var glyph = rawText[charIndex];
+
                 var newCell = new SVCell(
-                    rawText[charIndex], 
+                    glyph, 
                     renderStyle.ForegroundColor, 
                     renderStyle.BackgroundColor, 
                     renderStyle.Properties);
 
                 context[x, y] = newCell;
+
+                if(glyph.Width == 2 && x+1 < maxX)
+                {
+                    context[x+1, y] = new();
+                    x++;
+                }
+                charIndex++;
             }
 
             for(int x = maxX; x < SizeX; x++)

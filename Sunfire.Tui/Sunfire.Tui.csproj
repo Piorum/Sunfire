@@ -10,10 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="../Sunfire.Logging/Sunfire.Logging.csproj" />
     <ProjectReference Include="../Sunfire.Ansi/Sunfire.Ansi.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Wcwidth.Sources" Version="4.0.1" />
+    <ProjectReference Include="../Sunfire.Glyph/Sunfire.Glyph.csproj" />
   </ItemGroup>
 
 </Project>
