@@ -32,7 +32,7 @@ public class LabelSVSlim : ISunfireView
 
     protected SColor? tagColor = null;
 
-    public string rawText = "";
+    public List<Rune> rawText = [];
     public SStyle[] styleMap = [];
 
     public readonly struct LabelSegment()
@@ -67,11 +67,11 @@ public class LabelSVSlim : ISunfireView
                     currentIndex += segment.Text.Length;
                 }
 
-                rawText = sb.ToString();
+                rawText = [.. sb.ToString().EnumerateRunes()];
             }
             else
             {
-                rawText = string.Empty;
+                rawText = [];
                 styleMap = [];
             }
 
@@ -88,7 +88,7 @@ public class LabelSVSlim : ISunfireView
         if(Segments is null || Segments.Length == 0)
             return Task.CompletedTask;
 
-        var textLen = rawText.Length;
+        var textLen = rawText.Count;
 
         int startX = Alignment == Direction.Right
             ? SizeX - textLen
@@ -135,7 +135,7 @@ public class LabelSVSlim : ISunfireView
                     : style;
 
                 var newCell = new SVCell(
-                    new(rawText[charIndex]), 
+                    rawText[charIndex], 
                     renderStyle.ForegroundColor, 
                     renderStyle.BackgroundColor, 
                     renderStyle.Properties);

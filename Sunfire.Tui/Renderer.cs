@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.Channels;
+using Wcwidth;
 using Sunfire.Logging;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
@@ -155,6 +156,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         char[] outputBuffer = new char[RootView.SizeX * 2];
         int outputIndex = 0;
 
+        int cursorMovement = 0;
+
         SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
         //These need to be different or redraw breaks
         (int X, int Y) outputStartPos = (0, 0);
@@ -171,22 +174,30 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     currentStyle with { CursorPosition = cursorPos == outputStartPos ? null : outputStartPos }
                 );
 
-                cursorPos = (outputStartPos.X + outputIndex, outputStartPos.Y);
-                outputIndex = 0;
+                cursorPos = (outputStartPos.X + cursorMovement, outputStartPos.Y);
+                (outputIndex, cursorMovement) = (0, 0);
             }
         }
 
+        int visualX;
         for (int y = 0; y < RootView.SizeY; y++)
         {
+            visualX = 0;
             for (int x = 0; x < RootView.SizeX; x++)
             {
                 var cell = _backBuffer[x, y];
+                var width = UnicodeCalculator.GetWidth(cell.Data);
 
                 //Cell is same as already drawn continue
                 if (cell == FrontBuffer[x, y])
                 {
                     //Since we don't know if this is the first cell that isn't being added to the buffer, just ensure buffer is cleared
                     Flush();
+
+                    visualX += width;
+                    if(width == 2 && x + 1 < RootView.SizeX)
+                        x++;
+
                     continue;
                 }
 
@@ -198,17 +209,19 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     Flush();
 
                     currentStyle = cellStyle;
-                    outputStartPos = (x, y);
+                    outputStartPos = (visualX, y);
+                }
 
-                    //Encodes data to the output buffer. Returns number of chars written
-                    outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
-                }
-                //Style is the same add to buffer, inc, continue
-                else
-                {
-                    //Encodes data to the output buffer. Returns number of chars written
-                    outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
-                }
+                //Encodes data to the output buffer. Returns number of chars written
+                outputIndex += cell.Data.EncodeToUtf16(outputBuffer.AsSpan(outputIndex));
+
+                //Track batch movement
+                cursorMovement += width;
+                //Track overall line movement
+                visualX += width;
+
+                if(width == 2 && x + 1 < RootView.SizeX)
+                    x++;
             }
             //Move command will be sent to each row to ensure consistently
             //End of row ensure current buffer is output and cleared

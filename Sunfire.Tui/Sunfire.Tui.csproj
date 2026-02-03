@@ -12,4 +12,8 @@
     <ProjectReference Include="../Sunfire.Ansi/Sunfire.Ansi.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Wcwidth.Sources" Version="4.0.1" />
+  </ItemGroup>
+
 </Project>
