@@ -19,7 +19,7 @@ public static class GlyphFactory
             if(string.IsNullOrEmpty(cluster))
                 continue;
 
-            var info = GlyphLibrary.GetOrAdd(cluster);
+            var info = GlyphCache.GetOrAdd(cluster);
             glyphs.Add(info.Width != 0 ? info : invalidGlyph);
         }
 

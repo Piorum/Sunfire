@@ -154,8 +154,8 @@ public class EntriesListView : ListSV
 
     private class EntryLabelView : LabelSVSlim
     {
-        private static readonly SStyle directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
-        private static readonly SStyle fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
+        private static readonly StyleData directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
+        private static readonly StyleData fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
 
         private FSEntry _entry;
         public FSEntry Entry 
@@ -196,7 +196,7 @@ public class EntriesListView : ListSV
 
         private void BuildSegments()
         {
-            SStyle style = Entry.IsDirectory
+            StyleData style = Entry.IsDirectory
                 ? directoryStyle
                 : fileStyle;
 

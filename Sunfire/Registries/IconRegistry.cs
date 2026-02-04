@@ -318,12 +318,12 @@ public static class IconRegistry
     public static void Init()
     {
         foreach(var icon in Icons.Values)
-            GlyphLibrary.AddOrUpdate(icon.icon, 2);
+            GlyphCache.AddOrUpdate(icon.icon, 2);
         foreach(var icon in SpecialIcons.Values)
-            GlyphLibrary.AddOrUpdate(icon.icon, 2);
+            GlyphCache.AddOrUpdate(icon.icon, 2);
         
-        GlyphLibrary.AddOrUpdate(DirectoryIcon, 2);
-        GlyphLibrary.AddOrUpdate(FallbackFileIcon, 2);
+        GlyphCache.AddOrUpdate(DirectoryIcon, 2);
+        GlyphCache.AddOrUpdate(FallbackFileIcon, 2);
     }
 
     public static (string icon, SColor? color) GetIcon(FSEntry entry) =>

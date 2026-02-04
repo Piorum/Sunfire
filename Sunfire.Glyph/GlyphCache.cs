@@ -3,7 +3,7 @@ using Sunfire.Glyph.Models;
 
 namespace Sunfire.Glyph;
 
-public static class GlyphLibrary
+public static class GlyphCache
 {
     private static readonly List<GlyphData> glyphs = [];
     private static readonly Dictionary<string, int> index = [];

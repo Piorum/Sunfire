@@ -92,7 +92,7 @@ public class InputModeHook()
 
     private async Task UpdateTextDisplay()
     {
-        SStyle baseStyle = new() { ForegroundColor = _warnSource!() ? ColorRegistry.Red : null };
+        StyleData baseStyle = new() { ForegroundColor = _warnSource!() ? ColorRegistry.Red : null };
 
         var segments = new LabelSVSlim.LabelSegment[2]
         {

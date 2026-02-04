@@ -164,7 +164,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 //Change to new style, append text, move cursor if cursor not in the correct place already
                 asb.Append(
                     renderState.OutputBuffer.AsSpan(0, renderState.OutputIndex), 
-                    renderState.CurrentStyle with { CursorPosition = renderState.Cursor == renderState.OutputStart ? null : renderState.OutputStart }
+                    renderState.CurrentStyle,
+                    renderState.Cursor == renderState.OutputStart ? null : renderState.OutputStart
                 );
 
                 renderState.Cursor = (renderState.OutputStart.X + renderState.CursorMovement, renderState.OutputStart.Y);
@@ -192,7 +193,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     continue;
                 }
 
-                SStyle cellStyle = new(cell.ForegroundColor, cell.BackgroundColor, cell.Properties, null);
+                StyleData cellStyle = new(cell.ForegroundColor, cell.BackgroundColor, cell.Properties);
 
                 //Style is NOT the same or buffer is empty, clear buffer and add first value
                 if (renderState.OutputIndex == 0 || cellStyle != renderState.CurrentStyle)
@@ -204,7 +205,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 }
 
                 //Encodes data to the output buffer. Returns number of chars written
-                var cluster = GlyphLibrary.Get(cell.Data);
+                var cluster = GlyphCache.Get(cell.Data);
                 var text = cluster.GraphemeCluster.AsSpan();
                 
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));

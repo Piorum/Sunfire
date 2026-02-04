@@ -34,22 +34,26 @@ public class BufferSink(int? capacity = null) : ILogSink
         .Append
         (
             $"[{message.CreationTime:HH:mm:ss.fffffff}] ",
-            new(ForegroundColor: new(221, 221, 221), Properties: SAnsiProperty.Bold)
+            new(ForegroundColor: new(221, 221, 221), Properties: SAnsiProperty.Bold),
+            null
         )
         .Append
         (
             $"[{message.Level}] ",
-            new(ForegroundColor: GetLogLevelColor(message.Level), Properties: SAnsiProperty.Bold)
+            new(ForegroundColor: GetLogLevelColor(message.Level), Properties: SAnsiProperty.Bold),
+            null
         )
         .Append
         (
             $"[{message.Provider}] ",
-            new(ForegroundColor: providerColor, Properties: SAnsiProperty.Bold)
+            new(ForegroundColor: providerColor, Properties: SAnsiProperty.Bold),
+            null
         )
         .Append
         (
             message.Message,
-            new(ForegroundColor: providerColor)
+            new(ForegroundColor: providerColor),
+            null
         )
         .ResetPropertiesNewLine();
 

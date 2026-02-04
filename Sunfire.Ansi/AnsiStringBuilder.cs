@@ -7,7 +7,7 @@ namespace Sunfire.Ansi;
 public class AnsiStringBuilder()
 {
     private readonly StringBuilder sb = new();
-    private SStyle currentState = default;
+    private StyleData currentState = default;
 
     private readonly static (SAnsiProperty, string, string)[] modifierActionsLookup =
     [
@@ -18,21 +18,21 @@ public class AnsiStringBuilder()
         (SAnsiProperty.Strikethrough, AnsiRegistry.Strikethrough, AnsiRegistry.DisableStrikethrough)
     ];
     
-    public AnsiStringBuilder Append(string text, SStyle desiredState) =>
-        Append(text.AsSpan(), desiredState);
+    public AnsiStringBuilder Append(string text, StyleData desiredState, (int X, int Y)? desiredCursorPos) =>
+        Append(text.AsSpan(), desiredState, desiredCursorPos);
 
-    public AnsiStringBuilder Append(ReadOnlySpan<char> text, SStyle desiredState)
+    public AnsiStringBuilder Append(ReadOnlySpan<char> text, StyleData desiredState, (int X, int Y)? desiredCursorPos)
     {
-        UpdateStyle(desiredState);
+        UpdateStyle(desiredState, desiredCursorPos);
         if (text.Length > 0)
             sb.Append(text);
 
         return this;
     }
 
-    private void UpdateStyle(SStyle desiredState)
+    private void UpdateStyle(StyleData desiredState, (int X, int Y)? desiredCursorPos)
     {
-        if (desiredState.CursorPosition is { } pos)
+        if (desiredCursorPos is { } pos)
             sb.Append(AnsiRegistry.MoveCursor(pos.Y, pos.X));
 
         if (currentState.ForegroundColor != desiredState.ForegroundColor)
@@ -49,7 +49,7 @@ public class AnsiStringBuilder()
             else if (removedProperties.HasFlag(modifier))
                 sb.Append(offCode);
 
-        currentState = desiredState with { CursorPosition = null };
+        currentState = desiredState;
     }
 
     public AnsiStringBuilder ShowCursor()

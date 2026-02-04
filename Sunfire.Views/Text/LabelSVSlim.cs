@@ -36,13 +36,13 @@ public class LabelSVSlim : ISunfireView
 
     private readonly List<GlyphInfo> glyphs = [];
     private readonly List<byte> styles = [];
-    private readonly List<SStyle> styleMap = [];
-    private readonly Dictionary<SStyle, byte> styleIndex = [];
+    private readonly List<StyleData> styleMap = [];
+    private readonly Dictionary<StyleData, byte> styleIndex = [];
 
     public readonly struct LabelSegment()
     {
         readonly public string Text { get; init; } = string.Empty;
-        readonly public SStyle Style { get; init; } = new();
+        readonly public StyleData Style { get; init; } = new();
     }
 
     public async Task<bool> Arrange()
@@ -110,7 +110,7 @@ public class LabelSVSlim : ISunfireView
         bool isSelected = (LabelProperties & LabelSVProperty.Selected) != 0;
 
         SVCell paddingCell;
-        SStyle selectedStyle = default;
+        StyleData selectedStyle = default;
 
         if(isSelected)
         {
