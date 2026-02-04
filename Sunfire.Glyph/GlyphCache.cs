@@ -1,50 +1,29 @@
 ﻿using Wcwidth;
 using Sunfire.Glyph.Models;
+using Sunfire.Shared;
 
 namespace Sunfire.Glyph;
 
-public static class GlyphCache
+public class GlyphCache : IdIndexedCache<string , byte?, GlyphData, (int id, byte width)>
 {
-    private static readonly List<GlyphData> glyphs = [];
-    private static readonly Dictionary<string, int> index = [];
+    protected override GlyphData CreateObject(string cluster, byte? overrideWidth){
+        var realWidth = MeasureGramphemeCluster(cluster);
+        GlyphData newData = new() { GraphemeCluster = cluster, RealWidth = realWidth, Width = overrideWidth is null ? realWidth : overrideWidth.Value};
 
-    private static void Add(string cluster, int id, GlyphData glyphData)
-    {
-        glyphs.Add(glyphData);
-        index[cluster] = id;
+        return newData;
     }
 
-    public static void AddOrUpdate(string graphemeCluster, byte width)
+    protected override (int id, byte width) CreateInfo(int id, GlyphData dataOjbect)
     {
-        if(index.TryGetValue(graphemeCluster, out var i))
-        {
-            glyphs[i] = glyphs[i] with { Width = width };
-        }
-        else
-        {
-            var realWidth = MeasureGramphemeCluster(graphemeCluster);
-            GlyphData newGlyph = new() { GraphemeCluster = graphemeCluster, Width = width, RealWidth = realWidth };
-
-            var newId = glyphs.Count;
-            Add(graphemeCluster, newId, newGlyph);
-        }
+        return (id, dataOjbect.Width);
     }
 
-    public static GlyphData Get(GlyphInfo info) =>
-        glyphs[info.Id];
-
-    internal static GlyphInfo GetOrAdd(string graphemeCluster)
+    protected override GlyphData Update(GlyphData dataObject, string cluster, byte? overrideWidth)
     {
-        if(index.TryGetValue(graphemeCluster, out var i))
-            return new() { Id = i, Width = glyphs[i].Width };
-        
-        var width = MeasureGramphemeCluster(graphemeCluster);
-        GlyphData newGlyph = new() { GraphemeCluster = graphemeCluster, Width = width, RealWidth = width };
+        if(overrideWidth is not null)
+            return dataObject with { Width = overrideWidth.Value };
 
-        var newId = glyphs.Count;
-        Add(graphemeCluster, newId, newGlyph);
-
-        return new() { Id = newId, Width = width };
+        return dataObject;
     }
 
     private static byte MeasureGramphemeCluster(string graphemeCluster) =>

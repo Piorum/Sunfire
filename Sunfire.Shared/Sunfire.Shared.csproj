@@ -6,12 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../Sunfire.Shared/Sunfire.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Wcwidth.Sources" Version="4.0.1" />
-  </ItemGroup>
-
 </Project>

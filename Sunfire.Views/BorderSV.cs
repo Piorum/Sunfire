@@ -42,14 +42,14 @@ public class BorderSV : IRelativeSunfireView
     private SVCell templateCell = SVCell.Blank;
 
     //Blank
-    private static readonly GlyphInfo Blank = GlyphFactory.GetGlyphs(" ").First();
+    private static readonly (int id, byte width) Blank = GlyphFactory.GetGlyphs(" ").First();
 
     //Corners
     //Rounded
-    private static readonly GlyphInfo TopLeft = GlyphFactory.GetGlyphs("╭").First();
-    private static readonly GlyphInfo TopRight = GlyphFactory.GetGlyphs("╮").First();
-    private static readonly GlyphInfo BottomLeft = GlyphFactory.GetGlyphs("╰").First();
-    private static readonly GlyphInfo BottomRight = GlyphFactory.GetGlyphs("╯").First();
+    private static readonly (int id, byte width) TopLeft = GlyphFactory.GetGlyphs("╭").First();
+    private static readonly (int id, byte width) TopRight = GlyphFactory.GetGlyphs("╮").First();
+    private static readonly (int id, byte width) BottomLeft = GlyphFactory.GetGlyphs("╰").First();
+    private static readonly (int id, byte width) BottomRight = GlyphFactory.GetGlyphs("╯").First();
     //Squared
     //private const char TopLeft = (char)9484;
     //private const char TopRight = (char)9488;
@@ -57,10 +57,10 @@ public class BorderSV : IRelativeSunfireView
     //private const char BottomRight = (char)9496;
 
     //Sides
-    private static readonly GlyphInfo Horizontal = GlyphFactory.GetGlyphs("─").First();
-    private static readonly GlyphInfo Vertical = GlyphFactory.GetGlyphs("│").First();
-    private static readonly GlyphInfo TitleLeft = GlyphFactory.GetGlyphs("╴").First();
-    private static readonly GlyphInfo TitleRight = GlyphFactory.GetGlyphs("╶").First();
+    private static readonly (int id, byte width) Horizontal = GlyphFactory.GetGlyphs("─").First();
+    private static readonly (int id, byte width) Vertical = GlyphFactory.GetGlyphs("│").First();
+    private static readonly (int id, byte width) TitleLeft = GlyphFactory.GetGlyphs("╴").First();
+    private static readonly (int id, byte width) TitleRight = GlyphFactory.GetGlyphs("╶").First();
     public async Task<bool> Arrange()
     {
         bool borderUpdated = false;
@@ -83,7 +83,8 @@ public class BorderSV : IRelativeSunfireView
     {
         templateCell = new SVCell
         {
-            Data = Blank,
+            GlyphId = Blank.id,
+            Width = Blank.width,
             ForegroundColor = BorderColor,
             BackgroundColor = BackgroundColor
         };
@@ -93,21 +94,21 @@ public class BorderSV : IRelativeSunfireView
         if (borderBuffer.Height > 2)
             for (int x = 1; x < SizeX - 1; x++)
             {
-                borderBuffer[x, 0] = templateCell with { Data = Horizontal };
-                borderBuffer[x, SizeY - 1] = templateCell with { Data = Horizontal };
+                borderBuffer[x, 0] = templateCell with { GlyphId = Horizontal.id, Width = Horizontal.width };
+                borderBuffer[x, SizeY - 1] = templateCell with { GlyphId = Horizontal.id, Width = Horizontal.width };
             }
         if (borderBuffer.Width > 2)
             for (int y = 1; y < SizeY - 1; y++)
             {
-                borderBuffer[0, y] = templateCell with { Data = Vertical };
-                borderBuffer[SizeX - 1, y] = templateCell with { Data = Vertical };
+                borderBuffer[0, y] = templateCell with { GlyphId = Vertical.id, Width = Vertical.width };
+                borderBuffer[SizeX - 1, y] = templateCell with { GlyphId = Vertical.id, Width = Vertical.width };
             }
         if (SizeX > 0 && SizeY > 0)
         {
-            borderBuffer[0, 0] = templateCell with { Data = TopLeft };
-            borderBuffer[SizeX - 1, 0] = templateCell with { Data = TopRight };
-            borderBuffer[0, SizeY - 1] = templateCell with { Data = BottomLeft };
-            borderBuffer[SizeX - 1, SizeY - 1] = templateCell with { Data = BottomRight };
+            borderBuffer[0, 0] = templateCell with { GlyphId = TopLeft.id, Width = TopLeft.width };
+            borderBuffer[SizeX - 1, 0] = templateCell with { GlyphId = TopRight.id, Width = TopRight.width };
+            borderBuffer[0, SizeY - 1] = templateCell with { GlyphId = BottomLeft.id, Width = BottomLeft.width };
+            borderBuffer[SizeX - 1, SizeY - 1] = templateCell with { GlyphId = BottomRight.id, Width = BottomRight.width };
         }
 
         for (int y = 1; y < SizeY - 1; y++)
@@ -120,8 +121,8 @@ public class BorderSV : IRelativeSunfireView
 
         if (TitleLabel is not null && SizeX >= 4 && SizeY > 0)
         {
-            borderBuffer[1, 0] = templateCell with { Data = TitleLeft };
-            borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = templateCell with { Data = TitleRight };
+            borderBuffer[1, 0] = templateCell with { GlyphId = TitleLeft.id, Width = TitleLeft.width };
+            borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = templateCell with { GlyphId = TitleRight.id, Width = TitleRight.width };
         }
 
         //Subpane setup

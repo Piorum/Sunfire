@@ -1,6 +1,5 @@
 using Sunfire.Ansi.Models;
 using Sunfire.Glyph;
-using Sunfire.Glyph.Models;
 
 namespace Sunfire.Tui.Models;
 
@@ -12,11 +11,19 @@ namespace Sunfire.Tui.Models;
 /// <param name="BackgroundColor">Background color cell should be.</param>
 /// <param name="Properties">Ansi properties cell should have.</param>
 public record struct SVCell(
-    GlyphInfo Data,
+    int GlyphId,
+    byte Width,
     SColor? ForegroundColor,
     SColor? BackgroundColor,
     SAnsiProperty Properties
 )
 {
-    public static readonly SVCell Blank = new(GlyphFactory.GetGlyphs(" ").First(), null, null, SAnsiProperty.None);
+    public static readonly SVCell Blank;
+
+    static SVCell()
+    {
+        var blankGlyph = GlyphFactory.GetGlyphs(" ").First();
+
+        Blank = new(blankGlyph.id, blankGlyph.width, null, null, SAnsiProperty.None);
+    }
 }

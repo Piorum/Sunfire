@@ -1,6 +1,5 @@
 using System.Text;
 using System.Threading.Channels;
-using Wcwidth;
 using Sunfire.Logging;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
@@ -8,7 +7,6 @@ using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
 using Sunfire.Glyph;
-using System.Runtime.InteropServices;
 
 namespace Sunfire.Tui;
 
@@ -178,7 +176,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             for (int x = 0; x < RootView.SizeX; x++)
             {
                 var cell = _backBuffer[x, y];
-                var width = cell.Data.Width;
+                var width = cell.Width;
 
                 //Cell is same as already drawn continue
                 if (cell == FrontBuffer[x, y])
@@ -205,7 +203,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 }
 
                 //Encodes data to the output buffer. Returns number of chars written
-                var cluster = GlyphCache.Get(cell.Data);
+                var cluster = renderState.glyphCache.Get(cell.GlyphId);
                 var text = cluster.GraphemeCluster.AsSpan();
                 
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));

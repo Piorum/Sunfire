@@ -1,4 +1,5 @@
 using Sunfire.Ansi.Models;
+using Sunfire.Glyph;
 
 namespace Sunfire.Tui.Models;
 
@@ -23,4 +24,6 @@ public class RenderState(int bufferSize)
         OutputStart = (0, 0);
         Cursor = (-1, -1);
     }
+
+    public GlyphCache glyphCache = new();
 }

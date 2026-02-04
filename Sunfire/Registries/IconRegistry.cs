@@ -317,13 +317,15 @@ public static class IconRegistry
     [ModuleInitializer]
     public static void Init()
     {
+        GlyphCache glyphCache = new();
+
         foreach(var icon in Icons.Values)
-            GlyphCache.AddOrUpdate(icon.icon, 2);
+            glyphCache.AddOrUpdate(icon.icon, 2);
         foreach(var icon in SpecialIcons.Values)
-            GlyphCache.AddOrUpdate(icon.icon, 2);
+            glyphCache.AddOrUpdate(icon.icon, 2);
         
-        GlyphCache.AddOrUpdate(DirectoryIcon, 2);
-        GlyphCache.AddOrUpdate(FallbackFileIcon, 2);
+        glyphCache.AddOrUpdate(DirectoryIcon, 2);
+        glyphCache.AddOrUpdate(FallbackFileIcon, 2);
     }
 
     public static (string icon, SColor? color) GetIcon(FSEntry entry) =>

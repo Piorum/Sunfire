@@ -1,15 +1,16 @@
 using System.Globalization;
-using Sunfire.Glyph.Models;
 
 namespace Sunfire.Glyph;
 
 public static class GlyphFactory
 {
-    private readonly static GlyphInfo invalidGlyph = GetGlyphs("\uFFFD").First();
+    private readonly static GlyphCache glyphCache = new();
 
-    public static List<GlyphInfo> GetGlyphs(string text)
+    private readonly static (int id, byte width) invalidGlyph = GetGlyphs("\uFFFD").First();
+
+    public static List<(int id, byte width)> GetGlyphs(string text)
     {
-        List<GlyphInfo> glyphs = [];
+        List<(int id, byte width)> glyphs = [];
 
         var enumerator = StringInfo.GetTextElementEnumerator(text);
         while(enumerator.MoveNext())
@@ -19,8 +20,12 @@ public static class GlyphFactory
             if(string.IsNullOrEmpty(cluster))
                 continue;
 
-            var info = GlyphCache.GetOrAdd(cluster);
-            glyphs.Add(info.Width != 0 ? info : invalidGlyph);
+            var info = glyphCache.GetOrAdd(cluster, null);
+            
+            if(info.width != 0)
+                glyphs.Add(info);
+            else
+                glyphs.Add(invalidGlyph);
         }
 
         return glyphs;

@@ -34,7 +34,7 @@ public class LabelSVSlim : ISunfireView
 
     protected SColor? tagColor = null;
 
-    private readonly List<GlyphInfo> glyphs = [];
+    private readonly List<(int id, byte width)> glyphs = [];
     private readonly List<byte> styles = [];
     private readonly List<StyleData> styleMap = [];
     private readonly Dictionary<StyleData, byte> styleIndex = [];
@@ -98,7 +98,7 @@ public class LabelSVSlim : ISunfireView
         if(Segments is null || Segments.Length == 0)
             return Task.CompletedTask;
 
-        var textLen = glyphs.Sum(g => g.Width);
+        var textLen = glyphs.Sum(g => g.width);
 
         int startX = Alignment == Direction.Right
             ? SizeX - textLen
@@ -144,17 +144,18 @@ public class LabelSVSlim : ISunfireView
                     ? selectedStyle
                     : style;
 
-                var glyph = glyphs[glyphIndex];
+                var (id, width) = glyphs[glyphIndex];
 
                 var newCell = new SVCell(
-                    glyph, 
+                    id,
+                    width, 
                     renderStyle.ForegroundColor, 
                     renderStyle.BackgroundColor, 
                     renderStyle.Properties);
 
                 context[x, y] = newCell;
 
-                if(glyph.Width == 2 && x+1 < maxX)
+                if(width == 2 && x+1 < maxX)
                 {
                     context[x+1, y] = new();
                     x++;
