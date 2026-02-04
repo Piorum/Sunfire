@@ -34,8 +34,10 @@ public class LabelSVSlim : ISunfireView
 
     protected SColor? tagColor = null;
 
-    public List<GlyphInfo> rawText = [];
-    public SStyle[] styleMap = [];
+    private readonly List<GlyphInfo> glyphs = [];
+    private readonly List<byte> styles = [];
+    private readonly List<SStyle> styleMap = [];
+    private readonly Dictionary<SStyle, byte> styleIndex = [];
 
     public readonly struct LabelSegment()
     {
@@ -51,30 +53,36 @@ public class LabelSVSlim : ISunfireView
         {
             if(Segments is not null && Segments.Length > 0)
             {
-                int totalLength = Segments.Sum(s => s.Text.Length);
+                glyphs.Clear();
+                styles.Clear();
+                styleMap.Clear();
+                styleIndex.Clear();
 
-                styleMap = new SStyle[totalLength];
-
-                var sb = new StringBuilder(totalLength);
-
-                int currentIndex = 0;
-                foreach(var segment in Segments)
+                foreach(var segement in Segments)
                 {
-                    if (string.IsNullOrEmpty(segment.Text)) 
+                    if(string.IsNullOrEmpty(segement.Text))
                         continue;
-                    
-                    sb.Append(segment.Text);
-                    Array.Fill(styleMap, segment.Style, currentIndex, segment.Text.Length);
 
-                    currentIndex += segment.Text.Length;
+                    if (!styleIndex.TryGetValue(segement.Style, out var style_id))
+                    {
+                        style_id = (byte)styleMap.Count;
+                        styleMap.Add(segement.Style);
+                        styleIndex[segement.Style] = style_id;
+                    }
+
+                    foreach (var glyph in GlyphFactory.GetGlyphs(segement.Text))
+                    {
+                        glyphs.Add(glyph);
+                        styles.Add(style_id);
+                    }
                 }
-
-                rawText = GlyphFactory.GetGlyphs(sb.ToString());
             }
             else
             {
-                rawText = [];
-                styleMap = [];
+                glyphs.Clear();
+                styles.Clear();
+                styleMap.Clear();
+                styleIndex.Clear();
             }
 
             Dirty = false;
@@ -90,7 +98,7 @@ public class LabelSVSlim : ISunfireView
         if(Segments is null || Segments.Length == 0)
             return Task.CompletedTask;
 
-        var textLen = rawText.Sum(g => g.Width);
+        var textLen = glyphs.Sum(g => g.Width);
 
         int startX = Alignment == Direction.Right
             ? SizeX - textLen
@@ -127,16 +135,16 @@ public class LabelSVSlim : ISunfireView
             for(int x = 0; x < minX; x++)
                 context[x, y] = paddingCell;
 
-            int charIndex = minX - startX;
+            int glyphIndex = minX - startX;
             for (int x = minX; x < maxX; x++)
             {
-                var style = styleMap[charIndex];
+                var style = styleMap[styles[glyphIndex]];
 
                 var renderStyle = isSelected && style.BackgroundColor is null
                     ? selectedStyle
                     : style;
 
-                var glyph = rawText[charIndex];
+                var glyph = glyphs[glyphIndex];
 
                 var newCell = new SVCell(
                     glyph, 
@@ -151,7 +159,7 @@ public class LabelSVSlim : ISunfireView
                     context[x+1, y] = new();
                     x++;
                 }
-                charIndex++;
+                glyphIndex++;
             }
 
             for(int x = maxX; x < SizeX; x++)

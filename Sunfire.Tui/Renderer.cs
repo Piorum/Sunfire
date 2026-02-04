@@ -27,6 +27,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     public SVBuffer FrontBuffer { internal set; get; } = new(rootView.SizeX, rootView.SizeY);
     private SVBuffer _backBuffer = new(rootView.SizeX, rootView.SizeY);
 
+    private readonly RenderState renderState = new(8192);
+
     private readonly TimeSpan batchDelay = _batchDelay ?? TimeSpan.FromMicroseconds(100);
 
     private readonly IWindowResizer windowResizer = WindowResizerFactory.Create();
@@ -41,8 +43,6 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     /// </summary>
     public async Task Start(CancellationToken token)
     {
-        GlyphLibrary.AddOrUpdate("\uf114", 2);
-
         if (!windowResizer.Registered)
             await windowResizer.RegisterResizeEvent(this);
 
@@ -154,30 +154,21 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         startTime = DateTime.Now;
         asb.Clear();
         asb.HideCursor();
-
-        //SizeX*4 to account for some wide characters + ZWC
-        char[] outputBuffer = new char[RootView.SizeX * 4];
-        int outputIndex = 0;
-        int cursorMovement = 0;
-
-        SStyle currentStyle = new(null, null, SAnsiProperty.None, (0, 0));
-        //These need to be different or redraw breaks
-        (int X, int Y) outputStartPos = (0, 0);
-        (int X, int Y) cursorPos = (-1, -1);
+        renderState.Reset();
 
         //Function that appends the small buffer to the asb
         void Flush()
         {
-            if (outputIndex > 0)
+            if (renderState.OutputIndex > 0)
             {
                 //Change to new style, append text, move cursor if cursor not in the correct place already
                 asb.Append(
-                    outputBuffer.AsSpan(0, outputIndex), 
-                    currentStyle with { CursorPosition = cursorPos == outputStartPos ? null : outputStartPos }
+                    renderState.OutputBuffer.AsSpan(0, renderState.OutputIndex), 
+                    renderState.CurrentStyle with { CursorPosition = renderState.Cursor == renderState.OutputStart ? null : renderState.OutputStart }
                 );
 
-                cursorPos = (outputStartPos.X + cursorMovement, outputStartPos.Y);
-                (outputIndex, cursorMovement) = (0, 0);
+                renderState.Cursor = (renderState.OutputStart.X + renderState.CursorMovement, renderState.OutputStart.Y);
+                (renderState.OutputIndex, renderState.CursorMovement) = (0, 0);
             }
         }
 
@@ -204,23 +195,23 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 SStyle cellStyle = new(cell.ForegroundColor, cell.BackgroundColor, cell.Properties, null);
 
                 //Style is NOT the same or buffer is empty, clear buffer and add first value
-                if (outputIndex == 0 || cellStyle != currentStyle)
+                if (renderState.OutputIndex == 0 || cellStyle != renderState.CurrentStyle)
                 {
                     Flush();
 
-                    currentStyle = cellStyle;
-                    outputStartPos = (x, y);
+                    renderState.CurrentStyle = cellStyle;
+                    renderState.OutputStart = (x, y);
                 }
 
                 //Encodes data to the output buffer. Returns number of chars written
                 var cluster = GlyphLibrary.Get(cell.Data);
                 var text = cluster.GraphemeCluster.AsSpan();
                 
-                text.CopyTo(outputBuffer.AsSpan(outputIndex));
-                outputIndex += text.Length;
+                text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
+                renderState.OutputIndex += text.Length;
 
                 //Track batch movement
-                cursorMovement += cluster.Width;
+                renderState.CursorMovement += cluster.Width;
 
                 //Account for wide characters in the append branch
                 if(width == 2)
@@ -229,7 +220,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                     if(cluster.RealWidth < width)
                     {
-                        outputBuffer[outputIndex++] = ' ';
+                        renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
                         FrontBuffer[x, y] = SVCell.Blank;
                     }
                     FrontBuffer[x, y] = new();

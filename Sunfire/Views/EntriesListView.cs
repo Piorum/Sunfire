@@ -200,9 +200,12 @@ public class EntriesListView : ListSV
                 ? directoryStyle
                 : fileStyle;
 
-            var segments = new LabelSegment[1]
+            (var icon, var iconColor) = IconRegistry.GetIcon(Entry);
+
+            var segments = new LabelSegment[2]
             {
-                new() { Text = $" {Entry.Name}", Style = style }
+                new() { Text = $" {icon}", Style = new( ForegroundColor: iconColor ) },
+                new() { Text = $"{Entry.Name}", Style = style }
             };
 
             (Segments, built, Dirty) = (segments, true, true);
