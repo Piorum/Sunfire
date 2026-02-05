@@ -169,10 +169,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 if(renderState.OutputIndex == 0)
                 {
                     renderState.CurrentStyleId = cell.StyleId;
-
-                    var cellStyle = StyleFactory.Get(cell.StyleId);
-                    renderState.CurrentStyle = cellStyle;
-
+                    renderState.CurrentStyle = StyleFactory.Get(renderState.CurrentStyleId);
                     renderState.OutputStart = (x,y);
                 }
 
@@ -184,10 +181,10 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 renderState.CursorMovement += cluster.Width;
 
                 //Add extra space to "Fake" 2 wide characters
-                if(cell.Width > 1 && cluster.RealWidth < cell.Width)
+                if(cluster.Width > 1 && cluster.RealWidth < cluster.Width)
                     renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
 
-                x += cell.Width;
+                x += cluster.Width;
             }
             FlushToAsb(asb);
         }
