@@ -6,6 +6,7 @@ using Sunfire.Ansi.Models;
 using Sunfire.Views.Text;
 using Sunfire.Glyph;
 using Sunfire.Glyph.Models;
+using Sunfire.Ansi;
 
 namespace Sunfire.Views;
 
@@ -42,14 +43,14 @@ public class BorderSV : IRelativeSunfireView
     private SVCell templateCell = SVCell.Blank;
 
     //Blank
-    private static readonly (int id, byte width) Blank = GlyphFactory.GetGlyphs(" ").First();
+    private static readonly (int id, byte width) Blank = GlyphFactory.GetGlyphIds(" ").First();
 
     //Corners
     //Rounded
-    private static readonly (int id, byte width) TopLeft = GlyphFactory.GetGlyphs("╭").First();
-    private static readonly (int id, byte width) TopRight = GlyphFactory.GetGlyphs("╮").First();
-    private static readonly (int id, byte width) BottomLeft = GlyphFactory.GetGlyphs("╰").First();
-    private static readonly (int id, byte width) BottomRight = GlyphFactory.GetGlyphs("╯").First();
+    private static readonly (int id, byte width) TopLeft = GlyphFactory.GetGlyphIds("╭").First();
+    private static readonly (int id, byte width) TopRight = GlyphFactory.GetGlyphIds("╮").First();
+    private static readonly (int id, byte width) BottomLeft = GlyphFactory.GetGlyphIds("╰").First();
+    private static readonly (int id, byte width) BottomRight = GlyphFactory.GetGlyphIds("╯").First();
     //Squared
     //private const char TopLeft = (char)9484;
     //private const char TopRight = (char)9488;
@@ -57,10 +58,10 @@ public class BorderSV : IRelativeSunfireView
     //private const char BottomRight = (char)9496;
 
     //Sides
-    private static readonly (int id, byte width) Horizontal = GlyphFactory.GetGlyphs("─").First();
-    private static readonly (int id, byte width) Vertical = GlyphFactory.GetGlyphs("│").First();
-    private static readonly (int id, byte width) TitleLeft = GlyphFactory.GetGlyphs("╴").First();
-    private static readonly (int id, byte width) TitleRight = GlyphFactory.GetGlyphs("╶").First();
+    private static readonly (int id, byte width) Horizontal = GlyphFactory.GetGlyphIds("─").First();
+    private static readonly (int id, byte width) Vertical = GlyphFactory.GetGlyphIds("│").First();
+    private static readonly (int id, byte width) TitleLeft = GlyphFactory.GetGlyphIds("╴").First();
+    private static readonly (int id, byte width) TitleRight = GlyphFactory.GetGlyphIds("╶").First();
     public async Task<bool> Arrange()
     {
         bool borderUpdated = false;
@@ -81,12 +82,12 @@ public class BorderSV : IRelativeSunfireView
 
     protected virtual Task OnArrange()
     {
+        var templateStyleId = StyleFactory.GetStyleId((BorderColor, BackgroundColor, SAnsiProperty.None));
         templateCell = new SVCell
         {
             GlyphId = Blank.id,
             Width = Blank.width,
-            ForegroundColor = BorderColor,
-            BackgroundColor = BackgroundColor
+            StyleId = templateStyleId
         };
         
         borderBuffer = new(SizeX, SizeY);

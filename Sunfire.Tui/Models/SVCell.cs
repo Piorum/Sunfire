@@ -1,3 +1,4 @@
+using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Glyph;
 
@@ -13,17 +14,16 @@ namespace Sunfire.Tui.Models;
 public record struct SVCell(
     int GlyphId,
     byte Width,
-    SColor? ForegroundColor,
-    SColor? BackgroundColor,
-    SAnsiProperty Properties
+    int StyleId
 )
 {
     public static readonly SVCell Blank;
 
     static SVCell()
     {
-        var blankGlyph = GlyphFactory.GetGlyphs(" ").First();
+        var (id, width) = GlyphFactory.GetGlyphIds(" ").First();
+        var styleId = StyleFactory.GetStyleId((null, null, SAnsiProperty.None));
 
-        Blank = new(blankGlyph.id, blankGlyph.width, null, null, SAnsiProperty.None);
+        Blank = new(id, width, styleId);
     }
 }

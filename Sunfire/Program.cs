@@ -114,9 +114,19 @@ internal class Program
             //Nav
             InputHandler.CreateBinding()
                 .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.UpArrow))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavUp()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.W))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.NavUp()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.DownArrow))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavDown()),
             InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.S))
@@ -124,9 +134,19 @@ internal class Program
                 .WithBind(async (inputData) => await AppState.NavDown()),
             InputHandler.CreateBinding()
                 .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.LeftArrow))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavOut()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.A))
                 .WithContext([InputContext.Global])
                 .WithBind(async (inputData) => await AppState.NavOut()),
+            InputHandler.CreateBinding()
+                .AsIndifferent()
+                .WithSequence(Key.KeyboardBind(ConsoleKey.RightArrow))
+                .WithContext([InputContext.Global])
+                .WithBind(async (inputData) => await AppState.NavIn()),
             InputHandler.CreateBinding()
                 .AsIndifferent()
                 .WithSequence(Key.KeyboardBind(ConsoleKey.D))

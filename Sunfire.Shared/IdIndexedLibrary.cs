@@ -2,6 +2,9 @@
 
 namespace Sunfire.Shared;
 
+public abstract class IdIndexedCache<TCreationData, TDataObject, TReturnInfo> : IdIndexedCache<TCreationData, object, TDataObject, TReturnInfo>
+    where TCreationData : notnull { }
+
 public abstract class IdIndexedCache<TCreationData, THelperData, TDataObject, TReturnInfo>
     where TCreationData : notnull
 {

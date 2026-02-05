@@ -24,6 +24,4 @@ public class RenderState(int bufferSize)
         OutputStart = (0, 0);
         Cursor = (-1, -1);
     }
-
-    public GlyphCache glyphCache = new();
 }

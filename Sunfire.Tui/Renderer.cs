@@ -191,7 +191,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     continue;
                 }
 
-                StyleData cellStyle = new(cell.ForegroundColor, cell.BackgroundColor, cell.Properties);
+                StyleData cellStyle = StyleFactory.Get(cell.StyleId);
 
                 //Style is NOT the same or buffer is empty, clear buffer and add first value
                 if (renderState.OutputIndex == 0 || cellStyle != renderState.CurrentStyle)
@@ -203,7 +203,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 }
 
                 //Encodes data to the output buffer. Returns number of chars written
-                var cluster = renderState.glyphCache.Get(cell.GlyphId);
+                var cluster = GlyphFactory.Get(cell.GlyphId);
                 var text = cluster.GraphemeCluster.AsSpan();
                 
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));

@@ -6,6 +6,7 @@ using Sunfire.Views.Enums;
 using System.Text;
 using Sunfire.Glyph.Models;
 using Sunfire.Glyph;
+using Sunfire.Ansi;
 
 namespace Sunfire.Views.Text;
 
@@ -70,7 +71,7 @@ public class LabelSVSlim : ISunfireView
                         styleIndex[segement.Style] = style_id;
                     }
 
-                    foreach (var glyph in GlyphFactory.GetGlyphs(segement.Text))
+                    foreach (var glyph in GlyphFactory.GetGlyphIds(segement.Text))
                     {
                         glyphs.Add(glyph);
                         styles.Add(style_id);
@@ -120,11 +121,10 @@ public class LabelSVSlim : ISunfireView
 
             selectedStyle = lastSegmentStyle with { Properties = lastSegmentStyle.Properties | SAnsiProperty.Highlight };
 
+            var paddingStyleId = StyleFactory.GetStyleId((selectedStyle.ForegroundColor, selectedStyle.BackgroundColor, selectedStyle.Properties));
             paddingCell = SVCell.Blank with
             {
-                ForegroundColor = selectedStyle.ForegroundColor,
-                BackgroundColor = selectedStyle.BackgroundColor,
-                Properties = selectedStyle.Properties
+                StyleId = paddingStyleId
             };
         }
         else
@@ -143,15 +143,14 @@ public class LabelSVSlim : ISunfireView
                 var renderStyle = isSelected && style.BackgroundColor is null
                     ? selectedStyle
                     : style;
+                var renderStyleId = StyleFactory.GetStyleId((renderStyle.ForegroundColor, renderStyle.BackgroundColor, renderStyle.Properties));
 
                 var (id, width) = glyphs[glyphIndex];
 
                 var newCell = new SVCell(
                     id,
                     width, 
-                    renderStyle.ForegroundColor, 
-                    renderStyle.BackgroundColor, 
-                    renderStyle.Properties);
+                    renderStyleId);
 
                 context[x, y] = newCell;
 
@@ -168,10 +167,14 @@ public class LabelSVSlim : ISunfireView
         }
 
         if(tagColor is not null)
+        {
+            var tagStyleId = StyleFactory.GetStyleId((null, tagColor, SAnsiProperty.None));
+        
             if(Alignment == Direction.Left)
-                context[SizeX - 1, SizeY - 1] = SVCell.Blank with { BackgroundColor = tagColor };
+                context[SizeX - 1, SizeY - 1] = SVCell.Blank with { StyleId = tagStyleId };
             else
-                context[0, 0] = SVCell.Blank with { BackgroundColor = tagColor };
+                context[0, 0] = SVCell.Blank with { StyleId = tagStyleId };
+        }
 
         return Task.CompletedTask;
     }

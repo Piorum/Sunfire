@@ -1,4 +1,5 @@
 using System.Globalization;
+using Sunfire.Glyph.Models;
 
 namespace Sunfire.Glyph;
 
@@ -6,9 +7,9 @@ public static class GlyphFactory
 {
     private readonly static GlyphCache glyphCache = new();
 
-    private readonly static (int id, byte width) invalidGlyph = GetGlyphs("\uFFFD").First();
+    private readonly static (int id, byte width) invalidGlyph = GetGlyphIds("\uFFFD").First();
 
-    public static List<(int id, byte width)> GetGlyphs(string text)
+    public static List<(int id, byte width)> GetGlyphIds(string text)
     {
         List<(int id, byte width)> glyphs = [];
 
@@ -30,4 +31,7 @@ public static class GlyphFactory
 
         return glyphs;
     }
+
+    public static GlyphData Get(int id) =>
+        glyphCache.Get(id);
 }
