@@ -24,7 +24,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     public SVBuffer FrontBuffer { internal set; get; } = new(rootView.SizeX, rootView.SizeY);
     private SVBuffer _backBuffer = new(rootView.SizeX, rootView.SizeY);
 
-    private readonly RenderState renderState = new(8192);
+    private readonly RenderState renderState = new(2048);
 
     private readonly TimeSpan batchDelay = _batchDelay ?? TimeSpan.FromMicroseconds(100);
 
@@ -221,24 +221,14 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     private void HandleClearTasks()
     {
-        if(clearTasks.Count > 0)
-        {
-            foreach(var clearTask in clearTasks)
-            {
-                var (x, y, w, h) = clearTask;
+        if(clearTasks.Count == 0)
+            return;
+            
+        foreach(var clearTask in clearTasks)
+            FrontBuffer.Clear(clearTask);
 
-                for(int i = y; i < y + h; i++)
-                {
-                    for(int j = x; j < x + w; j++)
-                    {
-                        FrontBuffer[j, i] = new();
-                    }
-                }
-            }
-
-            clearTasks.Clear();
-        }
-    }   
+        clearTasks.Clear();
+    }
     
     private async Task HandlePostRenderTasks()
     {
