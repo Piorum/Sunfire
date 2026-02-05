@@ -4,10 +4,8 @@ using Sunfire.Logging;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
-using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
 using Sunfire.Glyph;
-using System.Runtime.Intrinsics;
 
 namespace Sunfire.Tui;
 
@@ -99,11 +97,11 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                         _ = Logger.Error(nameof(Tui), $"Render Task Failed\n{ex}");
                 }
 
-                await Logger.Debug(nameof(Tui), $" - (Tasks:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
-
                 //Skip render if cancelled basically
                 if (runningTasks.Count > 0 && !token.IsCancellationRequested)
                     await OnRender(asb);
+
+                await HandlePostRenderTasks();
 
                 await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
             }
@@ -133,24 +131,19 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     private async Task OnRender(AnsiStringBuilder asb)
     {
-        DateTime startTime;
-
         //Rearrange, returns true if anything was changed
-        startTime = DateTime.Now;
         var invalidScreen = await RootView.Arrange();
-        var arrangeTime = (DateTime.Now - startTime).TotalMicroseconds;
 
+        //Force invalidation of front buffer
         HandleClearTasks();
 
         if (!invalidScreen)
             return;
 
-        startTime = DateTime.Now;
+        //Draw to back buffer
         await RootView.Draw(new SVContext(0, 0, _backBuffer));
-        var drawTime = (DateTime.Now - startTime).TotalMicroseconds;
 
-        //Clear builder, ensure cursor is hidden for draw
-        startTime = DateTime.Now;
+        //Clear builder, ensure cursor is hidden for draw, reset state
         asb.Clear();
         asb.HideCursor();
         renderState.Reset();
@@ -190,6 +183,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 renderState.OutputIndex += text.Length;
                 renderState.CursorMovement += cluster.Width;
 
+                //Add extra space to "Fake" 2 wide characters
                 if(cell.Width > 1 && cluster.RealWidth < cell.Width)
                     renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
 
@@ -199,25 +193,12 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         }
         //Append final escape codes like resetting properties
         asb.ResetProperties();
-        var buildTime = (DateTime.Now - startTime).TotalMicroseconds;
 
-        startTime = DateTime.Now;
         await Write(asb.ToString());
-        var writeTime = (DateTime.Now - startTime).TotalMicroseconds;
 
-        startTime = DateTime.Now;
         //Swap back buffer to front, clear back buffer
         (_backBuffer, FrontBuffer) = (FrontBuffer, _backBuffer);
         _backBuffer.Clear();
-        var swapTime = (DateTime.Now - startTime).TotalMicroseconds;
-
-        await Logger.Debug(nameof(Tui), $" - (Arrange:  {arrangeTime}us)");
-        await Logger.Debug(nameof(Tui), $" - (Draw:     {drawTime}us)");
-        await Logger.Debug(nameof(Tui), $" - (Build     {buildTime}us)");
-        await Logger.Debug(nameof(Tui), $" - (Write:    {writeTime}us)");
-        await Logger.Debug(nameof(Tui), $" - (Swap:     {swapTime}us)");
-
-        await HandlePostRenderTasks();
     }
 
 
