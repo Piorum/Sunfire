@@ -4,19 +4,28 @@ using Sunfire.Glyph;
 
 namespace Sunfire.Tui.Models;
 
-/// <summary>
-/// Contains all information needed to render cell (x, y) (determined by placement in buffer)
-/// </summary>
-/// <param name="Data">UTF8 Char to display.</param>
-/// <param name="ForegroundColor">Foreground color cell should be.</param>
-/// <param name="BackgroundColor">Background color cell should be.</param>
-/// <param name="Properties">Ansi properties cell should have.</param>
-public record struct SVCell(
-    int GlyphId,
-    byte Width,
-    int StyleId
-)
+public readonly struct SVCell(ulong value)
 {
+    public readonly ulong Value = value;
+    
+    private const int GlyphIdBits = 24;
+    private const int WidthBits = 8;
+
+    private const ulong glyphIdMask = (1UL << GlyphIdBits) - 1;
+    private const ulong widthMask = (1UL << WidthBits) - 1;
+
+    public readonly int GlyphId => (int)(Value & glyphIdMask);
+    public readonly byte Width => (byte)((Value >> GlyphIdBits) & widthMask);
+    public readonly int StyleId => (int)(Value >> (GlyphIdBits + WidthBits));
+
+    public SVCell(int glyphId, byte width, int styleId) : this(((ulong)(uint)styleId << 32) | ((ulong)width << 24) | (uint)glyphId) { }
+
+    public bool Equals(SVCell other) => Value == other.Value;
+    public override bool Equals(object? obj) => obj is SVCell other && Equals(other);
+    public override int GetHashCode() => Value.GetHashCode();
+    public static bool operator ==(SVCell left, SVCell right) => left.Value == right.Value;
+    public static bool operator !=(SVCell left, SVCell right) => left.Value != right.Value;
+
     public static readonly SVCell Blank;
 
     static SVCell()

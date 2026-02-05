@@ -83,33 +83,34 @@ public class BorderSV : IRelativeSunfireView
     protected virtual Task OnArrange()
     {
         var templateStyleId = StyleFactory.GetStyleId((BorderColor, BackgroundColor, SAnsiProperty.None));
-        templateCell = new SVCell
-        {
-            GlyphId = Blank.id,
-            Width = Blank.width,
-            StyleId = templateStyleId
-        };
+        templateCell = new(
+            Blank.id,
+            Blank.width,
+            templateStyleId
+        );
         
         borderBuffer = new(SizeX, SizeY);
 
         if (borderBuffer.Height > 2)
             for (int x = 1; x < SizeX - 1; x++)
             {
-                borderBuffer[x, 0] = templateCell with { GlyphId = Horizontal.id, Width = Horizontal.width };
-                borderBuffer[x, SizeY - 1] = templateCell with { GlyphId = Horizontal.id, Width = Horizontal.width };
+                SVCell horizontalCell = new(Horizontal.id, Horizontal.width, templateStyleId);
+                borderBuffer[x, 0] = horizontalCell;
+                borderBuffer[x, SizeY - 1] = horizontalCell;
             }
         if (borderBuffer.Width > 2)
             for (int y = 1; y < SizeY - 1; y++)
             {
-                borderBuffer[0, y] = templateCell with { GlyphId = Vertical.id, Width = Vertical.width };
-                borderBuffer[SizeX - 1, y] = templateCell with { GlyphId = Vertical.id, Width = Vertical.width };
+                SVCell verticalCell = new(Vertical.id, Vertical.width, templateStyleId);
+                borderBuffer[0, y] = verticalCell;
+                borderBuffer[SizeX - 1, y] = verticalCell;
             }
         if (SizeX > 0 && SizeY > 0)
         {
-            borderBuffer[0, 0] = templateCell with { GlyphId = TopLeft.id, Width = TopLeft.width };
-            borderBuffer[SizeX - 1, 0] = templateCell with { GlyphId = TopRight.id, Width = TopRight.width };
-            borderBuffer[0, SizeY - 1] = templateCell with { GlyphId = BottomLeft.id, Width = BottomLeft.width };
-            borderBuffer[SizeX - 1, SizeY - 1] = templateCell with { GlyphId = BottomRight.id, Width = BottomRight.width };
+            borderBuffer[0, 0] = new(TopLeft.id, TopLeft.width, templateStyleId);
+            borderBuffer[SizeX - 1, 0] = new(TopRight.id, TopRight.width, templateStyleId);
+            borderBuffer[0, SizeY - 1] = new(BottomLeft.id, BottomLeft.width, templateStyleId);
+            borderBuffer[SizeX - 1, SizeY - 1] = new(BottomRight.id, BottomRight.width, templateStyleId);
         }
 
         for (int y = 1; y < SizeY - 1; y++)
@@ -122,8 +123,8 @@ public class BorderSV : IRelativeSunfireView
 
         if (TitleLabel is not null && SizeX >= 4 && SizeY > 0)
         {
-            borderBuffer[1, 0] = templateCell with { GlyphId = TitleLeft.id, Width = TitleLeft.width };
-            borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = templateCell with { GlyphId = TitleRight.id, Width = TitleRight.width };
+            borderBuffer[1, 0] = new(TitleLeft.id, TitleLeft.width, templateStyleId);
+            borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = new(TitleRight.id, TitleRight.width, templateStyleId);
         }
 
         //Subpane setup

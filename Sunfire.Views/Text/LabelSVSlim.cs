@@ -122,10 +122,7 @@ public class LabelSVSlim : ISunfireView
             selectedStyle = lastSegmentStyle with { Properties = lastSegmentStyle.Properties | SAnsiProperty.Highlight };
 
             var paddingStyleId = StyleFactory.GetStyleId((selectedStyle.ForegroundColor, selectedStyle.BackgroundColor, selectedStyle.Properties));
-            paddingCell = SVCell.Blank with
-            {
-                StyleId = paddingStyleId
-            };
+            paddingCell = new(SVCell.Blank.GlyphId, SVCell.Blank.Width, paddingStyleId);
         }
         else
             paddingCell = SVCell.Blank;
@@ -169,11 +166,12 @@ public class LabelSVSlim : ISunfireView
         if(tagColor is not null)
         {
             var tagStyleId = StyleFactory.GetStyleId((null, tagColor, SAnsiProperty.None));
+            SVCell tagCell = new(SVCell.Blank.GlyphId, SVCell.Blank.Width, tagStyleId);
         
             if(Alignment == Direction.Left)
-                context[SizeX - 1, SizeY - 1] = SVCell.Blank with { StyleId = tagStyleId };
+                context[SizeX - 1, SizeY - 1] = tagCell;
             else
-                context[0, 0] = SVCell.Blank with { StyleId = tagStyleId };
+                context[0, 0] = tagCell;
         }
 
         return Task.CompletedTask;
