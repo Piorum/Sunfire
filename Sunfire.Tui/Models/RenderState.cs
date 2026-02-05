@@ -1,5 +1,4 @@
 using Sunfire.Ansi.Models;
-using Sunfire.Glyph;
 
 namespace Sunfire.Tui.Models;
 
@@ -10,6 +9,7 @@ public class RenderState(int bufferSize)
     public int OutputIndex;
     public int CursorMovement;
 
+    public int CurrentStyleId;
     public StyleData CurrentStyle;
 
     public (int X, int Y) OutputStart;
@@ -17,7 +17,8 @@ public class RenderState(int bufferSize)
 
     public void Reset()
     {
-        (OutputIndex, CursorMovement) = (0, 0);
+        OutputIndex = 0;
+        CursorMovement = 0;
 
         CurrentStyle = new(null, null, SAnsiProperty.None);
 

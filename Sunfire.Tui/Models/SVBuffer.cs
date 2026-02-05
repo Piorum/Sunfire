@@ -2,7 +2,7 @@ namespace Sunfire.Tui.Models;
 
 public class SVBuffer(int width, int height)
 {
-    private SVCell[] cells = new SVCell[width * height];
+    private readonly SVCell[] cells = new SVCell[width * height];
     public int Width { private set; get; } = width;
     public int Height { private set; get; } = height;
 
@@ -11,10 +11,6 @@ public class SVBuffer(int width, int height)
         get => ref cells[y * Width + x];
     }
 
-    public Span<SVCell> AsSpan() => cells.AsSpan();
-
-    public void Clear()
-    {
-        cells = new SVCell[Width * Height];
-    }
+    public void Clear() =>
+        Array.Clear(cells);
 }

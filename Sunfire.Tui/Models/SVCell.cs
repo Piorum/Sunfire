@@ -1,9 +1,11 @@
+using System.Runtime.InteropServices;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Glyph;
 
 namespace Sunfire.Tui.Models;
 
+[StructLayout(LayoutKind.Sequential, Size = 8)]
 public readonly struct SVCell(ulong value)
 {
     public readonly ulong Value = value;

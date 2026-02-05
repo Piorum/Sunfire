@@ -147,13 +147,11 @@ public class BorderSV : IRelativeSunfireView
 
     public async Task Draw(SVContext context)
     {
-        var bufferSpan = borderBuffer!.AsSpan();
-
         for (int y = 0; y < SizeY; y++)
         {
             for (int x = 0; x < SizeX; x++)
             {
-                context[x, y] = bufferSpan[(borderBuffer.Width * y) + x];
+                context[x, y] = borderBuffer![x, y];
             }
         }
 

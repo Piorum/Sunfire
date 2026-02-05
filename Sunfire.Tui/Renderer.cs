@@ -7,6 +7,7 @@ using Sunfire.Ansi;
 using Sunfire.Ansi.Models;
 using Sunfire.Ansi.Registries;
 using Sunfire.Glyph;
+using System.Runtime.Intrinsics;
 
 namespace Sunfire.Tui;
 
@@ -154,80 +155,47 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         asb.HideCursor();
         renderState.Reset();
 
-        //Function that appends the small buffer to the asb
-        void Flush()
-        {
-            if (renderState.OutputIndex > 0)
-            {
-                //Change to new style, append text, move cursor if cursor not in the correct place already
-                asb.Append(
-                    renderState.OutputBuffer.AsSpan(0, renderState.OutputIndex), 
-                    renderState.CurrentStyle,
-                    renderState.Cursor == renderState.OutputStart ? null : renderState.OutputStart
-                );
-
-                renderState.Cursor = (renderState.OutputStart.X + renderState.CursorMovement, renderState.OutputStart.Y);
-                (renderState.OutputIndex, renderState.CursorMovement) = (0, 0);
-            }
-        }
-
         for (int y = 0; y < RootView.SizeY; y++)
         {
-            for (int x = 0; x < RootView.SizeX; x++)
+            int x = 0;
+            while(x < RootView.SizeX)
             {
-                var cell = _backBuffer[x, y];
-                var width = cell.Width;
-
-                //Cell is same as already drawn continue
-                if (cell == FrontBuffer[x, y])
+                var cell = _backBuffer[x,y];
+                
+                if(cell == FrontBuffer[x,y])
                 {
-                    //Since we don't know if this is the first cell that isn't being added to the buffer, just ensure buffer is cleared
-                    Flush();
+                    FlushToAsb(asb);
 
-                    //Account for wide characters in the skip branch
-                    if(width == 2)
-                        x++;
-
+                    x += cell.Width;
                     continue;
                 }
 
-                StyleData cellStyle = StyleFactory.Get(cell.StyleId);
+                if(cell.StyleId != renderState.CurrentStyleId)
+                    FlushToAsb(asb);
 
-                //Style is NOT the same or buffer is empty, clear buffer and add first value
-                if (renderState.OutputIndex == 0 || cellStyle != renderState.CurrentStyle)
+                if(renderState.OutputIndex == 0)
                 {
-                    Flush();
+                    renderState.CurrentStyleId = cell.StyleId;
 
+                    var cellStyle = StyleFactory.Get(cell.StyleId);
                     renderState.CurrentStyle = cellStyle;
-                    renderState.OutputStart = (x, y);
+
+                    renderState.OutputStart = (x,y);
                 }
 
-                //Encodes data to the output buffer. Returns number of chars written
                 var cluster = GlyphFactory.Get(cell.GlyphId);
                 var text = cluster.GraphemeCluster.AsSpan();
-                
+
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
                 renderState.OutputIndex += text.Length;
-
-                //Track batch movement
                 renderState.CursorMovement += cluster.Width;
 
-                //Account for wide characters in the append branch
-                if(width == 2)
-                {
-                    x++;
+                if(cell.Width > 1 && cluster.RealWidth < cell.Width)
+                    renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
 
-                    if(cluster.RealWidth < width)
-                    {
-                        renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
-                        FrontBuffer[x, y] = SVCell.Blank;
-                    }
-                    FrontBuffer[x, y] = new();
-                }
+                x += cell.Width;
             }
-            //Move command will be sent to each row to ensure consistently
-            //End of row ensure current buffer is output and cleared
-            Flush();
+            FlushToAsb(asb);
         }
         //Append final escape codes like resetting properties
         asb.ResetProperties();
@@ -250,6 +218,24 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await Logger.Debug(nameof(Tui), $" - (Swap:     {swapTime}us)");
 
         await HandlePostRenderTasks();
+    }
+
+
+    private void FlushToAsb(AnsiStringBuilder asb)
+    {
+        if (renderState.OutputIndex == 0)
+            return;
+
+        //Change to new style, append text, move cursor if cursor not in the correct place already
+        asb.Append(
+            renderState.OutputBuffer.AsSpan(0, renderState.OutputIndex), 
+            renderState.CurrentStyle,
+            renderState.Cursor == renderState.OutputStart ? null : renderState.OutputStart
+        );
+
+        renderState.Cursor = (renderState.OutputStart.X + renderState.CursorMovement, renderState.OutputStart.Y);
+        renderState.OutputIndex = 0; 
+        renderState.CursorMovement = 0;
     }
 
     private void HandleClearTasks()
