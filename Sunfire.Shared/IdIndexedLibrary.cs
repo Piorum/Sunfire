@@ -3,7 +3,21 @@
 namespace Sunfire.Shared;
 
 public abstract class IdIndexedCache<TCreationData, TDataObject, TReturnInfo> : IdIndexedCache<TCreationData, object, TDataObject, TReturnInfo>
-    where TCreationData : notnull { }
+    where TCreationData : notnull
+{
+    protected abstract TDataObject CreateObject(TCreationData creationData);
+    protected override TDataObject CreateObject(TCreationData creationData, object helperData) =>
+        CreateObject(creationData);
+
+    protected abstract TDataObject Update(TDataObject dataObject, TCreationData creationData);
+    protected override TDataObject Update(TDataObject dataObject, TCreationData creationData, object helperData) =>
+        Update(dataObject, creationData);
+
+    public void AddOrUpdate(TCreationData creationData) =>
+        AddOrUpdate(creationData);
+    public TReturnInfo GetOrAdd(TCreationData creationData) =>
+        GetOrAdd(creationData, new());
+}
 
 public abstract class IdIndexedCache<TCreationData, THelperData, TDataObject, TReturnInfo>
     where TCreationData : notnull
