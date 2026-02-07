@@ -75,11 +75,11 @@ public class EntriesListView : ListSV
     }
 
     //Update Helpers
-    public async Task UpdateCurrentPath(string path)
+    public async Task UpdateCurrentPath(string path, string? overrideSelectedEntry = null)
     {
         currentPath = path;
         selectedIndex = 0;
-        await UpdateBackLabels();
+        await UpdateBackLabels(overrideSelectedEntry);
     }
     public async Task ToggleHidden()
     {
@@ -106,7 +106,7 @@ public class EntriesListView : ListSV
         return labelsGenCts.Token;
     }
 
-    private async Task UpdateBackLabels()
+    private async Task UpdateBackLabels(string? overrideSelectedEntry = null)
     {
         var token = SecureLabelsGenToken();
 
@@ -118,10 +118,18 @@ public class EntriesListView : ListSV
         else
             labels = await LabelsCache.GetAsync((currentPath, sortOptions));
 
+        if(overrideSelectedEntry is not null)
+        {
+            var overrideEntry = labels.FirstOrDefault(e => e.Entry.Name == overrideSelectedEntry)?.Entry;
+
+            if(overrideEntry is not null)
+                SaveEntry(path, overrideEntry.Value);
+        }
+
         int index;
         int? previouslySelectedIndex = null;
-        if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
-            previouslySelectedIndex = await LabelsCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
+            if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
+                previouslySelectedIndex = await LabelsCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
 
         if(previouslySelectedIndex is not null)
             index = previouslySelectedIndex.Value;

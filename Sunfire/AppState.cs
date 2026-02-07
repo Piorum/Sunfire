@@ -37,22 +37,6 @@ public static class AppState
         if (!Directory.Exists(basePath)) 
             throw new("basePath is invalid, Not a directory");
 
-        var curDir = new DirectoryInfo(basePath);
-
-        while(curDir?.Parent != null)
-        {
-            string containerPath = curDir.Parent.FullName;
-            string entryToSelectName = curDir.Name;
-
-            var entries = await FSCache.GetEntries(containerPath, default);
-
-            var entry = entries.FirstOrDefault(e => e.Name == entryToSelectName);
-
-            EntriesListView.SaveEntry(containerPath, entry);
-
-            curDir = curDir.Parent;
-        }
-
         //Populating Views && currentPath
         await Refresh(basePath);
     }
@@ -78,8 +62,9 @@ public static class AppState
 
         SVRegistry.CurrentList.SaveCurrentEntry();
 
-        await SVRegistry.ContainerList.UpdateCurrentPath(containerPath);
-        await SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
+        var containerListTask = SVRegistry.ContainerList.UpdateCurrentPath(containerPath, Path.GetFileName(currentPath));
+        var currentListTask = SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
+        await Task.WhenAll(containerListTask, currentListTask);
 
         await RefreshPreviews();
     }
@@ -92,8 +77,8 @@ public static class AppState
     {
         var currentEntry = GetCurrentEntry();
 
-        await SVRegistry.PreviewView.Update(currentEntry);
         await SVRegistry.SelectionInfoView.Update(currentEntry);
+        await SVRegistry.PreviewView.Update(currentEntry);
     }
 
     //Nav

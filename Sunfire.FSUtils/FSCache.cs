@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Enumeration;
 using Sunfire.FSUtils.Models;
+using Sunfire.Logging;
 
 namespace Sunfire.FSUtils;
 
@@ -16,11 +17,13 @@ public static class FSCache
         if(!Directory.Exists(path))
             return [];
 
+        await Logger.Debug(nameof(FSUtils), $"Getting \"{path}\" Entries");
+
         entries = await Task.Run(() =>
         {
             var enumerator = new FileSystemEnumerable<FSEntry>(
                 path,
-                (ref FileSystemEntry entry) => new FSEntry(ref entry, path),
+                (ref entry) => new FSEntry(ref entry, path),
                 new EnumerationOptions 
                 { 
                     IgnoreInaccessible = true,
