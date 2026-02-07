@@ -201,7 +201,7 @@ public static class AppState
             warnSource: () => invalidSearch, 
             onUpdate: Search, 
             exitHandlers: [ 
-                (ConsoleKey.Escape, () => SVRegistry.CurrentList.Nav(startEntry)), 
+                (ConsoleKey.Escape, async () => {await SVRegistry.CurrentList.Nav(startEntry); await RefreshPreviews(); }), 
                 (ConsoleKey.Tab, () => Task.CompletedTask), 
                 (ConsoleKey.Enter, () => Task.CompletedTask)
             ], 
