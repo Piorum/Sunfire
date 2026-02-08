@@ -21,18 +21,14 @@ internal class Program
     public static async Task Main(string[] args)
     {
         var argsHS = args.ToHashSet();
-        if(argsHS.Contains("-D") || argsHS.Contains("--debug"))
-            Options.DebugLogs = true;
-        if(argsHS.Contains("--info"))
-            Options.InfoLogs = true;
-        if(argsHS.Contains("--warn"))
-            Options.WarnLogs = true;
-        if(argsHS.Contains("-C") || argsHS.Contains("--console"))
-            Options.OutputLogsToConsole = true;
-        if(argsHS.Contains("-U") || argsHS.Contains("--user"))
-            Options.UseUserProfileAsDefault = true;
+        Options.DebugLogs = argsHS.Contains("-D") || argsHS.Contains("--debug");
+        Options.InfoLogs = argsHS.Contains("--info");
+        Options.WarnLogs = argsHS.Contains("--warn");
+        Options.OutputLogsToConsole = argsHS.Contains("-C") || argsHS.Contains("--console");
+        Options.UseUserProfileAsDefault = argsHS.Contains("-U") || argsHS.Contains("--user");
 
         await InitLogging();
+        await Logger.Debug(nameof(Sunfire), "[Startup]");
 
         var inputTask = Input();
         var renderTask = Render();
@@ -52,6 +48,7 @@ internal class Program
                 await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
         }
 
+        await Logger.Debug(nameof(Sunfire), "[Shutdown]");
         await Logger.StopAndFlush();
     }
 
