@@ -12,7 +12,7 @@ public class EntriesListView : ListSV
 {
     private static readonly ConcurrentDictionary<string, FSEntry> previouslySelectedEntries = [];
 
-    private LabelsCache.LabelSortOptions sortOptions = LabelsCache.LabelSortOptions.None;
+    private SortedEntriesCache.LabelSortOptions sortOptions = SortedEntriesCache.LabelSortOptions.None;
 
     private string currentPath = string.Empty;
     private int selectedIndex = 0;
@@ -37,7 +37,7 @@ public class EntriesListView : ListSV
     }
     public async Task Nav(FSEntry? entry)
     {
-        var index = await LabelsCache.GetIndexOfEntry((currentPath, sortOptions), entry);
+        var index = await SortedEntriesCache.GetIndexOfEntry((currentPath, sortOptions), entry);
 
         if(index is not null && index != selectedIndex)
         {
@@ -83,7 +83,7 @@ public class EntriesListView : ListSV
     }
     public async Task ToggleHidden()
     {
-        sortOptions ^= LabelsCache.LabelSortOptions.ShowHidden;
+        sortOptions ^= SortedEntriesCache.LabelSortOptions.ShowHidden;
         await UpdateBackLabels();
     }
 
@@ -93,9 +93,9 @@ public class EntriesListView : ListSV
     private EntryLabelView? GetCurrentLabel() =>
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex] : null;
     public static void ClearCache(string directory) =>
-        LabelsCache.Clear(directory);
+        SortedEntriesCache.Clear(directory);
     public static void ClearCache() =>
-        LabelsCache.Clear();
+        SortedEntriesCache.Clear();
 
     private CancellationToken SecureLabelsGenToken()
     {
@@ -110,35 +110,37 @@ public class EntriesListView : ListSV
     {
         var token = SecureLabelsGenToken();
 
-        IEnumerable<EntryLabelView> labels;
+        IEnumerable<FSEntry> entries;
 
         var path = currentPath;
         if(!Directory.Exists(path))
-            labels = [];
+            entries = [];
         else
-            labels = await LabelsCache.GetAsync((currentPath, sortOptions));
+            entries = await SortedEntriesCache.GetAsync((currentPath, sortOptions));
 
         if(overrideSelectedEntry is not null)
         {
-            var overrideEntry = labels.FirstOrDefault(e => e.Entry.Name == overrideSelectedEntry)?.Entry;
+            var overrideEntry = entries.Where(e => e.Name == overrideSelectedEntry);
 
-            if(overrideEntry is not null)
-                SaveEntry(path, overrideEntry.Value);
+            if(overrideEntry.Any())
+                SaveEntry(path, overrideEntry.First());
         }
 
         int index;
         int? previouslySelectedIndex = null;
             if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
-                previouslySelectedIndex = await LabelsCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
+                previouslySelectedIndex = await SortedEntriesCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
 
         if(previouslySelectedIndex is not null)
             index = previouslySelectedIndex.Value;
         else
             index = 0;
 
+        var labels = entries.Select(e => new EntryLabelView() { Entry = e }).ToList();
+
         if(!token.IsCancellationRequested)
         {
-            backLabels = [.. labels];
+            backLabels = labels;
             selectedIndex = index;
             
             await Program.Renderer.EnqueueAction(Invalidate);
@@ -273,18 +275,15 @@ public class EntriesListView : ListSV
         }
     }
 
-    private static class LabelsCache
+    private static class SortedEntriesCache
     {
         private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
-        private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<EntryLabelView>>>> labelsCache = [];
 
-        public static async Task<List<EntryLabelView>> GetAsync((string path, LabelSortOptions options) key)
+        public static async Task<List<FSEntry>> GetAsync((string path, LabelSortOptions options) key)
         {
             var sortedEntriesLazy = GetOrAddSortedEntries(key);
 
-            var labelsLazy = GetOrAddLabels(key, sortedEntriesLazy.Value);
-
-            return await labelsLazy.Value;
+            return await sortedEntriesLazy.Value;
         }
 
         public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
@@ -309,20 +308,6 @@ public class EntriesListView : ListSV
                     return [.. SortEntries(entries, k.sortOptions)];
                 }));
 
-        private static Lazy<Task<List<EntryLabelView>>> GetOrAddLabels((string path, LabelSortOptions options) key, Task<List<FSEntry>> sortedEntriesTask) =>
-            labelsCache.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
-                {
-                    var entries = await sortedEntriesTask;
-
-                    var list = new List<EntryLabelView>(entries.Count);
-                    foreach(var entry in entries)
-                    {
-                        list.Add(new EntryLabelView() { Entry = entry });
-                    }
-
-                    return list;
-                }));
-
         private static IOrderedEnumerable<FSEntry> SortEntries(IEnumerable<FSEntry> entries, LabelSortOptions options)
         {
             if(!options.HasFlag(LabelSortOptions.ShowHidden))
@@ -337,19 +322,13 @@ public class EntriesListView : ListSV
         public static void Clear(string directory)
         {
             var sortedEntriesToRemove = sortedEntriesCache.Where(e => e.Key.path == directory);
-            var labelsToRemove = labelsCache.Where(e => e.Key.path == directory);
 
             foreach(var val in sortedEntriesToRemove)
                 sortedEntriesCache.TryRemove(val);
-            foreach(var val in labelsToRemove)
-                labelsCache.TryRemove(val);
         }
 
-        public static void Clear()
-        {
+        public static void Clear() =>
             sortedEntriesCache.Clear();
-            labelsCache.Clear();
-        }
 
         [Flags]
         public enum LabelSortOptions
