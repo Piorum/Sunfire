@@ -120,13 +120,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         await renderQueue.Writer.WriteAsync(action);
     }
 
-    public void Clear(int x, int y, int w, int h)
+    public async Task Clear(int x, int y, int w, int h)
     {
-        clearTasks.Add((x, y, w, h));
+        await EnqueueAction(async () => clearTasks.Add((x, y, w, h)));
     }
-    public void PostRender(Func<Task> task)
+    public async Task PostRender(Func<Task> task)
     {
-        postRenderTasks.Add(task);
+        await EnqueueAction(async () => postRenderTasks.Add(task));
     }
 
     private async Task OnRender(AnsiStringBuilder asb)

@@ -65,7 +65,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             }
         }
 
-        public Task<bool> Arrange()
+        public async Task<bool> Arrange()
         {
             var layout = (OriginX, OriginY, SizeX, SizeY);
             bool layoutChanged = layout != lastLayout;
@@ -76,9 +76,9 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                 Dirty = false;
                 
                 StopProcess();
-                ClearRegion();
+                await ClearRegion();
 
-                Program.Renderer.PostRender(() =>
+                await Program.Renderer.PostRender(() =>
                 {
                     if(!disposed)
                         StartProcess();
@@ -86,10 +86,10 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                     return Task.CompletedTask;
                 });
 
-                return Task.FromResult(true);
+                return true;
             }
 
-            return Task.FromResult(false);
+            return false;
         }
 
         public Task Draw(SVContext _) => Task.CompletedTask;
@@ -100,13 +100,13 @@ public class FallbackPreviewer : PreviewView.IPreviewer
         {
             disposed = true;
             StopProcess();
-            ClearRegion();
+            Task.Run(ClearRegion);
             RunCleaner();
         }
 
-        private void ClearRegion()
+        private async Task ClearRegion()
         {
-            Program.Renderer.Clear(OriginX, OriginY, SizeX, SizeY);
+            await Program.Renderer.Clear(OriginX, OriginY, SizeX, SizeY);
         }
 
         private void StartProcess()
