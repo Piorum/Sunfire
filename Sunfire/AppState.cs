@@ -62,6 +62,7 @@ public static class AppState
 
         SVRegistry.CurrentList.SaveCurrentEntry();
 
+        SVRegistry.PreviewView.Clear();
         var containerListTask = SVRegistry.ContainerList.UpdateCurrentPath(containerPath, Path.GetFileName(currentPath));
         var currentListTask = SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
         await Task.WhenAll(containerListTask, currentListTask);
@@ -77,8 +78,8 @@ public static class AppState
     {
         var currentEntry = GetCurrentEntry();
 
-        await SVRegistry.SelectionInfoView.Update(currentEntry);
         await SVRegistry.PreviewView.Update(currentEntry);
+        await SVRegistry.SelectionInfoView.Update(currentEntry);
     }
 
     //Nav
@@ -160,7 +161,7 @@ public static class AppState
     public static async Task Search()
     {
         FSEntry? startEntry = SVRegistry.CurrentList.GetCurrentEntry();
-        List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath, CancellationToken.None);
+        List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath);
         EntrySearcher searcher = new(currentEntries);
 
         char preCharacter = '/';

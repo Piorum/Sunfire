@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using Sunfire.Ansi.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
@@ -110,20 +109,21 @@ public class EntriesListView : ListSV
     {
         var token = SecureLabelsGenToken();
 
-        IEnumerable<FSEntry> entries;
-
         var path = currentPath;
+
+        List<EntryLabelView> labels;
+
         if(!Directory.Exists(path))
-            entries = [];
+            labels = [];
         else
-            entries = await SortedEntriesCache.GetAsync((currentPath, sortOptions));
+            labels = [.. await SortedEntriesCache.GetAsync((currentPath, sortOptions))];
 
         if(overrideSelectedEntry is not null)
         {
-            var overrideEntry = entries.Where(e => e.Name == overrideSelectedEntry);
+            var overrideEntry = labels.FirstOrDefault(e => e.Entry.Name == overrideSelectedEntry);
 
-            if(overrideEntry.Any())
-                SaveEntry(path, overrideEntry.First());
+            if(overrideEntry is not null)
+                SaveEntry(path, overrideEntry.Entry);
         }
 
         int index;
@@ -135,8 +135,6 @@ public class EntriesListView : ListSV
             index = previouslySelectedIndex.Value;
         else
             index = 0;
-
-        var labels = entries.Select(e => new EntryLabelView() { Entry = e }).ToList();
 
         if(!token.IsCancellationRequested)
         {
@@ -265,9 +263,9 @@ public class EntriesListView : ListSV
 
     private static class SortedEntriesCache
     {
-        private static ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
+        private static ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<EntryLabelView>>>> sortedLabelsCache = [];
 
-        public static async Task<List<FSEntry>> GetAsync((string path, LabelSortOptions options) key)
+        public static async Task<List<EntryLabelView>> GetAsync((string path, LabelSortOptions options) key)
         {
             var sortedEntriesLazy = GetOrAddSortedEntries(key);
 
@@ -276,11 +274,8 @@ public class EntriesListView : ListSV
 
         public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
         {
-            if(entry is null || !sortedEntriesCache.TryGetValue(key, out var currentEntriesLazy))
-                return null;
-
-            var currentEntries = await currentEntriesLazy.Value;
-            var indexOfEntry = currentEntries.IndexOf(entry.Value);
+            var currentEntries = await GetAsync(key);
+            var indexOfEntry = currentEntries.FindIndex(e => e.Entry == entry);
 
             if(indexOfEntry < 0)
                 return null;
@@ -288,12 +283,14 @@ public class EntriesListView : ListSV
             return indexOfEntry;
         }
 
-        private static Lazy<Task<List<FSEntry>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key) =>
-            sortedEntriesCache.GetOrAdd(key, k => new Lazy<Task<List<FSEntry>>>(async () =>
+        private static Lazy<Task<List<EntryLabelView>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key) =>
+            sortedLabelsCache.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
                 {
-                    var entries = await FSCache.GetEntries(k.path, CancellationToken.None);
+                    var entries = await FSCache.GetEntries(k.path);
+                    var sortedEntries = SortEntries(entries, k.sortOptions);
+                    var labels = sortedEntries.Select(e => new EntryLabelView() { Entry = e });
 
-                    return [.. SortEntries(entries, k.sortOptions)];
+                    return [.. labels];
                 }));
 
         private static IOrderedEnumerable<FSEntry> SortEntries(IEnumerable<FSEntry> entries, LabelSortOptions options)
@@ -316,7 +313,7 @@ public class EntriesListView : ListSV
         }*/
 
         public static void Clear() =>
-            Interlocked.Exchange(ref sortedEntriesCache, new());
+            Interlocked.Exchange(ref sortedLabelsCache, new());
 
         [Flags]
         public enum LabelSortOptions

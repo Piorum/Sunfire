@@ -86,6 +86,12 @@ public class PreviewView : IRelativeSunfireView
         await Program.Renderer.EnqueueAction(Invalidate);
     }
 
+    public void Clear()
+    {
+        activePreviewer = null;
+        activeView = null;
+    }
+
     public void AddPreviewer(MediaType mediaType, IPreviewer previewer) =>
         previewers.TryAdd(mediaType, previewer);
 

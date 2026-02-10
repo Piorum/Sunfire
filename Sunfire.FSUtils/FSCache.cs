@@ -7,45 +7,45 @@ namespace Sunfire.FSUtils;
 
 public static class FSCache
 {
-    private static ConcurrentDictionary<string, List<FSEntry>> _cache = [];
+    private static ConcurrentDictionary<string, Lazy<Task<List<FSEntry>>>> _cache = [];
 
-    public static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token)
+    public static async Task<List<FSEntry>> GetEntries(string path)
     {
-        if(_cache.TryGetValue(path, out var entries))
-            return entries;
-
         if(!Directory.Exists(path))
             return [];
 
-        await Logger.Debug(nameof(FSUtils), $"Getting \"{path}\" Entries");
-
-        entries = await Task.Run(() =>
-        {
-            var enumerator = new FileSystemEnumerable<FSEntry>(
-                path,
-                (ref entry) => new FSEntry(ref entry, path),
-                new EnumerationOptions 
-                { 
-                    IgnoreInaccessible = true,
-                    AttributesToSkip = 0
-                }
-            );
-            
-            List<FSEntry> tmp = [];
-
-            foreach(var entry in enumerator)
-            {
-                token.ThrowIfCancellationRequested();
-                tmp.Add(entry);
-            }
-
-            return tmp;
-        });
-
-        _cache.TryAdd(path, entries);
-
-        return entries;
+        return await GetOrAddEntries(path).Value;
     }
+
+    private static Lazy<Task<List<FSEntry>>> GetOrAddEntries(string path) =>
+        _cache.GetOrAdd(path, k => new Lazy<Task<List<FSEntry>>>(async () =>
+            {
+                await Logger.Debug(nameof(FSUtils), $"Getting \"{path}\" Entries");
+
+                var entries = await Task.Run(async () =>
+                {
+                    var enumerator = new FileSystemEnumerable<FSEntry>(
+                        path,
+                        (ref entry) => new FSEntry(ref entry, path),
+                        new EnumerationOptions 
+                        { 
+                            IgnoreInaccessible = true,
+                            AttributesToSkip = 0
+                        }
+                    );
+                    
+                    List<FSEntry> tmp = [];
+
+                    foreach(var entry in enumerator)
+                    {
+                        tmp.Add(entry);
+                    };
+
+                    return tmp;
+                });
+
+                return entries;
+            }));
 
     /*public static void Invalidate(string path)
     {
