@@ -102,8 +102,10 @@ public static class ActionHandler
             directoriesToInvalidate.Add(cwd);
             foreach(var directory in directoriesToInvalidate)
             {
-                FSCache.Invalidate(directory);
-                EntriesListView.ClearCache(directory);
+                FSCache.Clear();
+                EntriesListView.ClearCache();
+                //FSCache.Invalidate(directory);
+                //EntriesListView.ClearCache(directory);
             }
 
             await AppState.Refresh();
@@ -160,8 +162,10 @@ public static class ActionHandler
             directoriesToInvalidate.Add(cwd);
             foreach(var directory in directoriesToInvalidate)
             {
-                FSCache.Invalidate(directory);
-                EntriesListView.ClearCache(directory);
+                FSCache.Clear();
+                EntriesListView.ClearCache();
+                //FSCache.Invalidate(directory);
+                //EntriesListView.ClearCache(directory);
             }
 
             await AppState.Refresh();
@@ -225,8 +229,10 @@ public static class ActionHandler
             var directoriesToInvalidate = entriesToDelete.Select(e => e.Directory).Distinct().ToList();
             foreach(var directory in directoriesToInvalidate)
             {
-                FSCache.Invalidate(directory);
-                EntriesListView.ClearCache(directory);
+                FSCache.Clear();
+                EntriesListView.ClearCache();
+                //FSCache.Invalidate(directory);
+                //EntriesListView.ClearCache(directory);
             }
 
             await AppState.Refresh();

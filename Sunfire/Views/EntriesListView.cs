@@ -92,8 +92,8 @@ public class EntriesListView : ListSV
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex].Entry : null;
     private EntryLabelView? GetCurrentLabel() =>
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex] : null;
-    public static void ClearCache(string directory) =>
-        SortedEntriesCache.Clear(directory);
+    //public static void ClearCache(string directory) =>
+    //    SortedEntriesCache.Clear(directory);
     public static void ClearCache() =>
         SortedEntriesCache.Clear();
 
@@ -224,7 +224,7 @@ public class EntriesListView : ListSV
 
     private static class TagCache
     {
-        private static readonly ConcurrentDictionary<FSEntry, SColor> cache = new(FSEntryTagComparer.Default);
+        private static readonly ConcurrentDictionary<FSEntry, SColor> cache = new();
         public static int Version = 0;
 
         public static bool TryGetValue(FSEntry entry, out SColor color) =>
@@ -261,23 +261,11 @@ public class EntriesListView : ListSV
             cache.Clear();
             Interlocked.Increment(ref Version);
         }
-        
-        private class FSEntryTagComparer : IEqualityComparer<FSEntry>
-        {
-            public static readonly FSEntryTagComparer Default = new();
-
-            public bool Equals(FSEntry x, FSEntry y) =>
-                string.Equals(x.Name, y.Name) && string.Equals(x.Directory, y.Directory);
-
-            public int GetHashCode([DisallowNull] FSEntry obj) =>
-                HashCode.Combine(obj.Name.GetHashCode(StringComparison.Ordinal), obj.Directory.GetHashCode(StringComparison.Ordinal));
-
-        }
     }
 
     private static class SortedEntriesCache
     {
-        private static readonly ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
+        private static ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<FSEntry>>>> sortedEntriesCache = [];
 
         public static async Task<List<FSEntry>> GetAsync((string path, LabelSortOptions options) key)
         {
@@ -319,16 +307,16 @@ public class EntriesListView : ListSV
                 .ThenBy(e => e.Name.ToLowerInvariant());
         }
 
-        public static void Clear(string directory)
+        /*public static void Clear(string directory)
         {
             var sortedEntriesToRemove = sortedEntriesCache.Where(e => e.Key.path == directory);
 
             foreach(var val in sortedEntriesToRemove)
                 sortedEntriesCache.TryRemove(val);
-        }
+        }*/
 
         public static void Clear() =>
-            sortedEntriesCache.Clear();
+            Interlocked.Exchange(ref sortedEntriesCache, new());
 
         [Flags]
         public enum LabelSortOptions

@@ -7,7 +7,7 @@ namespace Sunfire.FSUtils;
 
 public static class FSCache
 {
-    private static readonly ConcurrentDictionary<string, List<FSEntry>> _cache = [];
+    private static ConcurrentDictionary<string, List<FSEntry>> _cache = [];
 
     public static async Task<List<FSEntry>> GetEntries(string path, CancellationToken token)
     {
@@ -47,13 +47,11 @@ public static class FSCache
         return entries;
     }
 
-    public static void Invalidate(string path)
+    /*public static void Invalidate(string path)
     {
         _cache.Remove(path, out var _);
-    }
+    }*/
 
-    public static void Clear()
-    {
-        _cache.Clear();
-    }
+    public static void Clear() =>
+        Interlocked.Exchange(ref _cache, new());
 }
