@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Runtime;
 using Sunfire.Ansi.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
+using Sunfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views.Text;
 
@@ -91,8 +93,8 @@ public class EntriesListView : ListSV
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex].Entry : null;
     private EntryLabelView? GetCurrentLabel() =>
         selectedIndex < backLabels.Count && selectedIndex >= 0 ? backLabels[selectedIndex] : null;
-    //public static void ClearCache(string directory) =>
-    //    SortedEntriesCache.Clear(directory);
+    public static void ClearCache(string directory) =>
+        SortedEntriesCache.Clear(directory);
     public static void ClearCache() =>
         SortedEntriesCache.Clear();
 
@@ -263,13 +265,13 @@ public class EntriesListView : ListSV
 
     private static class SortedEntriesCache
     {
-        private static ConcurrentDictionary<(string path, LabelSortOptions sortOptions), Lazy<Task<List<EntryLabelView>>>> sortedLabelsCache = [];
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<(string path, LabelSortOptions options), Lazy<Task<List<EntryLabelView>>>>> sortedLabelsCache = [];
 
         public static async Task<List<EntryLabelView>> GetAsync((string path, LabelSortOptions options) key)
         {
-            var sortedEntriesLazy = GetOrAddSortedEntries(key);
+            var lazyTask = GetOrAddSortedEntries(key);
 
-            return await sortedEntriesLazy.Value;
+            return await lazyTask.Value;
         }
 
         public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
@@ -283,15 +285,21 @@ public class EntriesListView : ListSV
             return indexOfEntry;
         }
 
-        private static Lazy<Task<List<EntryLabelView>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key) =>
-            sortedLabelsCache.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
-                {
-                    var entries = await FSCache.GetEntries(k.path);
-                    var sortedEntries = SortEntries(entries, k.sortOptions);
-                    var labels = sortedEntries.Select(e => new EntryLabelView() { Entry = e });
+        private static Lazy<Task<List<EntryLabelView>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key)
+        {
+            var perPath = sortedLabelsCache.GetOrAdd(key.path, _ => new());
 
-                    return [.. labels];
+            return perPath.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
+                {
+                    await Logger.Debug(nameof(Sunfire), $"Sorting Labels for {k.path} | {(int)k.options}");
+                    
+                    var entries = await FSCache.GetEntries(k.path);
+                    var sortedEntries = SortEntries(entries, k.options);
+                    var sortedLabels = sortedEntries.Select(e => new EntryLabelView() { Entry = e });
+
+                    return [.. sortedLabels];
                 }));
+        }
 
         private static IOrderedEnumerable<FSEntry> SortEntries(IEnumerable<FSEntry> entries, LabelSortOptions options)
         {
@@ -304,16 +312,11 @@ public class EntriesListView : ListSV
                 .ThenBy(e => e.Name.ToLowerInvariant());
         }
 
-        /*public static void Clear(string directory)
-        {
-            var sortedEntriesToRemove = sortedEntriesCache.Where(e => e.Key.path == directory);
-
-            foreach(var val in sortedEntriesToRemove)
-                sortedEntriesCache.TryRemove(val);
-        }*/
+        public static void Clear(string directory) =>
+            sortedLabelsCache.TryRemove(directory, out _);
 
         public static void Clear() =>
-            Interlocked.Exchange(ref sortedLabelsCache, new());
+            sortedLabelsCache.Clear();
 
         [Flags]
         public enum LabelSortOptions
