@@ -1,7 +1,6 @@
 namespace Sunfire.Ansi.Models;
 
-public readonly record struct StyleData(
+public record StyleData(
     SColor? ForegroundColor = null,
     SColor? BackgroundColor = null,
-    SAnsiProperty Properties = SAnsiProperty.None
-);
+    SAnsiProperty Properties = SAnsiProperty.None);

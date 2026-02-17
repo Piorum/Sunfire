@@ -10,7 +10,7 @@ public class RenderState(int bufferSize)
     public int CursorMovement;
 
     public int CurrentStyleId;
-    public StyleData CurrentStyle;
+    public StyleData CurrentStyle = new();
 
     public (int X, int Y) OutputStart;
     public (int X, int Y) Cursor;
@@ -20,7 +20,7 @@ public class RenderState(int bufferSize)
         OutputIndex = 0;
         CursorMovement = 0;
 
-        CurrentStyle = new(null, null, SAnsiProperty.None);
+        CurrentStyle = new();
 
         OutputStart = (0, 0);
         Cursor = (-1, -1);

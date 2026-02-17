@@ -178,13 +178,13 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
                 renderState.OutputIndex += text.Length;
-                renderState.CursorMovement += cluster.Width;
+                renderState.CursorMovement += cluster.VisualWidth;
 
                 //Add extra space to "Fake" 2 wide characters
-                if(cluster.Width > 1 && cluster.RealWidth < cluster.Width)
+                if(cluster.VisualWidth > 1 && cluster.RealWidth < cluster.VisualWidth)
                     renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
 
-                x += cluster.Width;
+                x += cluster.VisualWidth;
             }
             FlushToAsb(asb);
         }

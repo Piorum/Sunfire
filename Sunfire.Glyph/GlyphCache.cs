@@ -8,20 +8,20 @@ public class GlyphCache : IdIndexedCache<string , byte?, GlyphData, (int id, byt
 {
     protected override GlyphData CreateObject(string cluster, byte? overrideWidth){
         var realWidth = MeasureGramphemeCluster(cluster);
-        GlyphData newData = new() { GraphemeCluster = cluster, RealWidth = realWidth, Width = overrideWidth is null ? realWidth : overrideWidth.Value};
+        GlyphData newData = new(cluster, realWidth, overrideWidth is null ? realWidth : overrideWidth.Value);
 
         return newData;
     }
 
     protected override (int id, byte width) CreateInfo(int id, GlyphData dataOjbect)
     {
-        return (id, dataOjbect.Width);
+        return (id, dataOjbect.VisualWidth);
     }
 
     protected override GlyphData Update(GlyphData dataObject, string cluster, byte? overrideWidth)
     {
         if(overrideWidth is not null)
-            return dataObject with { Width = overrideWidth.Value };
+            return dataObject with { VisualWidth = overrideWidth.Value };
 
         return dataObject;
     }

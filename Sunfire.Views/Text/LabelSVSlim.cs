@@ -111,7 +111,7 @@ public class LabelSVSlim : ISunfireView
         bool isSelected = (LabelProperties & LabelSVProperty.Selected) != 0;
 
         SVCell paddingCell;
-        StyleData selectedStyle = default;
+        StyleData selectedStyle = new();
 
         if(isSelected)
         {

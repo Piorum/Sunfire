@@ -7,7 +7,7 @@ namespace Sunfire.Ansi;
 public class AnsiStringBuilder()
 {
     private readonly StringBuilder sb = new();
-    private StyleData currentState = default;
+    private StyleData currentState = new();
 
     private readonly static (SAnsiProperty, string, string)[] modifierActionsLookup =
     [
@@ -80,6 +80,6 @@ public class AnsiStringBuilder()
     public void Clear()
     {
         sb.Clear();
-        currentState = default;
+        currentState = new();
     }
 }
