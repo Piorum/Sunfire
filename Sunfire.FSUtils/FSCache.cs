@@ -20,29 +20,30 @@ public static class FSCache
     }
 
     private static Lazy<Task<List<FSEntry>>> GetOrAddEntries(string path) =>
-        _cache.GetOrAdd(path, k => new Lazy<Task<List<FSEntry>>>(async () =>
-        {
-            await Logger.Debug(nameof(FSUtils), $"Getting \"{k}\" Entries");
-
-            var enumerator = new FileSystemEnumerable<FSEntry>(
-                k,
-                (ref entry) => new FSEntry(ref entry, k),
-                new EnumerationOptions 
-                { 
-                    IgnoreInaccessible = true,
-                    AttributesToSkip = 0
-                }
-            );
-            
-            List<FSEntry> tmp = [];
-
-            foreach(var entry in enumerator)
+        _cache.GetOrAdd(path, k => new Lazy<Task<List<FSEntry>>>(Task.Run(async () =>
             {
-                tmp.Add(entry);
-            };
+                await Logger.Debug(nameof(FSUtils), $"Getting \"{k}\" Entries");
 
-            return tmp;
-        }));
+                var enumerator = new FileSystemEnumerable<FSEntry>(
+                    k,
+                    (ref entry) => new FSEntry(ref entry, k),
+                    new EnumerationOptions 
+                    { 
+                        IgnoreInaccessible = true,
+                        AttributesToSkip = 0
+                    }
+                );
+                
+                List<FSEntry> tmp = [];
+
+                foreach(var entry in enumerator)
+                {
+                    tmp.Add(entry);
+                };
+
+                return tmp;
+            }))
+        );
 
     public static void Invalidate(string path) =>
         _cache.Remove(path, out var _);
