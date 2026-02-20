@@ -6,6 +6,7 @@ using Sunfire.Tui.Terminal;
 using Sunfire.Ansi;
 using Sunfire.Ansi.Registries;
 using Sunfire.Glyph;
+using System.Diagnostics;
 
 namespace Sunfire.Tui;
 
@@ -63,28 +64,23 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                 await Logger.Debug(nameof(Tui), $"[Starting New Render Cycle]");
                 var renderStartTime = DateTime.Now;
+                var batchEndTime = renderStartTime.Add(batchDelay);
 
                 try { runningTasks.Add(firstAction()); }
                 catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
 
-                var batchTimer = Task.Delay(batchDelay, token);
-
-                //Process more actions while batch timer is not over
-                while (true)
+                //Wait batch delay
+                var sw = Stopwatch.StartNew();
+                double targetTicks = batchDelay.TotalMicroseconds * (Stopwatch.Frequency / 1_000_000.0);
+                while(sw.ElapsedTicks < targetTicks && !token.IsCancellationRequested)
                 {
-                    //Read any available actions
-                    while (renderQueue.Reader.TryRead(out var action))
-                        try { runningTasks.Add(action()); }
-                        catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
-
-                    //Wait for more actions or for batch timer to end
-                    var waitForMoreActions = renderQueue.Reader.WaitToReadAsync(token).AsTask();
-                    var completedTask = await Task.WhenAny(waitForMoreActions, batchTimer);
-
-                    //Exit if batch timer is done, loop if not (more actions were queued)
-                    if (completedTask == batchTimer)
-                        break;
+                    Thread.SpinWait(20);
                 }
+
+                //Drain queue
+                while (renderQueue.Reader.TryRead(out var action))
+                    try { runningTasks.Add(action()); }
+                    catch (Exception ex) { await Logger.Error(nameof(Tui), $"Action Failed To Start\n{ex}"); }
 
                 try
                 {
@@ -103,7 +99,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
                 await HandlePostRenderTasks();
 
-                await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
+                await Logger.Debug(nameof(Tui), $" - (Total:    {(DateTime.Now - renderStartTime).TotalMicroseconds}us) (Batch Timeout: {batchDelay.TotalMicroseconds}us)");
             }
             catch (OperationCanceledException) { } //Non-Issue just allow to stop
         }
@@ -131,6 +127,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
 
     private async Task OnRender(AnsiStringBuilder asb)
     {
+        await Logger.Debug(nameof(Tui), $"[Render Start]");
+        var renderStartTime = DateTime.Now;
         //Rearrange, returns true if anything was changed
         var invalidScreen = await RootView.Arrange();
 
@@ -196,6 +194,8 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         //Swap back buffer to front, clear back buffer
         (_backBuffer, FrontBuffer) = (FrontBuffer, _backBuffer);
         _backBuffer.Clear();
+
+        await Logger.Debug(nameof(Tui), $" - (Render:   {(DateTime.Now - renderStartTime).TotalMicroseconds}us)");
     }
 
 
