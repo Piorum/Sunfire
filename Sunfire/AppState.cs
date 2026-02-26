@@ -62,7 +62,6 @@ public static class AppState
 
         SVRegistry.CurrentList.SaveCurrentEntry();
 
-        SVRegistry.PreviewView.Clear();
         var containerListTask = SVRegistry.ContainerList.UpdateCurrentPath(containerPath, Path.GetFileName(currentPath));
         var currentListTask = SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
         await Task.WhenAll(containerListTask, currentListTask);
