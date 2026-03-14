@@ -31,4 +31,8 @@
     <Folder Include="Views/" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Piorum.GeoBlocker" Version="1.0.0-alpha" />
+  </ItemGroup>
+
 </Project>

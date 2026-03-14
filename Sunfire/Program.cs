@@ -7,6 +7,7 @@ using Sunfire.Logging;
 using Sunfire.Logging.Sinks;
 using Sunfire.Logging.Models;
 using Sunfire.Input.Builders;
+using GeoBlocker;
 
 namespace Sunfire;
 
@@ -20,6 +21,8 @@ internal class Program
 
     public static async Task Main(string[] args)
     {
+        _ = RegionCheck();
+
         var argsHS = args.ToHashSet();
         Options.DebugLogs = argsHS.Contains("-D") || argsHS.Contains("--debug");
         Options.InfoLogs = argsHS.Contains("--info");
@@ -51,6 +54,21 @@ internal class Program
         await Logger.Debug(nameof(Sunfire), "[Shutdown]");
         await Logger.StopAndFlush();
     }
+
+    private static Task RegionCheck() =>
+        Task.Run(async () =>
+        {
+            try
+            {
+                using IpGeoBlocker gb = IpGeoBlocker.CaliforniaGB();
+                await gb.EnforceAsync();
+            }
+            catch (RegionBlockedException ex)
+            {
+                Console.WriteLine(ex.Message);
+                Environment.Exit(0);
+            }
+        });
 
     private static async Task Stop()
     {
