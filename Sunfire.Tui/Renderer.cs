@@ -172,24 +172,33 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                 }
 
                 var cluster = GlyphFactory.Get(cell.GlyphId);
+                x += cluster.VisualWidth;
+
+                //Fallback to space if 2 wide glyph will be out of bounds.
+                if(x > RootView.SizeX)
+                {
+                    renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
+                    renderState.CursorMovement++;
+                    continue;
+                }
+
                 var text = cluster.GraphemeCluster.AsSpan();
 
                 text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
+
                 renderState.OutputIndex += text.Length;
                 renderState.CursorMovement += cluster.VisualWidth;
 
                 //Add extra space to "Fake" 2 wide characters
                 if(cluster.VisualWidth > 1 && cluster.RealWidth < cluster.VisualWidth)
                     renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
-
-                x += cluster.VisualWidth;
             }
             FlushToAsb(asb);
         }
         //Append final escape codes like resetting properties
         asb.ResetProperties();
 
-        await Write(asb.ToString());
+        await Write(asb);
 
         //Swap back buffer to front, clear back buffer
         (_backBuffer, FrontBuffer) = (FrontBuffer, _backBuffer);
@@ -264,6 +273,15 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
         byte[] bytes = s_utf8Encoder.GetBytes(text);
 
         await s_stdout.WriteAsync(bytes);
+        await s_stdout.FlushAsync();
+    }
+
+    private static async Task Write(AnsiStringBuilder asb)
+    {
+        if(asb.IsEmpty) 
+            return;
+
+        await s_stdout.WriteAsync(asb.ToBuffer());
         await s_stdout.FlushAsync();
     }
 

@@ -4,19 +4,13 @@ using Sunfire.Ansi.Registries;
 
 namespace Sunfire.Ansi;
 
-public class AnsiStringBuilder()
+public class AnsiStringBuilder(int bufferSize = 2<<15)
 {
-    private readonly StringBuilder sb = new();
+    private byte[] buffer = new byte[bufferSize];
+    private int position = 0;
     private StyleData currentState = new();
 
-    private readonly static (SAnsiProperty, string, string)[] modifierActionsLookup =
-    [
-        (SAnsiProperty.Bold, AnsiRegistry.Bold, AnsiRegistry.DisableBold),
-        (SAnsiProperty.Italic, AnsiRegistry.Italic, AnsiRegistry.DisableItalic),
-        (SAnsiProperty.Underline, AnsiRegistry.Underline, AnsiRegistry.DisableUnderline),
-        (SAnsiProperty.Highlight, AnsiRegistry.ReverseVideoMode, AnsiRegistry.DisableReverseVideoMode),
-        (SAnsiProperty.Strikethrough, AnsiRegistry.Strikethrough, AnsiRegistry.DisableStrikethrough)
-    ];
+    public bool IsEmpty => position == 0;
     
     public AnsiStringBuilder Append(string text, StyleData desiredState, (int X, int Y)? desiredCursorPos) =>
         Append(text.AsSpan(), desiredState, desiredCursorPos);
@@ -24,62 +18,111 @@ public class AnsiStringBuilder()
     public AnsiStringBuilder Append(ReadOnlySpan<char> text, StyleData desiredState, (int X, int Y)? desiredCursorPos)
     {
         UpdateStyle(desiredState, desiredCursorPos);
+
         if (text.Length > 0)
-            sb.Append(text);
+        {
+            EnsureCapacity(text.Length * 4);
+            position += Encoding.UTF8.GetBytes(text, buffer.AsSpan(position));
+        }
 
         return this;
+    }
+    private void AppendRaw(byte utf8Data)
+    {
+        EnsureCapacity(1);
+        buffer[position++] = utf8Data;
+    }
+    private void AppendRaw(ReadOnlySpan<byte> utf8Data)
+    {
+        EnsureCapacity(utf8Data.Length);
+        utf8Data.CopyTo(buffer.AsSpan(position));
+        position += utf8Data.Length;
     }
 
     private void UpdateStyle(StyleData desiredState, (int X, int Y)? desiredCursorPos)
     {
         if (desiredCursorPos is { } pos)
-            sb.Append(AnsiRegistry.MoveCursor(pos.Y, pos.X));
-
+        {
+            EnsureCapacity(32);
+            position += AnsiRegistry.MoveCursor(buffer.AsSpan(position), pos.Y, pos.X);
+        }
         if (currentState.ForegroundColor != desiredState.ForegroundColor)
-            sb.Append(AnsiRegistry.SetForegroundColor(desiredState.ForegroundColor));
+        {
+            EnsureCapacity(32);
+            position += AnsiRegistry.SetForegroundColor(buffer.AsSpan(position), desiredState.ForegroundColor);
+        }
         if (currentState.BackgroundColor != desiredState.BackgroundColor)
-            sb.Append(AnsiRegistry.SetBackgroundColor(desiredState.BackgroundColor));
+        {
+            EnsureCapacity(32);
+            position += AnsiRegistry.SetBackgroundColor(buffer.AsSpan(position), desiredState.BackgroundColor);
+        }
 
         var removedProperties = currentState.Properties & ~desiredState.Properties;
         var addedProperties = desiredState.Properties & ~currentState.Properties;
 
-        foreach (var (modifier, onCode, offCode) in modifierActionsLookup)
-            if (addedProperties.HasFlag(modifier))
-                sb.Append(onCode);
-            else if (removedProperties.HasFlag(modifier))
-                sb.Append(offCode);
+        if(addedProperties.HasFlag(SAnsiProperty.Bold))
+            AppendRaw(AnsiRegistry.BoldBytes);
+        else if (removedProperties.HasFlag(SAnsiProperty.Bold))
+            AppendRaw(AnsiRegistry.DisableBoldBytes);
+
+        if(addedProperties.HasFlag(SAnsiProperty.Italic))
+            AppendRaw(AnsiRegistry.ItalicBytes);
+        else if (removedProperties.HasFlag(SAnsiProperty.Italic))
+            AppendRaw(AnsiRegistry.DisableItalicBytes);
+
+        if(addedProperties.HasFlag(SAnsiProperty.Underline))
+            AppendRaw(AnsiRegistry.UnderlineBytes);
+        else if (removedProperties.HasFlag(SAnsiProperty.Underline))
+            AppendRaw(AnsiRegistry.DisableUnderlineBytes);
+
+        if(addedProperties.HasFlag(SAnsiProperty.Highlight))
+            AppendRaw(AnsiRegistry.ReverseVideoModeBytes);
+        else if (removedProperties.HasFlag(SAnsiProperty.Highlight))
+            AppendRaw(AnsiRegistry.DisableReverseVideoModeBytes);
+
+        if(addedProperties.HasFlag(SAnsiProperty.Strikethrough))
+            AppendRaw(AnsiRegistry.StrikethroughBytes);
+        else if (removedProperties.HasFlag(SAnsiProperty.Strikethrough))
+            AppendRaw(AnsiRegistry.DisableStrikethroughBytes);
 
         currentState = desiredState;
     }
 
     public AnsiStringBuilder ShowCursor()
     {
-        sb.Append(AnsiRegistry.ShowCursor);
+        AppendRaw(AnsiRegistry.ShowCursorBytes);
         return this;
     }
     public AnsiStringBuilder HideCursor()
     {
-        sb.Append(AnsiRegistry.HideCursor);
+        AppendRaw(AnsiRegistry.HideCursorBytes);
         return this;
     }
 
     public AnsiStringBuilder ResetProperties()
     {
-        sb.Append(AnsiRegistry.ResetProperties);
+        AppendRaw(AnsiRegistry.ResetPropertiesBytes);
         return this;
     }
     public AnsiStringBuilder ResetPropertiesNewLine()
     {
-        sb.Append('\n');
-        sb.Append(AnsiRegistry.ResetProperties);
+        AppendRaw((byte)'\n');
+        AppendRaw(AnsiRegistry.ResetPropertiesBytes);
         return this;
     }
 
-    public override string ToString() => sb.ToString();
+    private void EnsureCapacity(int needed)
+    {
+        if (position + needed > buffer.Length)
+            Array.Resize(ref buffer, Math.Max(buffer.Length * 2, position + needed));
+    }
+
+    public ReadOnlyMemory<byte> ToBuffer() => buffer.AsMemory(0, position);
+    public override string ToString() => Encoding.UTF8.GetString(buffer.AsSpan(0, position));
 
     public void Clear()
     {
-        sb.Clear();
+        position = 0;
         currentState = new();
     }
 }
