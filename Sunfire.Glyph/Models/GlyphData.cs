@@ -1,6 +1,6 @@
 namespace Sunfire.Glyph.Models;
 
 public record GlyphData(
-    string GraphemeCluster,
+    byte[] GraphemeCluster,
     byte RealWidth,
     byte VisualWidth);

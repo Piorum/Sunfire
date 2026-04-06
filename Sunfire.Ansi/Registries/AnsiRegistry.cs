@@ -61,6 +61,7 @@ public static class AnsiRegistry
 
     private const byte ColorEndByte = (byte)'m';
     private static ReadOnlySpan<byte> ForegroundColorStartBytes => "\x1B[38;2;"u8;
+    public const int MaxSetColorBytes = 19;
     public static int SetForegroundColor(Span<byte> destination, SColor? color)
     {
         if(!color.HasValue)
@@ -121,6 +122,7 @@ public static class AnsiRegistry
     }
 
     private const byte AnsiMoveCursorEndByte = (byte)'H';
+    public const int MaxMoveCursorBytes = 11;
     public static int MoveCursor(Span<byte> destination, int line, int column)
     {
         int offset = 0;

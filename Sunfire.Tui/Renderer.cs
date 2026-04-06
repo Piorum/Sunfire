@@ -25,7 +25,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
     public SVBuffer FrontBuffer { internal set; get; } = new(rootView.SizeX, rootView.SizeY);
     private SVBuffer _backBuffer = new(rootView.SizeX, rootView.SizeY);
 
-    private readonly RenderState renderState = new(2048);
+    private readonly RenderState renderState = new();
 
     private readonly TimeSpan batchDelay = _batchDelay ?? TimeSpan.FromMicroseconds(100);
 
@@ -171,27 +171,27 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
                     renderState.OutputStart = (x,y);
                 }
 
-                var cluster = GlyphFactory.Get(cell.GlyphId);
-                x += cluster.VisualWidth;
+                var glyph = GlyphFactory.Get(cell.GlyphId);
+                x += glyph.VisualWidth;
 
                 //Fallback to space if 2 wide glyph will be out of bounds.
                 if(x > RootView.SizeX)
                 {
-                    renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
+                    renderState.OutputBuffer[renderState.OutputIndex++] = (byte)' ';
                     renderState.CursorMovement++;
                     continue;
                 }
 
-                var text = cluster.GraphemeCluster.AsSpan();
+                var bytes = glyph.GraphemeCluster.AsSpan();
 
-                text.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
+                bytes.CopyTo(renderState.OutputBuffer.AsSpan(renderState.OutputIndex));
 
-                renderState.OutputIndex += text.Length;
-                renderState.CursorMovement += cluster.VisualWidth;
+                renderState.OutputIndex += bytes.Length;
+                renderState.CursorMovement += glyph.VisualWidth;
 
                 //Add extra space to "Fake" 2 wide characters
-                if(cluster.VisualWidth > 1 && cluster.RealWidth < cluster.VisualWidth)
-                    renderState.OutputBuffer[renderState.OutputIndex++] = ' ';
+                if(glyph.VisualWidth > 1 && glyph.RealWidth < glyph.VisualWidth)
+                    renderState.OutputBuffer[renderState.OutputIndex++] = (byte)' ';
             }
             FlushToAsb(asb);
         }

@@ -13,16 +13,17 @@ public class AnsiStringBuilder(int bufferSize = 2<<15)
     public bool IsEmpty => position == 0;
     
     public AnsiStringBuilder Append(string text, StyleData desiredState, (int X, int Y)? desiredCursorPos) =>
-        Append(text.AsSpan(), desiredState, desiredCursorPos);
+        Append(Encoding.UTF8.GetBytes(text) , desiredState, desiredCursorPos);
 
-    public AnsiStringBuilder Append(ReadOnlySpan<char> text, StyleData desiredState, (int X, int Y)? desiredCursorPos)
+    public AnsiStringBuilder Append(ReadOnlySpan<byte> text, StyleData desiredState, (int X, int Y)? desiredCursorPos)
     {
         UpdateStyle(desiredState, desiredCursorPos);
 
         if (text.Length > 0)
         {
-            EnsureCapacity(text.Length * 4);
-            position += Encoding.UTF8.GetBytes(text, buffer.AsSpan(position));
+            EnsureCapacity(text.Length);
+            text.CopyTo(buffer.AsSpan(position));
+            position += text.Length;
         }
 
         return this;
@@ -43,17 +44,17 @@ public class AnsiStringBuilder(int bufferSize = 2<<15)
     {
         if (desiredCursorPos is { } pos)
         {
-            EnsureCapacity(32);
+            EnsureCapacity(AnsiRegistry.MaxMoveCursorBytes);
             position += AnsiRegistry.MoveCursor(buffer.AsSpan(position), pos.Y, pos.X);
         }
         if (currentState.ForegroundColor != desiredState.ForegroundColor)
         {
-            EnsureCapacity(32);
+            EnsureCapacity(AnsiRegistry.MaxSetColorBytes);
             position += AnsiRegistry.SetForegroundColor(buffer.AsSpan(position), desiredState.ForegroundColor);
         }
         if (currentState.BackgroundColor != desiredState.BackgroundColor)
         {
-            EnsureCapacity(32);
+            EnsureCapacity(AnsiRegistry.MaxSetColorBytes);
             position += AnsiRegistry.SetBackgroundColor(buffer.AsSpan(position), desiredState.BackgroundColor);
         }
 

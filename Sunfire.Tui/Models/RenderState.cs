@@ -2,10 +2,10 @@ using Sunfire.Ansi.Models;
 
 namespace Sunfire.Tui.Models;
 
-public class RenderState(int bufferSize)
+public class RenderState(int bufferSize = 4096)
 {
     //Oversized to allow for DWC, ZWC, etc...
-    public char[] OutputBuffer = new char[bufferSize];
+    public byte[] OutputBuffer = new byte[bufferSize];
     public int OutputIndex;
     public int CursorMovement;
 
