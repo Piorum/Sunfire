@@ -153,7 +153,7 @@ public class ListSV : IRelativeSunfireView
             }
         }
 
-        await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
+        await Task.WhenAll(VisibleLabels.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
     }
 
     public Task Invalidate()

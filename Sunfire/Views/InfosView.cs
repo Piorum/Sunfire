@@ -52,7 +52,7 @@ public class InfosView : IRelativeSunfireView
     }    
 
     public async Task Draw(SVContext context) =>
-        await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
+        await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
 
     public async Task Invalidate()
     {

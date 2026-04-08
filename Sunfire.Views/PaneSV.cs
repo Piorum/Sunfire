@@ -182,14 +182,14 @@ public class PaneSV : IRelativeSunfireView
     {
         if (zLevels!.Count == 1)
         {
-            await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
+            await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
 
         }
         else
         {
             Parallel.ForEach(zLevels, async zLevel =>
             {
-                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(new(v.OriginX, v.OriginY, context.Buffer))));
+                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
             });
         }
     }

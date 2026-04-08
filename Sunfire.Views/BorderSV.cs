@@ -156,9 +156,9 @@ public class BorderSV : IRelativeSunfireView
         }
 
         if (TitleLabel is not null)
-            await TitleLabel.Draw(new(TitleLabel.OriginX, TitleLabel.OriginY, context.Buffer));
+            await TitleLabel.Draw(new(TitleLabel.OriginX, TitleLabel.OriginY, TitleLabel.SizeX, TitleLabel.SizeY, context));
 
-        await SubView.Draw(new(SubView.OriginX, SubView.OriginY, context.Buffer));
+        await SubView.Draw(new(SubView.OriginX, SubView.OriginY, SubView.SizeX, SubView.SizeY, context));
     }
 
     public async Task Invalidate()

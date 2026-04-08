@@ -139,7 +139,7 @@ public class Renderer(RootSV rootView, TimeSpan? _batchDelay = null)
             return;
 
         //Draw to back buffer
-        await RootView.Draw(new SVContext(0, 0, _backBuffer));
+        await RootView.Draw(new SVContext(0, 0, RootView.SizeX, RootView.SizeY, _backBuffer));
 
         //Clear builder, ensure cursor is hidden for draw, reset state
         asb.Clear();
