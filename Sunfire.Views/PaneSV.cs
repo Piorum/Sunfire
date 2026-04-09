@@ -1,6 +1,8 @@
 using Sunfire.Tui.Enums;
 using Sunfire.Tui.Models;
 using Sunfire.Tui.Interfaces;
+using System.Collections.Immutable;
+using Sunfire.Tui;
 
 namespace Sunfire.Views;
 
@@ -27,7 +29,10 @@ public class PaneSV : IRelativeSunfireView
     public int MinX => SubViews.Max(sv => sv.MinX);
     public int MinY => SubViews.Max(sv => sv.MinY);
 
-    required public List<IRelativeSunfireView> SubViews = [];
+    required public ImmutableList<IRelativeSunfireView> SubViews = [];
+
+    private LayoutToken? cachedLayout;
+    private List<LayoutToken> layouts = [];
 
     protected List<int>? xLevels;
     protected List<int>? yLevels;
@@ -38,6 +43,30 @@ public class PaneSV : IRelativeSunfireView
         if (Dirty)
         {
             await OnArrange();
+
+            LayoutToken newLayout = new(SubViews);
+
+            if(cachedLayout is null || cachedLayout != newLayout)
+            {
+                cachedLayout = newLayout;
+
+                List<LayoutToken> newLayouts = [];
+                foreach(var zLevel in zLevels!)
+                {
+                    var views = SubViews.Where(v => v.Z == zLevel);
+                    LayoutToken layout = new(views);
+
+                    if(views.MaxBy(v => v.X)?.X >= views.MaxBy(v => v.Y)?.Y)
+                        layout.MapRegionsHorizontalSweep();
+                    else
+                        layout.MapRegionsVerticalSweep();
+                    
+                    newLayouts.Add(layout);
+                }
+
+                layouts = newLayouts;
+            }
+
             Dirty = false;
         }
 
@@ -180,17 +209,9 @@ public class PaneSV : IRelativeSunfireView
 
     public async Task Draw(SVContext context)
     {
-        if (zLevels!.Count == 1)
+        foreach(var layout in layouts)
         {
-            await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
-
-        }
-        else
-        {
-            Parallel.ForEach(zLevels, async zLevel =>
-            {
-                await Task.WhenAll(SubViews.Where(sv => sv.Z == zLevel).Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
-            });
+            await layout.Draw(context);
         }
     }
 

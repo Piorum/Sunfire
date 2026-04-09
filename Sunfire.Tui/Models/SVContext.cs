@@ -19,7 +19,7 @@ public readonly struct SVContext
         throw new($"SVContext region is out of bounds for the SVBuffer [Parameters] X:\"{x}\" | Y:\"{y}\" | W:\"{w}\" | H:\"{h}\" : [Buffer Dimensions] W:\"{buffer.Width}\" | H:\"{buffer.Height}\"");
     [DoesNotReturn]
     private static void CreationOutOfBounds(int x,int y, int w, int h, SVContext context) => 
-        throw new($"SVContext region is out of bounds for the existing SVContext [Parameters] X:\"{x}\" | Y:\"{y}\" | W:\"{w}\" | H:\"{h}\" : [Context Dimensions] W:\"{context.W}\" | H:\"{context.H}\"");
+        throw new($"SVContext region is out of bounds for the existing SVContext [Parameters] X:\"{x}\" | Y:\"{y}\" | W:\"{w}\" | H:\"{h}\" : [Context Dimensions] X:\"{context.X}\" | Y: \"{context.Y}\" | W:\"{context.W}\" | H:\"{context.H}\"");
     [DoesNotReturn]
     private static void AccessOutOfBounds(int X, int Y, int W, int H, int x, int y) => 
         throw new($"Coordinate out of bounds for the current SVContext X:\"{X}\" | Y:\"{Y}\" | W:\"{W}\" | H:\"{H}\" : Coordinate:({x},{y})");
