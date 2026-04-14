@@ -92,24 +92,24 @@ public readonly struct SVContext
     public ref struct SVContextEnumerator
     {
         private readonly SVContext _context;
-        private int _x;
-        private int _y;
+        private int x;
+        private int y;
 
         public SVContextEnumerator(SVContext context) =>
-            (_context, _x, _y) = (context, 0, 0);
+            (_context, x, y) = (context, 0, 0);
 
         public bool MoveNext()
         {
-            _x++;
-            if(_x >= _context.W)
+            x++;
+            if(x >= _context.W)
             {
-                _x = 0;
-                _y++;
+                x = 0;
+                y++;
             }
 
-            return _y < _context.H;
+            return y < _context.H;
         }
 
-        public readonly ref SVCell Current => ref _context.Buffer[_context.X  + _x, _context.Y + _y];
+        public readonly ref SVCell Current => ref _context.Raw(x, y);
     }
 }
