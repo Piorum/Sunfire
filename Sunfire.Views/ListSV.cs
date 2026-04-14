@@ -145,9 +145,8 @@ public class ListSV : IRelativeSunfireView
     //Should be called when list needs to be redrawn
     public async Task Draw(SVContext context)
     {
-        for (int y = 0; y < SizeY; y++)
-            for (int x = 0; x < SizeX; x++)
-                context[x, y] = SVCell.Blank;
+        foreach(ref var cell in context)
+            cell = SVCell.Blank;
 
         //Manual context parsing to work around error caused by misuse of ListSV in PreviewView
         await Task.WhenAll(VisibleLabels.Select((v, i) => v.Draw(new(OriginX, OriginY + i, SizeX, 1, context))));

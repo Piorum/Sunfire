@@ -3,8 +3,6 @@ using Sunfire.Tui.Enums;
 using Sunfire.Tui.Interfaces;
 using Sunfire.Ansi.Models;
 using Sunfire.Views.Enums;
-using System.Text;
-using Sunfire.Glyph.Models;
 using Sunfire.Glyph;
 using Sunfire.Ansi;
 
@@ -102,11 +100,11 @@ public class LabelSVSlim : ISunfireView
         var textLen = glyphs.Sum(g => g.width);
 
         int startX = Alignment == Direction.Right
-            ? SizeX - textLen
+            ? (int)context.W - textLen
             : 0;
 
         int minX = Math.Max(0, startX);
-        int maxX = Math.Min(SizeX, startX + textLen);
+        int maxX = Math.Min((int)context.W, startX + textLen);
 
         bool isSelected = (LabelProperties & LabelSVProperty.Selected) != 0;
 
@@ -127,7 +125,7 @@ public class LabelSVSlim : ISunfireView
         else
             paddingCell = SVCell.Blank;
 
-        for (int y = 0; y < SizeY; y++)
+        for (int y = 0; y < context.H; y++)
         {
             for(int x = 0; x < minX; x++)
                 context[x, y] = paddingCell;
@@ -159,7 +157,7 @@ public class LabelSVSlim : ISunfireView
                 glyphIndex++;
             }
 
-            for(int x = maxX; x < SizeX; x++)
+            for(int x = maxX; x < context.W; x++)
                 context[x, y] = paddingCell;
         }
 
@@ -169,7 +167,7 @@ public class LabelSVSlim : ISunfireView
             SVCell tagCell = new(SVCell.Blank.GlyphId, SVCell.Blank.Width, tagStyleId);
         
             if(Alignment == Direction.Left)
-                context[SizeX - 1, SizeY - 1] = tagCell;
+                context[(int)context.W - 1, (int)context.H - 1] = tagCell;
             else
                 context[0, 0] = tagCell;
         }

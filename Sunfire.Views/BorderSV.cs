@@ -39,7 +39,7 @@ public class BorderSV : IRelativeSunfireView
     required public IRelativeSunfireView SubView { set; get; }
     public LabelSVSlim? TitleLabel { set; get; }
 
-    private SVBuffer? borderBuffer;
+    private SVContext? borderContext;
     private SVCell templateCell = SVCell.Blank;
 
     //Blank
@@ -89,7 +89,7 @@ public class BorderSV : IRelativeSunfireView
             templateStyleId
         );
         
-        borderBuffer = new(SizeX, SizeY);
+        SVBuffer borderBuffer = new(SizeX, SizeY);
 
         if (borderBuffer.Height > 2)
             for (int x = 1; x < SizeX - 1; x++)
@@ -127,6 +127,8 @@ public class BorderSV : IRelativeSunfireView
             borderBuffer[2 + Math.Min(TitleLabel.Segments?.Sum(e => e.Text.Length) ?? 0, SizeX - 4), 0] = new(TitleRight.id, TitleRight.width, templateStyleId);
         }
 
+        borderContext = new(0, 0, borderBuffer.Width, borderBuffer.Height, borderBuffer);
+
         //Subpane setup
         SubView.SizeX = SizeX - 2;
         SubView.SizeY = SizeY - 2;
@@ -147,13 +149,7 @@ public class BorderSV : IRelativeSunfireView
 
     public async Task Draw(SVContext context)
     {
-        for (int y = 0; y < SizeY; y++)
-        {
-            for (int x = 0; x < SizeX; x++)
-            {
-                context[x, y] = borderBuffer![x, y];
-            }
-        }
+        borderContext!.Value.CopyTo(context);
 
         if (TitleLabel is not null)
             await TitleLabel.Draw(new(TitleLabel.OriginX, TitleLabel.OriginY, TitleLabel.SizeX, TitleLabel.SizeY, context));

@@ -44,29 +44,6 @@ public class PaneSV : IRelativeSunfireView
         {
             await OnArrange();
 
-            LayoutToken newLayout = new(SubViews);
-
-            if(cachedLayout is null || cachedLayout != newLayout)
-            {
-                cachedLayout = newLayout;
-
-                List<LayoutToken> newLayouts = [];
-                foreach(var zLevel in zLevels!)
-                {
-                    var views = SubViews.Where(v => v.Z == zLevel);
-                    LayoutToken layout = new(views);
-
-                    if(views.MaxBy(v => v.X)?.X >= views.MaxBy(v => v.Y)?.Y)
-                        layout.MapRegionsHorizontalSweep();
-                    else
-                        layout.MapRegionsVerticalSweep();
-                    
-                    newLayouts.Add(layout);
-                }
-
-                layouts = newLayouts;
-            }
-
             Dirty = false;
         }
 
@@ -95,6 +72,8 @@ public class PaneSV : IRelativeSunfireView
         }
 
         await Task.WhenAll(measureAndPostionTasks);
+
+        await CheckLayout();
     }
 
     private async Task Measure(int zIndex, List<IRelativeSunfireView> orderedByWidthStyle, List<IRelativeSunfireView> orderedByHeightStyle)
@@ -198,6 +177,34 @@ public class PaneSV : IRelativeSunfireView
             CursorX = OriginX;
             CursorY += largestY;
         }
+
+        return Task.CompletedTask;
+    }
+
+    private Task CheckLayout()
+    {
+        LayoutToken newLayout = new(SubViews);
+
+        if(cachedLayout is not null && cachedLayout == newLayout)
+            return Task.CompletedTask;
+
+        cachedLayout = newLayout;
+
+        List<LayoutToken> newLayouts = [];
+        foreach(var zLevel in zLevels!)
+        {
+            var views = SubViews.Where(v => v.Z == zLevel);
+            LayoutToken layout = new(views);
+
+            if(views.MaxBy(v => v.X)?.X >= views.MaxBy(v => v.Y)?.Y)
+                layout.MapRegionsHorizontalSweep();
+            else
+                layout.MapRegionsVerticalSweep();
+            
+            newLayouts.Add(layout);
+        }
+
+        layouts = newLayouts;
 
         return Task.CompletedTask;
     }

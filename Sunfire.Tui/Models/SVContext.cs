@@ -23,6 +23,9 @@ public readonly struct SVContext
     [DoesNotReturn]
     private static void AccessOutOfBounds(int X, int Y, int W, int H, int x, int y) => 
         throw new($"Coordinate out of bounds for the current SVContext X:\"{X}\" | Y:\"{Y}\" | W:\"{W}\" | H:\"{H}\" : Coordinate:({x},{y})");
+    [DoesNotReturn]
+    private static void CopyTooLarge(uint sW, uint sH, uint dW, uint dH) => 
+        throw new($"TerminalContext to large to copy to given TerminalContext Source W:\"{sW}\" | H:\"{sH}\" : Destination W:\"{dW}\" | H:\"{dH}\"");
 
     /// <param name="x">X coordinate of new origin.</param>
     /// <param name="y">Y coordinate of new origin.</param>
@@ -69,5 +72,44 @@ public readonly struct SVContext
 
             return ref Buffer[X + x, Y + y];
         }
+    }
+
+    private ref SVCell Raw(int x, int y) =>
+        ref Buffer [X + x, Y + y];
+
+    public void CopyTo(SVContext destination)
+    {
+        if(destination.H < H || destination.W < W)
+            CopyTooLarge(W, H, destination.W, destination.H);
+
+        for(int y = 0; y < H; y++)
+            for(int x = 0; x < W; x++)
+                destination.Raw(x, y) = Raw(x, y);
+    }
+
+    public SVContextEnumerator GetEnumerator() => new(this);
+
+    public ref struct SVContextEnumerator
+    {
+        private readonly SVContext _context;
+        private int _x;
+        private int _y;
+
+        public SVContextEnumerator(SVContext context) =>
+            (_context, _x, _y) = (context, 0, 0);
+
+        public bool MoveNext()
+        {
+            _x++;
+            if(_x >= _context.W)
+            {
+                _x = 0;
+                _y++;
+            }
+
+            return _y < _context.H;
+        }
+
+        public readonly ref SVCell Current => ref _context.Buffer[_context.X  + _x, _context.Y + _y];
     }
 }
