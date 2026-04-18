@@ -33,8 +33,12 @@ internal class Program
         await InitLogging();
         await Logger.Debug(nameof(Sunfire), "[Startup]");
 
-        var inputTask = Input();
-        var renderTask = Render();
+        await RegisterBinds();
+
+        var inputTask = InputHandler.Init(_cts.Token);
+        var renderTask = Renderer.Start(_cts.Token);
+        
+        await AppState.Init();
 
         _ = await Task.WhenAny(inputTask, renderTask);
 
@@ -102,7 +106,7 @@ internal class Program
         //await Logger.AddSink(new(new FileSink(), [.. logLevels]));
     }
 
-    private static async Task Input()
+    private static async Task RegisterBinds()
     {
         InputHandler.Context.Add(InputContext.Global);
 
@@ -225,16 +229,5 @@ internal class Program
                 .WithBind(async (inputData) => await AppState.Sh()),
         ];
         await Task.WhenAll(binds.Select(b => b.RegisterBind()));
-
-        await InputHandler.Init(_cts.Token);
-    }
-
-    private static async Task Render()
-    {
-        var renderLoopTask = Renderer.Start(_cts.Token);
-
-        await AppState.Init();
-
-        await renderLoopTask;
     }
 }
