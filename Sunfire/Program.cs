@@ -27,9 +27,9 @@ internal class Program
         await InitLogging();
         await Logger.Debug(nameof(Sunfire), "[Startup]");
 
-        await RegisterBinds();
-        await AppState.Init();
+        _ = Task.Run(async () => await AppState.Init());
 
+        await RegisterBinds();
         await App.Run();
     }
 
