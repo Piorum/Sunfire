@@ -1,23 +1,17 @@
-﻿using Sunfire.Enums;
-using Sunfire.Registries;
-using Sunfire.Tui;
-using Sunfire.Input;
-using Sunfire.Input.Models;
-using Sunfire.Logging;
-using Sunfire.Logging.Sinks;
-using Sunfire.Logging.Models;
-using Sunfire.Input.Builders;
+﻿using Sunfire.Registries;
+using Moonfire.Input;
+using Moonfire.Logging;
+using Moonfire.Logging.Models;
 using GeoBlocker;
+using Moonfire.Tui;
+using Moonfire.Input.Models;
 
 namespace Sunfire;
 
 internal class Program
 {
-    public static InputHandler<InputContext> InputHandler = new();
-    public static Renderer Renderer = new(SVRegistry.RootSV);
+    public static TuiApp App = new(SVRegistry.RootPane);
     public static AppOptions Options = new();
-
-    public static readonly CancellationTokenSource _cts = new();
 
     public static async Task Main(string[] args)
     {
@@ -34,29 +28,9 @@ internal class Program
         await Logger.Debug(nameof(Sunfire), "[Startup]");
 
         await RegisterBinds();
-
-        var inputTask = InputHandler.Init(_cts.Token);
-        var renderTask = Renderer.Start(_cts.Token);
-        
         await AppState.Init();
 
-        _ = await Task.WhenAny(inputTask, renderTask);
-
-        await Stop();
-
-        try
-        {
-            await Task.WhenAll(inputTask, renderTask);
-        }
-        catch (Exception ex)
-        {
-            var exs = ex is AggregateException ae ? ae.InnerExceptions : (IEnumerable<Exception>)[ex];
-            foreach(var ie in exs)
-                await Logger.Error(nameof(Sunfire), $"Major Exception:\n{ex}");
-        }
-
-        await Logger.Debug(nameof(Sunfire), "[Shutdown]");
-        await Logger.StopAndFlush();
+        await App.Run();
     }
 
     private static Task RegionCheck() =>
@@ -74,19 +48,6 @@ internal class Program
             }
         });
 
-    private static async Task Stop()
-    {
-        if (_cts is not null)
-        {
-            try
-            {
-                await _cts.CancelAsync();
-                _cts.Dispose();
-            }
-            catch (ObjectDisposedException) { }
-        }
-    }
-
     private static async Task InitLogging()
     {
 
@@ -100,7 +61,7 @@ internal class Program
             logLevels.Add(LogLevel.Warn);
 
         if (Options.OutputLogsToConsole)
-            await Logger.AddSink(new(new BufferSink(), [.. logLevels]));
+            await TuiApp.InitLogging(logLevels);
 
         //Add file sink to store logs
         //await Logger.AddSink(new(new FileSink(), [.. logLevels]));
@@ -108,126 +69,89 @@ internal class Program
 
     private static async Task RegisterBinds()
     {
-        InputHandler.Context.Add(InputContext.Global);
-
-        List<KeybindBuilder<InputContext>> binds = [
+        List<KeybindBuilder> binds = [
             //Exit
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Q))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => { await Stop(); }),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.Q))
+                .WithBind(new (async (_) => await App.Stop())),
 
             //Try Reload
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.R, Sunfire.Input.Enums.Modifier.Ctrl | Sunfire.Input.Enums.Modifier.Alt))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => 
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.R, Moonfire.Input.Enums.InputModifier.Ctrl | Moonfire.Input.Enums.InputModifier.Alt))
+                .WithBind(new(async (_) => 
                 { 
-                    await Renderer.Clear(Renderer.RootView.OriginX, Renderer.RootView.OriginY, Renderer.RootView.SizeX, Renderer.RootView.SizeY);
-                    await Renderer.EnqueueAction(Renderer.RootView.Invalidate);
+                    await App.Renderer.EnqueueActionClear(SVRegistry.RootPane.OriginX, SVRegistry.RootPane.OriginY, SVRegistry.RootPane.SizeX, SVRegistry.RootPane.SizeY);
+                    await App.Renderer.EnqueueAction(SVRegistry.RootPane.Invalidate);
                     await AppState.InvalidateState();
-                }),
+                })),
 
             //Nav
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.UpArrow))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavUp()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.W))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavUp()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.DownArrow))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavDown()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.S))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavDown()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.LeftArrow))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavOut()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.A))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavOut()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.RightArrow))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavIn()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.D))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavIn()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Enter))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.HandleFile()),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.UpArrow))
+                .WithBind(new(async (_)=> await AppState.NavUp())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.W))
+                .WithBind(new(async (_)=> await AppState.NavUp())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.DownArrow))
+                .WithBind(new(async (_)=> await AppState.NavDown())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.S))
+                .WithBind(new(async (_)=> await AppState.NavDown())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.LeftArrow))
+                .WithBind(new(async (_)=> await AppState.NavOut())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.A))
+                .WithBind(new(async (_)=> await AppState.NavOut())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.RightArrow))
+                .WithBind(new(async (_)=> await AppState.NavIn())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.D))
+                .WithBind(new(async (_)=> await AppState.NavIn())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.Enter))
+                .WithBind(new(async (_)=> await AppState.HandleFile())),
 
             //Nav Ext
             //Jump Top
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.G))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavList(-SVRegistry.CurrentList.SelectedIndex)),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.G))
+                .WithBind(new(async (_)=> await AppState.NavList(-SVRegistry.CurrentList.SelectedIndex))),
             //Jump Bottom
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.G, Sunfire.Input.Enums.Modifier.Shift))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex)),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.G, Moonfire.Input.Enums.InputModifier.Shift))
+                .WithBind(new(async (_)=> await AppState.NavList(SVRegistry.CurrentList.MaxIndex - SVRegistry.CurrentList.SelectedIndex))),
             //Search
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Divide))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Search()),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.Divide))
+                .WithBind(new(async (_)=> await AppState.Search())),
             
             //Toggles
-            InputHandler.CreateBinding()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Z))
-                .WithSequence(Key.KeyboardBind(ConsoleKey.H))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.ToggleHidden()),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.Z))
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.H))
+                .WithBind(new(async (_)=> await AppState.ToggleHidden())),
 
             //Editing Binds
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.Spacebar))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Tag()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.C))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.ClearTags()),
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.OemPeriod))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Action()),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.Spacebar))
+                .WithBind(new(async (_)=> await AppState.Tag())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.C))
+                .WithBind(new(async (_)=> await AppState.ClearTags())),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.OemPeriod))
+                .WithBind(new(async (_)=> await AppState.Action())),
 
             //Shell
-            InputHandler.CreateBinding()
-                .AsIndifferent()
-                .WithSequence(Key.KeyboardBind(ConsoleKey.OemComma))
-                .WithContext([InputContext.Global])
-                .WithBind(async (inputData) => await AppState.Sh()),
+            App.InputHandler.Bind()
+                .WithKey(InputKey.KeyboardBind(ConsoleKey.OemComma))
+                .WithBind(new(async (_)=> await AppState.Sh())),
         ];
-        await Task.WhenAll(binds.Select(b => b.RegisterBind()));
+        
+        foreach(var bind in binds)
+            bind.Register();
     }
 }

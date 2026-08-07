@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Sunfire.Logging/Sunfire.Logging.csproj" />
+    <ProjectReference Include="../../Moonfire/Moonfire.Logging/Moonfire.Logging.csproj" />
   </ItemGroup>
 
 </Project>

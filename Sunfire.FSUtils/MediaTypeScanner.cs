@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
+using Moonfire.Logging;
 
 namespace Sunfire.FSUtils;
 

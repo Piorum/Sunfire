@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Sunfire.FSUtils.Models;
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Interfaces;
-using Sunfire.Tui.Models;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Interfaces;
+using Moonfire.Rendering.Models;
 using Sunfire.Views;
 
 namespace Sunfire.Previewers;
@@ -11,11 +11,11 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 {
     private BashPreviewView? view;
 
-    public Task<IRelativeSunfireView?> Update(FSEntry entry)
+    public Task<IRelativeMoonfireView?> Update(FSEntry entry)
     {
         view ??= new();
         view.UpdateEntry(entry);
-        return Task.FromResult<IRelativeSunfireView?>(view);
+        return Task.FromResult<IRelativeMoonfireView?>(view);
     }
 
     public Task CleanUp()
@@ -26,7 +26,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
         return Task.CompletedTask;
     }
 
-    private class BashPreviewView : IRelativeSunfireView, IDisposable
+    private class BashPreviewView : IRelativeMoonfireView, IDisposable
     {
         public int X { get; set; }
         public int Y { get; set; }
@@ -78,7 +78,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                 StopProcess();
                 await ClearRegion();
 
-                await Program.Renderer.PostRender(() =>
+                await Program.App.Renderer.EnqueueActionPostRender(() =>
                 {
                     if(!disposed)
                         StartProcess();
@@ -92,7 +92,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             return false;
         }
 
-        public Task Draw(SVContext _) => Task.CompletedTask;
+        public Task Draw(TerminalContext _) => Task.CompletedTask;
 
         public Task Invalidate() => Task.CompletedTask;
 
@@ -106,7 +106,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 
         private async Task ClearRegion()
         {
-            await Program.Renderer.Clear(OriginX, OriginY, SizeX, SizeY);
+            await Program.App.Renderer.EnqueueActionClear(OriginX, OriginY, SizeX, SizeY);
         }
 
         private void StartProcess()

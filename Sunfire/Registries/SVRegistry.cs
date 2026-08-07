@@ -1,33 +1,33 @@
-using Sunfire.Tui;
-using Sunfire.Tui.Enums;
+using Moonfire.Tui;
 using Sunfire.Views;
 using Sunfire.Views.Text;
 using System.Runtime.CompilerServices;
+using Moonfire.Rendering.Enums;
+using Wrath.Views;
+
 
 namespace Sunfire.Registries;
 
 public static class SVRegistry
 {
-    private static RootSV? rootSV;
-
     private static EntriesListView? containerList;
-    private static PaneSV? containerPane;
-    private static BorderSV? containerBorder;
+    private static Pane? containerPane;
+    private static Border? containerBorder;
 
     private static EntriesListView? currentList;
-    private static PaneSV? currentPane;
-    private static BorderSV? currentBorder;
+    private static Pane? currentPane;
+    private static Border? currentBorder;
 
     private static PreviewView? previewPane;
-    private static BorderSV? previewBorder;
+    private static Border? previewBorder;
 
     private static LabelSV? bottomRightLabel;
-    private static BorderSV? bottomRightBorder;
+    private static Border? bottomRightBorder;
     private static SelectionInfoView? selectionInfoView;
 
     private static InfosView? infosView;
 
-    private static PaneSV? rootPane;
+    private static Pane? rootPane;
 
     [ModuleInitializer]
     public static void Init()
@@ -118,37 +118,30 @@ public static class SVRegistry
                 ]
         };
     
-        rootSV = new()
-        {
-            RootView = rootPane
-        };
     }
-
-    public static RootSV RootSV =>
-        rootSV!;
 
     public static EntriesListView ContainerList =>
         containerList!;
-    public static PaneSV ContainerPane =>
+    public static Pane ContainerPane =>
         containerPane!;
-    public static BorderSV ContainerBorder =>
+    public static Border ContainerBorder =>
         containerBorder!;
 
     public static EntriesListView CurrentList =>
         currentList!;
-    public static PaneSV CurrentPane =>
+    public static Pane CurrentPane =>
         currentPane!;
-    public static BorderSV CurrentBorder =>
+    public static Border CurrentBorder =>
         currentBorder!;
 
     public static PreviewView PreviewView =>
         previewPane!;
-    public static BorderSV PreviewBorder =>
+    public static Border PreviewBorder =>
         previewBorder!;
 
     public static LabelSV BottomRightLabel =>
         bottomRightLabel!;
-    public static BorderSV BottomRightBorder =>
+    public static Border BottomRightBorder =>
         bottomRightBorder!;
     public static SelectionInfoView SelectionInfoView =>
         selectionInfoView!;
@@ -156,6 +149,6 @@ public static class SVRegistry
     public static InfosView InfosView =>
         infosView!;
 
-    public static PaneSV RootPane =>
+    public static Pane RootPane =>
         rootPane!;
 }

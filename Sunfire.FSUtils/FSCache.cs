@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Enumeration;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
+using Moonfire.Logging;
 
 namespace Sunfire.FSUtils;
 

@@ -1,14 +1,14 @@
-using Sunfire.Tui.Models;
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Interfaces;
-using Sunfire.Ansi.Models;
+using Moonfire.Rendering.Models;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Interfaces;
+using Moonfire.Ansi.Models;
 using Sunfire.Views.Enums;
-using Sunfire.Glyph;
-using Sunfire.Ansi;
+using Moonfire.Glyph;
+using Moonfire.Ansi;
 
 namespace Sunfire.Views.Text;
 
-public class LabelSVSlim : ISunfireView
+public class LabelSVSlim : IMoonfireView
 {
     public int OriginX { set; get; }
     public int OriginY { set; get; }
@@ -31,17 +31,17 @@ public class LabelSVSlim : ISunfireView
         }
     }
 
-    protected SColor? tagColor = null;
+    protected AnsiTruecolor? tagColor = null;
 
     private readonly List<(int id, byte width)> glyphs = [];
     private readonly List<byte> styles = [];
-    private readonly List<StyleData> styleMap = [];
-    private readonly Dictionary<StyleData, byte> styleIndex = [];
+    private readonly List<AnsiStyleData> styleMap = [];
+    private readonly Dictionary<AnsiStyleData, byte> styleIndex = [];
 
     public readonly struct LabelSegment()
     {
         readonly public string Text { get; init; } = string.Empty;
-        readonly public StyleData Style { get; init; } = new();
+        readonly public AnsiStyleData Style { get; init; } = new();
     }
 
     public async Task<bool> Arrange()
@@ -92,7 +92,7 @@ public class LabelSVSlim : ISunfireView
 
     protected virtual Task OnArrange() => Task.CompletedTask;
 
-    public Task Draw(SVContext context)
+    public Task Draw(TerminalContext context)
     {
         if(Segments is null || Segments.Length == 0)
             return Task.CompletedTask;
@@ -108,22 +108,22 @@ public class LabelSVSlim : ISunfireView
 
         bool isSelected = (LabelProperties & LabelSVProperty.Selected) != 0;
 
-        SVCell paddingCell;
-        StyleData selectedStyle = new();
+        TerminalCell paddingCell;
+        AnsiStyleData selectedStyle = new();
 
         if(isSelected)
         {
             var lastSegmentStyle = Alignment == Direction.Left 
                 ? Segments[^1].Style
-                : Segments[1].Style;
+                : Segments[0].Style;
 
-            selectedStyle = lastSegmentStyle with { Properties = lastSegmentStyle.Properties | SAnsiProperty.Highlight };
+            selectedStyle = lastSegmentStyle with { Properties = lastSegmentStyle.Properties | AnsiProperty.Highlight };
 
-            var paddingStyleId = StyleFactory.GetStyleId((selectedStyle.ForegroundColor, selectedStyle.BackgroundColor, selectedStyle.Properties));
-            paddingCell = new(SVCell.Blank.GlyphId, SVCell.Blank.Width, paddingStyleId);
+            var paddingStyleId = AnsiStyleFactory.GetStyleId((selectedStyle.ForegroundColor, selectedStyle.BackgroundColor, selectedStyle.Properties));
+            paddingCell = new(TerminalCell.Blank.GlyphId, TerminalCell.Blank.Width, paddingStyleId);
         }
         else
-            paddingCell = SVCell.Blank;
+            paddingCell = TerminalCell.Blank;
 
         for (int y = 0; y < context.H; y++)
         {
@@ -138,11 +138,11 @@ public class LabelSVSlim : ISunfireView
                 var renderStyle = isSelected && style.BackgroundColor is null
                     ? selectedStyle
                     : style;
-                var renderStyleId = StyleFactory.GetStyleId((renderStyle.ForegroundColor, renderStyle.BackgroundColor, renderStyle.Properties));
+                var renderStyleId = AnsiStyleFactory.GetStyleId((renderStyle.ForegroundColor, renderStyle.BackgroundColor, renderStyle.Properties));
 
                 var (id, width) = glyphs[glyphIndex];
 
-                var newCell = new SVCell(
+                var newCell = new TerminalCell(
                     id,
                     width, 
                     renderStyleId);
@@ -151,8 +151,8 @@ public class LabelSVSlim : ISunfireView
 
                 if(width == 2 && x+1 < maxX)
                 {
-                    context[x+1, y] = new();
                     x++;
+                    context[x, y] = new(0,1,renderStyleId);
                 }
                 glyphIndex++;
             }
@@ -163,8 +163,8 @@ public class LabelSVSlim : ISunfireView
 
         if(tagColor is not null)
         {
-            var tagStyleId = StyleFactory.GetStyleId((null, tagColor, SAnsiProperty.None));
-            SVCell tagCell = new(SVCell.Blank.GlyphId, SVCell.Blank.Width, tagStyleId);
+            var tagStyleId = AnsiStyleFactory.GetStyleId((null, tagColor, AnsiProperty.None));
+            TerminalCell tagCell = new(TerminalCell.Blank.GlyphId, TerminalCell.Blank.Width, tagStyleId);
         
             if(Alignment == Direction.Left)
                 context[(int)context.W - 1, (int)context.H - 1] = tagCell;

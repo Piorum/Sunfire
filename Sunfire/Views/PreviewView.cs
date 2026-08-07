@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
+using Moonfire.Rendering.Interfaces;
 using Sunfire.Enums;
 using Sunfire.FSUtils.Models;
 using Sunfire.Previewers;
 using Sunfire.Registries;
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Interfaces;
-using Sunfire.Tui.Models;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Models;
 
 namespace Sunfire.Views;
 
-public class PreviewView : IRelativeSunfireView
+public class PreviewView : IRelativeMoonfireView
 {
     public int X { get; set; }
     public int Y { get; set; }
@@ -37,7 +37,7 @@ public class PreviewView : IRelativeSunfireView
     public readonly FallbackPreviewer fallbackPreviewer = new();
 
     private IPreviewer? activePreviewer = null;
-    private IRelativeSunfireView? activeView = null;
+    private IRelativeMoonfireView? activeView = null;
 
     private readonly Lock gate = new();
 
@@ -64,7 +64,7 @@ public class PreviewView : IRelativeSunfireView
 
         if (next is null)
         {
-            await Program.Renderer.EnqueueAction(async () => 
+            await Program.App.Renderer.EnqueueAction(async () => 
             {
                 activeView = null;
                 await Invalidate();
@@ -83,7 +83,7 @@ public class PreviewView : IRelativeSunfireView
             activeView = view;
         }
 
-        await Program.Renderer.EnqueueAction(Invalidate);
+        await Program.App.Renderer.EnqueueAction(Invalidate);
     }
 
     public void Clear()
@@ -115,7 +115,7 @@ public class PreviewView : IRelativeSunfireView
 
     }
 
-    public async Task Draw(SVContext context)
+    public async Task Draw(TerminalContext context)
     {
         var view = activeView;
         if(view is not null)
@@ -142,7 +142,7 @@ public class PreviewView : IRelativeSunfireView
 
     public interface IPreviewer
     {
-        Task<IRelativeSunfireView?> Update(FSEntry entry);
+        Task<IRelativeMoonfireView?> Update(FSEntry entry);
         Task CleanUp();
     }    
 }

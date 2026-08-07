@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
-using Sunfire.Glyph;
-using Sunfire.Ansi.Models;
+using Moonfire.Glyph;
+using Moonfire.Ansi.Models;
 using Sunfire.FSUtils.Models;
 
 namespace Sunfire.Registries;
@@ -9,7 +9,7 @@ namespace Sunfire.Registries;
 public static class IconRegistry
 {
     //Icons from extension
-    public static readonly ReadOnlyDictionary<string, (string icon, SColor? color)> Icons = new(new Dictionary<string, (string, SColor?)>()
+    public static readonly ReadOnlyDictionary<string, (string icon, AnsiTruecolor? color)> Icons = new(new Dictionary<string, (string, AnsiTruecolor?)>()
     {
         { ".styl", ("", new(141,193,73)) },
         { ".sass", ("", new(245,83,133)) },
@@ -254,7 +254,7 @@ public static class IconRegistry
     });
 
     //Icons from full file name (Favored over extension based icon)
-    public static readonly ReadOnlyDictionary<string, (string icon, SColor? color)> SpecialIcons = new(new Dictionary<string, (string, SColor?)>()
+    public static readonly ReadOnlyDictionary<string, (string icon, AnsiTruecolor? color)> SpecialIcons = new(new Dictionary<string, (string, AnsiTruecolor?)>()
     {
         { "gruntfile.coffee", ("", new(227,121,51)) },
         { "gruntfile.js", ("", new(227,121,51)) },
@@ -328,7 +328,7 @@ public static class IconRegistry
         glyphCache.AddOrUpdate(FallbackFileIcon, 2);
     }
 
-    public static (string icon, SColor? color) GetIcon(FSEntry entry) =>
+    public static (string icon, AnsiTruecolor? color) GetIcon(FSEntry entry) =>
         entry.IsDirectory
             ? (DirectoryIcon, ColorRegistry.DirectoryColor)
             : SpecialIcons.TryGetValue(entry.Name, out var special) 

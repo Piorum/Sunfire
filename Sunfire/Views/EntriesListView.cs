@@ -1,14 +1,15 @@
 using System.Collections.Concurrent;
-using Sunfire.Ansi.Models;
+using Moonfire.Rendering.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
+using Moonfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views.Text;
+using Moonfire.Ansi.Models;
 
 namespace Sunfire.Views;
 
-public class EntriesListView : ListSV
+public class EntriesListView : List
 {
     private static readonly ConcurrentDictionary<string, FSEntry> previouslySelectedEntries = [];
 
@@ -33,7 +34,7 @@ public class EntriesListView : ListSV
 
         selectedIndex = targetIndex;
 
-        await Program.Renderer.EnqueueAction(Invalidate);
+        await Program.App.Renderer.EnqueueAction(Invalidate);
     }
     public async Task Nav(FSEntry? entry)
     {
@@ -42,19 +43,19 @@ public class EntriesListView : ListSV
         if(index is not null && index != selectedIndex)
         {
             selectedIndex = index.Value;
-            await Program.Renderer.EnqueueAction(Invalidate);
+            await Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
     //Tag Helpers
-    public async Task<(FSEntry? entry, bool enabled)> ToggleOrUpdateCurrentEntryTag(SColor color)
+    public async Task<(FSEntry? entry, bool enabled)> ToggleOrUpdateCurrentEntryTag(AnsiTruecolor color)
     {
         var currentLabel = GetCurrentLabel();
         if(currentLabel is null)
             return (null, false);
 
         var enabled = TagCache.ToggleOrUpdateTag(currentLabel.Entry, color);
-        await Program.Renderer.EnqueueAction(currentLabel.Invalidate);
+        await Program.App.Renderer.EnqueueAction(currentLabel.Invalidate);
 
         return (currentLabel.Entry, enabled);
     }
@@ -142,7 +143,7 @@ public class EntriesListView : ListSV
             backLabels = labels;
             selectedIndex = index;
             
-            await Program.Renderer.EnqueueAction(Invalidate);
+            await Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
@@ -163,8 +164,8 @@ public class EntriesListView : ListSV
 
     private class EntryLabelView : LabelSVSlim
     {
-        private static readonly StyleData directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: SAnsiProperty.Bold);
-        private static readonly StyleData fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
+        private static readonly AnsiStyleData directoryStyle = new(ForegroundColor: ColorRegistry.DirectoryColor, Properties: AnsiProperty.Bold);
+        private static readonly AnsiStyleData fileStyle = new(ForegroundColor: ColorRegistry.FileColor);
 
         private FSEntry _entry;
         public FSEntry Entry 
@@ -194,7 +195,7 @@ public class EntriesListView : ListSV
             //If tag cache version changed, check for tag color (Found color or Null(No Tag)), if color changed rebuild
             if(tagCacheVersion != TagCache.Version)
             {
-                SColor? newColor = TagCache.TryGetValue(_entry, out var color)
+                AnsiTruecolor? newColor = TagCache.TryGetValue(_entry, out var color)
                     ? color
                     : null;
 
@@ -205,7 +206,7 @@ public class EntriesListView : ListSV
 
         private void BuildSegments()
         {
-            StyleData style = Entry.IsDirectory
+            AnsiStyleData style = Entry.IsDirectory
                 ? directoryStyle
                 : fileStyle;
 
@@ -223,13 +224,13 @@ public class EntriesListView : ListSV
 
     private static class TagCache
     {
-        private static readonly ConcurrentDictionary<FSEntry, SColor> cache = new();
+        private static readonly ConcurrentDictionary<FSEntry, AnsiTruecolor> cache = new();
         public static int Version = 0;
 
-        public static bool TryGetValue(FSEntry entry, out SColor color) =>
+        public static bool TryGetValue(FSEntry entry, out AnsiTruecolor color) =>
             cache.TryGetValue(entry, out color);
 
-        public static bool ToggleOrUpdateTag(FSEntry entry, SColor newColor)
+        public static bool ToggleOrUpdateTag(FSEntry entry, AnsiTruecolor newColor)
         {
             if(cache.TryGetValue(entry, out var oldColor))
                 if(oldColor == newColor)
@@ -243,7 +244,7 @@ public class EntriesListView : ListSV
             return true;
         }
 
-        public static void TagEntry(FSEntry entry, SColor color)
+        public static void TagEntry(FSEntry entry, AnsiTruecolor color)
         {
             cache[entry] = color;
             Interlocked.Increment(ref Version);

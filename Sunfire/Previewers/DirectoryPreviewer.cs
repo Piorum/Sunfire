@@ -1,5 +1,5 @@
 using Sunfire.FSUtils.Models;
-using Sunfire.Tui.Interfaces;
+using Moonfire.Rendering.Interfaces;
 using Sunfire.Views;
 
 namespace Sunfire.Previewers;
@@ -8,7 +8,7 @@ public class DirectoryPreviewer : PreviewView.IPreviewer
 {
     private readonly EntriesListView previewEntriesList = new();
 
-    public async Task<IRelativeSunfireView?> Update(FSEntry entry)
+    public async Task<IRelativeMoonfireView?> Update(FSEntry entry)
     {
         await previewEntriesList.UpdateCurrentPath(entry.Path);
 

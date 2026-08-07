@@ -1,11 +1,12 @@
-using Sunfire.Tui.Interfaces;
-using Sunfire.Tui.Models;
+using Moonfire.Rendering.Interfaces;
+using Moonfire.Rendering.Models;
 using Sunfire.Views.Text;
 using static Sunfire.Views.Text.LabelSVSlim;
+using Wrath.Views;
 
 namespace Sunfire.Views;
 
-public class InfoView : ISunfireView
+public class InfoView : IMoonfireView
 {
     public int OriginX { set; get; }
     public int OriginY { set; get; }
@@ -14,7 +15,7 @@ public class InfoView : ISunfireView
 
     public bool Dirty { set; get; }
 
-    private readonly BorderSV _border;
+    private readonly Border _border;
     private readonly LabelSV _label;
 
     public static InfoView New(string info, string? title = null)
@@ -36,7 +37,7 @@ public class InfoView : ISunfireView
     {
         _label = label;
 
-        BorderSV border = new()
+        Border border = new()
         {
             SubView = _label
         };
@@ -48,10 +49,10 @@ public class InfoView : ISunfireView
                 new() { Text = title }
             };
 
-            border.TitleLabel = new() 
+            /*border.TitleLabel = new() 
             { 
                 Segments = segments
-            };
+            };*/
         }
 
         _border = border;
@@ -79,7 +80,7 @@ public class InfoView : ISunfireView
 
     public void UpdateTitle(LabelSV label)
     {
-        _border.TitleLabel = label;
+        //_border.TitleLabel = label;
     }
 
     public void UpdateInfo(string newInfo)
@@ -108,7 +109,7 @@ public class InfoView : ISunfireView
         return true;
     }
 
-    public async Task Draw(SVContext context)
+    public async Task Draw(TerminalContext context)
     {
         await _border.Draw(context);
     }

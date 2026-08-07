@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
+using Moonfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views;
 using Sunfire.Views.Text;
@@ -34,7 +34,7 @@ public static class ActionHandler
 
         errorView.UpdateInfo([new() { Text = $" {result.errorMessage}", Style = new() { ForegroundColor = ColorRegistry.Red }}]);
 
-        await Program.Renderer.EnqueueAction(async () =>
+        await Program.App.Renderer.EnqueueAction(async () =>
         {
             SVRegistry.InfosView.SubViews.Add(errorView);
             await SVRegistry.RootPane.Invalidate();
@@ -43,7 +43,7 @@ public static class ActionHandler
             {
                await Task.Delay(errorTimeout);
 
-                await Program.Renderer.EnqueueAction(async () =>
+                await Program.App.Renderer.EnqueueAction(async () =>
                 {
                    SVRegistry.InfosView.SubViews.Remove(errorView);
                    await SVRegistry.RootPane.Invalidate(); 
@@ -239,7 +239,7 @@ public static class ActionHandler
     {
         var view = InfoView.New($" {dialogue} (Y/N)", null);
 
-        await Program.Renderer.EnqueueAction(async () => 
+        await Program.App.Renderer.EnqueueAction(async () => 
         {
             SVRegistry.InfosView.SubViews.Add(view);
             await SVRegistry.RootPane.Invalidate();
@@ -247,7 +247,7 @@ public static class ActionHandler
         
         TaskCompletionSource<bool> tcs = new();
         bool result = false;
-        await Program.InputHandler.EnableInputMode(
+        await Program.App.InputHandler.EnableInputMode(
             textHandler: _ => { return Task.CompletedTask; },  
             deletionHandler: () => { return Task.CompletedTask; },            
             exitHandlers: 
@@ -261,7 +261,7 @@ public static class ActionHandler
 
         await Logger.Debug(nameof(Sunfire), $"Confirmation Result {result}");
 
-        await Program.Renderer.EnqueueAction(async () => 
+        await Program.App.Renderer.EnqueueAction(async () => 
         {
             SVRegistry.InfosView.SubViews.Remove(view);
             await SVRegistry.RootPane.Invalidate();

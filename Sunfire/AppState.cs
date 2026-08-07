@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Sunfire.Registries;
 using Sunfire.FSUtils.Models;
-using Sunfire.Logging;
+using Moonfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.Views;
 
@@ -121,7 +121,7 @@ public static class AppState
         TaggedEntries.Clear();
         EntriesListView.ClearTags();
         
-        await Program.Renderer.EnqueueAction(async () =>
+        await Program.App.Renderer.EnqueueAction(async () =>
         {
             await SVRegistry.ContainerList.Invalidate();
             await SVRegistry.CurrentList.Invalidate();

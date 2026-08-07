@@ -1,14 +1,14 @@
-using Sunfire.Ansi.Models;
+using Moonfire.Ansi.Models;
 
 namespace Sunfire.Registries;
 
 public static class ColorRegistry
 {
-    public static readonly SColor Blue = new(59, 141, 234);
-    public static readonly SColor Red = new(241, 76, 76);
-    public static readonly SColor Yellow = new(239,252,122);
+    public static readonly AnsiTruecolor Blue = new(59, 141, 234);
+    public static readonly AnsiTruecolor Red = new(241, 76, 76);
+    public static readonly AnsiTruecolor Yellow = new(239,252,122);
      
-    public static readonly SColor DirectoryColor = Blue;
-    public static readonly SColor? FileColor = null;
+    public static readonly AnsiTruecolor DirectoryColor = Blue;
+    public static readonly AnsiTruecolor? FileColor = null;
     
 }

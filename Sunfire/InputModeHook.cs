@@ -1,5 +1,5 @@
 using System.Text;
-using Sunfire.Ansi.Models;
+using Moonfire.Ansi.Models;
 using Sunfire.Registries;
 using Sunfire.Views;
 using Sunfire.Views.Text;
@@ -42,7 +42,7 @@ public class InputModeHook()
             }));
         }
 
-        await Program.InputHandler.EnableInputMode(
+        await Program.App.InputHandler.EnableInputMode(
             textHandler: async (a) =>
             {
                 text.Append(a);
@@ -72,7 +72,7 @@ public class InputModeHook()
         var view = InfoView.New("", _title);
         textDisplay = view;
 
-        await Program.Renderer.EnqueueAction(async () => 
+        await Program.App.Renderer.EnqueueAction(async () => 
         {
             SVRegistry.InfosView.SubViews.Add(textDisplay);
             await SVRegistry.RootPane.Invalidate();
@@ -83,7 +83,7 @@ public class InputModeHook()
     private async Task RemoveTextDisplay()
     {
         if(textDisplay is not null)
-            await Program.Renderer.EnqueueAction(async () => 
+            await Program.App.Renderer.EnqueueAction(async () => 
             {
                 SVRegistry.InfosView.SubViews.Remove(textDisplay);
                 await SVRegistry.RootPane.Invalidate();
@@ -92,15 +92,15 @@ public class InputModeHook()
 
     private async Task UpdateTextDisplay()
     {
-        StyleData baseStyle = new() { ForegroundColor = _warnSource!() ? ColorRegistry.Red : null };
+        AnsiStyleData baseStyle = new() { ForegroundColor = _warnSource!() ? ColorRegistry.Red : null };
 
         var segments = new LabelSVSlim.LabelSegment[2]
         {
             new() { Text = $" {_preCharacter}{text}", Style = baseStyle },
-            new() { Text = " ", Style = baseStyle with { Properties = SAnsiProperty.Underline } }
+            new() { Text = " ", Style = baseStyle with { Properties = AnsiProperty.Underline } }
         };
 
-        await Program.Renderer.EnqueueAction(async () =>
+        await Program.App.Renderer.EnqueueAction(async () =>
         {
             textDisplay?.UpdateInfo(segments);
             await SVRegistry.InfosView.Invalidate();

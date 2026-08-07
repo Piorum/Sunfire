@@ -1,9 +1,9 @@
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Interfaces;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Interfaces;
 
 namespace Sunfire.Views.Text;
 
-public class LabelSV : LabelSVSlim, IRelativeSunfireView
+public class LabelSV : LabelSVSlim, IRelativeMoonfireView
 {
     public int X { get; set; }
     public int Y { get; set; }

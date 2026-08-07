@@ -2,10 +2,11 @@ using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Sunfire.Registries;
 using Sunfire.Views.Text;
+using Wrath.Views;
 
 namespace Sunfire.Views;
 
-public class SelectionInfoView : BorderSV
+public class SelectionInfoView : Border
 {
     private readonly LabelSV label;
 
@@ -58,13 +59,13 @@ public class SelectionInfoView : BorderSV
             titleLabel = tmpTitleLabel;
             labelSegments = subLabelSegments;
 
-            await Program.Renderer.EnqueueAction(Invalidate);
+            await Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
     override protected async Task OnArrange()
     {
-        TitleLabel = titleLabel;
+        //TitleLabel = titleLabel;
         label.Segments = labelSegments;
 
         await base.OnArrange();

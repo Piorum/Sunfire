@@ -1,10 +1,10 @@
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Interfaces;
-using Sunfire.Tui.Models;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Interfaces;
+using Moonfire.Rendering.Models;
 
 namespace Sunfire.Views;
 
-public class InfosView : IRelativeSunfireView
+public class InfosView : IRelativeMoonfireView
 {
     public int X { get; set; }
     public int Y { get; set; }
@@ -51,7 +51,7 @@ public class InfosView : IRelativeSunfireView
         return true;
     }    
 
-    public async Task Draw(SVContext context) =>
+    public async Task Draw(TerminalContext context) =>
         await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
 
     public async Task Invalidate()

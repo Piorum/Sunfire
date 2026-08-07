@@ -1,13 +1,13 @@
-using Sunfire.Tui.Enums;
-using Sunfire.Tui.Models;
-using Sunfire.Tui.Interfaces;
-using Sunfire.Ansi.Models;
+using Moonfire.Rendering.Enums;
+using Moonfire.Rendering.Models;
+using Moonfire.Rendering.Interfaces;
 using Sunfire.Views.Text;
 using Sunfire.Views.Enums;
+using Moonfire.Ansi.Models;
 
 namespace Sunfire.Views;
 
-public class ListSV : IRelativeSunfireView
+public class List : IRelativeMoonfireView
 {
     public int X { get; set; }
     public int Y { get; set; }
@@ -34,7 +34,7 @@ public class ListSV : IRelativeSunfireView
     public int SelectedIndex = 0;
     public int MaxIndex => Labels.Count - 1;
 
-    public SColor? BackgroundColor { get; set; } = null;
+    public AnsiTruecolor? BackgroundColor { get; set; } = null;
 
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];
@@ -143,10 +143,10 @@ public class ListSV : IRelativeSunfireView
     }
 
     //Should be called when list needs to be redrawn
-    public async Task Draw(SVContext context)
+    public async Task Draw(TerminalContext context)
     {
         foreach(ref var cell in context)
-            cell = SVCell.Blank;
+            cell = TerminalCell.Blank;
 
         //Manual context parsing to work around error caused by misuse of ListSV in PreviewView
         await Task.WhenAll(VisibleLabels.Select((v, i) => v.Draw(new(OriginX, OriginY + i, SizeX, 1, context))));
