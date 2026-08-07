@@ -40,7 +40,6 @@ public class BorderSV : IRelativeSunfireView
     public LabelSVSlim? TitleLabel { set; get; }
 
     private SVContext? borderContext;
-    private SVCell templateCell = SVCell.Blank;
 
     //Blank
     private static readonly (int id, byte width) Blank = GlyphFactory.GetGlyphIds(" ").First();
@@ -83,7 +82,7 @@ public class BorderSV : IRelativeSunfireView
     protected virtual Task OnArrange()
     {
         var templateStyleId = StyleFactory.GetStyleId((BorderColor, BackgroundColor, SAnsiProperty.None));
-        templateCell = new(
+        SVCell templateCell = new(
             Blank.id,
             Blank.width,
             templateStyleId
