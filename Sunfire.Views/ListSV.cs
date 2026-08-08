@@ -78,7 +78,6 @@ public class List : IRelativeMoonfireView
         if (Dirty)
         {
             await OnArrange();
-            Dirty = false;
 
             return true; //Work Done
         }
@@ -145,11 +144,16 @@ public class List : IRelativeMoonfireView
     //Should be called when list needs to be redrawn
     public async Task Draw(TerminalContext context)
     {
+        if(!Dirty)
+            return;
+
         foreach(ref var cell in context)
             cell = TerminalCell.Blank;
 
         //Manual context parsing to work around error caused by misuse of ListSV in PreviewView
         await Task.WhenAll(VisibleLabels.Select((v, i) => v.Draw(new(OriginX, OriginY + i, SizeX, 1, context))));
+        
+        Dirty = false;
     }
 
     public Task Invalidate()
