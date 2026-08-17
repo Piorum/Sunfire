@@ -76,7 +76,6 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                 Dirty = false;
 
                 StopProcess();
-                await ClearRegion();
 
                 await Program.App.Renderer.EnqueueActionPostRender(() =>
                 {
