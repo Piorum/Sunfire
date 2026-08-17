@@ -19,4 +19,4 @@ trap cleanup INT HUP EXIT
 export SUNFIRE_KITTY_TEMPDIR="$(mktemp -d -t sunfire-kitty-XXXXXX)"
 export SUNFIRE_KITTY_IMAGE_ID=1234
 
-dotnet "$dir/Sunfire.dll" "$@"
+"$dir/Sunfire" "$@"

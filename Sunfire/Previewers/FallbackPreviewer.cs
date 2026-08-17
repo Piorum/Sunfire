@@ -74,7 +74,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             if(Dirty || layoutChanged)
             {
                 Dirty = false;
-                
+
                 StopProcess();
                 await ClearRegion();
 
@@ -92,7 +92,12 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             return false;
         }
 
-        public Task Draw(TerminalContext _) => Task.CompletedTask;
+        public Task Draw(TerminalContext context) {
+            foreach(ref var cell in context)
+                cell = TerminalCell.Blank;
+
+            return Task.CompletedTask;
+        }
 
         public Task Invalidate() => Task.CompletedTask;
 
