@@ -39,29 +39,25 @@ public class List : IRelativeMoonfireView
     private List<LabelSVSlim> VisibleLabels = [];
     private readonly List<LabelSVSlim> Labels = [];
 
-    public Task AddLabel(LabelSVSlim label)
+    public void AddLabel(LabelSVSlim label)
     {
         label.SizeY = 1;
         Labels.Add(label);
-        return Task.CompletedTask;
     }
 
-    public Task AddLabels(IEnumerable<LabelSVSlim> labels)
+    public void AddLabels(IEnumerable<LabelSVSlim> labels)
     {
         var labelsList = labels.ToList();
         foreach(var label in labelsList)
             label.SizeY = 1;
 
         Labels.AddRange(labelsList);
-        return Task.CompletedTask;
     }
 
-    public Task Clear()
+    public void Clear()
     {
         Labels.Clear();
         VisibleLabels.Clear();
-
-        return Task.CompletedTask;
     }
 
     public LabelSVSlim? GetSelected()
@@ -73,11 +69,11 @@ public class List : IRelativeMoonfireView
     }
 
     //Should be called when Labels is updated
-    public async Task<bool> Arrange()
+    public bool Arrange()
     {
         if (Dirty)
         {
-            await OnArrange();
+            OnArrange();
 
             return true; //Work Done
         }
@@ -85,7 +81,7 @@ public class List : IRelativeMoonfireView
         return false; //No Work Done
     }
 
-    protected virtual async Task OnArrange()
+    protected virtual void OnArrange()
     {
         //Don't bother with other adjustments if there is no labels anyways
         if (Labels.Count == 0)
@@ -94,11 +90,11 @@ public class List : IRelativeMoonfireView
             return;
         }
 
-        await PositionStartIndex();
-        await UpdateVisibleLabels();
+        PositionStartIndex();
+        UpdateVisibleLabels();
     }
 
-    public async Task PositionStartIndex()
+    public void PositionStartIndex()
     {
         var diff = SelectedIndex - startIndex;
         var maxDiff = (int)(0.6f * SizeY);
@@ -109,7 +105,7 @@ public class List : IRelativeMoonfireView
         if (Labels.Count - startIndex < SizeY - 1 && Labels.Count >= SizeY - 1)
         {
             startIndex = 0;
-            await PositionStartIndex();
+            PositionStartIndex();
             return;
         }
 
@@ -125,7 +121,7 @@ public class List : IRelativeMoonfireView
         }
     }
 
-    public async Task UpdateVisibleLabels()
+    public void UpdateVisibleLabels()
     {
         VisibleLabels = [.. Labels.Skip(startIndex).Take(SizeY)];
         for (int i = 0; i < VisibleLabels.Count; i++)
@@ -137,12 +133,14 @@ public class List : IRelativeMoonfireView
         }
         Labels[SelectedIndex].LabelProperties |= LabelSVProperty.Selected;
 
-        await Task.WhenAll(VisibleLabels.Select(v => v.Invalidate()));
-        await Task.WhenAll(VisibleLabels.Select(v => v.Arrange()));
+        foreach(var label in VisibleLabels)
+            label.Invalidate();
+        foreach(var label in VisibleLabels)
+            label.Arrange();
     }
 
     //Should be called when list needs to be redrawn
-    public async Task Draw(TerminalContext context)
+    public void Draw(TerminalContext context)
     {
         if(!Dirty)
             return;
@@ -150,15 +148,17 @@ public class List : IRelativeMoonfireView
         foreach(ref var cell in context)
             cell = TerminalCell.Blank;
 
-        //Manual context parsing to work around error caused by misuse of ListSV in PreviewView
-        await Task.WhenAll(VisibleLabels.Select((v, i) => v.Draw(new(OriginX, OriginY + i, SizeX, 1, context))));
+        //Manual context parsing to work around error caused by misuse of ListSV in PreviewView\
+        for(int i = 0; i < VisibleLabels.Count; i++)
+        {
+            VisibleLabels[i].Draw(new(OriginX, OriginY + i, SizeX, 1, context));
+        }
         
         Dirty = false;
     }
 
-    public Task Invalidate()
+    public void Invalidate()
     {
         Dirty = true;
-        return Task.CompletedTask;
     }
 }

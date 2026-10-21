@@ -1,109 +1,152 @@
 using System.Text;
 using Moonfire.Ansi.Models;
+using Moonfire.Input.Models;
 using Sunfire.Registries;
 using Sunfire.Views;
 using Sunfire.Views.Text;
 
 namespace Sunfire;
 
-public class InputModeHook()
+public class InputModeHook
 {
+    private InfoView? _textDisplay;
+    private readonly StringBuilder _text = new();
 
-    private InfoView? textDisplay;
-    private string? _title;
-    private char? _preCharacter;
-    private readonly StringBuilder text = new();
-    private Func<bool>? _warnSource;
-
-    public async Task<string> EnableInputMode(string? title, char preCharacter, Func<bool> warnSource, Func<string, Task> onUpdate, List<(ConsoleKey key, Func<Task> task)> exitHandlers, List<(ConsoleKey key, Func<Task> task)> specialHandlers)
+    public void Prompt(
+        string title,
+        char preCharacter,
+        Action<string>? onSubmit = null,
+        Action? onCancel = null,
+        Action<string>? onUpdate = null,
+        Func<bool>? warnSource = null,
+        List<(ConsoleKey key, Action action)>? specialHandlers = null,
+        CancellationToken token = default)
     {
-        text.Clear();
-        _title = title;
-        _preCharacter = preCharacter;
-        _warnSource = warnSource;
-        TaskCompletionSource<string> tcs = new();
+        _text.Clear();
 
-        await AddTextDisplay();
-        await UpdateTextDisplay();
+        AddTextDisplay(title);
+        UpdateTextDisplay(preCharacter, warnSource);
 
-        async Task onExit()
+        // 1. Take over input. 'using' guarantees it is closed even on unexpected exit.
+        using var rawInput = Program.App.InputHandler.OpenRaw();
+
+        try
         {
-            await RemoveTextDisplay();
-            tcs.TrySetResult(text.ToString());
-        }
+            while (!token.IsCancellationRequested)
+            {
+                TerminalInput input;
+                try
+                {
+                    input = rawInput.Take(token);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
 
-        List<(ConsoleKey key, Func<Task> task)> completeExitHandlers = [];
-        foreach(var (key, task) in exitHandlers)
+                var key = input.Key.KeyboardKey;
+
+                // Escape = Cancel
+                if (key == ConsoleKey.Escape)
+                {
+                    onCancel?.Invoke();
+                    break;
+                }
+
+                // Enter or Tab = Submit
+                if (key is ConsoleKey.Enter or ConsoleKey.Tab)
+                {
+                    onSubmit?.Invoke(_text.ToString());
+                    break;
+                }
+
+                // Special handlers (e.g. Ctrl+U, custom keybinds inside input mode)
+                if (specialHandlers is not null)
+                {
+                    bool handled = false;
+                    for (int i = 0; i < specialHandlers.Count; i++)
+                    {
+                        if (specialHandlers[i].key == key)
+                        {
+                            specialHandlers[i].action();
+                            UpdateTextDisplay(preCharacter, warnSource);
+                            handled = true;
+                            break;
+                        }
+                    }
+                    if (handled) continue;
+                }
+
+                // Backspace = Delete character
+                if (key == ConsoleKey.Backspace)
+                {
+                    if (_text.Length > 0)
+                    {
+                        _text.Remove(_text.Length - 1, 1);
+                        var current = _text.ToString();
+                        onUpdate?.Invoke(current);
+                        UpdateTextDisplay(preCharacter, warnSource);
+                    }
+                    continue;
+                }
+
+                // Printable character input
+                if (input.InputData.UTFChar is { } c && !char.IsControl(c))
+                {
+                    _text.Append(c);
+                    var current = _text.ToString();
+                    onUpdate?.Invoke(current);
+                    UpdateTextDisplay(preCharacter, warnSource);
+                }
+            }
+        }
+        finally
         {
-            completeExitHandlers.Add((key, async () =>
-            {
-                await task();
-                await onExit();
-            }));
+            // 2. ALWAYS remove the visual display, even if an exception or cancellation occurs!
+            RemoveTextDisplay();
         }
-
-        await Program.App.InputHandler.EnableInputMode(
-            textHandler: async (a) =>
-            {
-                text.Append(a);
-                var textString = text.ToString();
-
-                await onUpdate(textString);
-                await UpdateTextDisplay();
-            },
-            deletionHandler: async () => 
-            {
-                if(text.Length > 0)
-                    text.Remove(text.Length - 1, 1);
-                var textString = text.ToString();
-
-                await onUpdate(textString);
-                await UpdateTextDisplay();
-            },            
-            exitHandlers: completeExitHandlers,
-            specialHandlers
-        );
-
-        return text.ToString();
     }
 
-    private async Task AddTextDisplay()
+    private void AddTextDisplay(string title)
     {
-        var view = InfoView.New("", _title);
-        textDisplay = view;
-
-        await Program.App.Renderer.EnqueueAction(async () => 
+        _textDisplay = InfoView.New("", title);
+        Program.App.Renderer.EnqueueAction(() =>
         {
-            SVRegistry.InfosView.SubViews.Add(textDisplay);
-            await SVRegistry.RootPane.Invalidate();
+            SVRegistry.InfosView.SubViews.Add(_textDisplay);
+            SVRegistry.RootPane.Invalidate();
         });
-
     }
 
-    private async Task RemoveTextDisplay()
+    private void RemoveTextDisplay()
     {
-        if(textDisplay is not null)
-            await Program.App.Renderer.EnqueueAction(async () => 
+        if (_textDisplay is not null)
+        {
+            var displayToRemove = _textDisplay;
+            _textDisplay = null;
+
+            Program.App.Renderer.EnqueueAction(() =>
             {
-                SVRegistry.InfosView.SubViews.Remove(textDisplay);
-                await SVRegistry.RootPane.Invalidate();
+                SVRegistry.InfosView.SubViews.Remove(displayToRemove);
+                SVRegistry.RootPane.Invalidate();
             });
+        }
     }
 
-    private async Task UpdateTextDisplay()
+    private void UpdateTextDisplay(char preCharacter, Func<bool>? warnSource)
     {
-        AnsiStyleData baseStyle = new() { ForegroundColor = _warnSource!() ? ColorRegistry.Red : null };
+        bool isWarning = warnSource?.Invoke() ?? false;
+        AnsiStyleData baseStyle = new() { ForegroundColor = isWarning ? ColorRegistry.Red : null };
 
         var segments = new LabelSVSlim.LabelSegment[2]
         {
-            new() { Text = $" {_preCharacter}{text}", Style = baseStyle },
+            new() { Text = $" {preCharacter}{_text}", Style = baseStyle },
             new() { Text = " ", Style = baseStyle with { Properties = AnsiProperty.Underline } }
         };
 
-        await Program.App.Renderer.EnqueueAction(async () =>
+        Program.App.Renderer.EnqueueAction(() =>
         {
-            textDisplay?.UpdateInfo(segments);
-            await SVRegistry.InfosView.Invalidate();
+            _textDisplay?.UpdateInfo(segments);
+            SVRegistry.InfosView.Invalidate();
         });
     }
 }

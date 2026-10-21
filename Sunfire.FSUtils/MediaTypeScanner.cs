@@ -40,7 +40,7 @@ public unsafe class FileTypeScanner<TResult>
     public FileTypeScanner(int maxFastOffset = 512)
     {
         if (!Vector512.IsHardwareAccelerated)
-            _ = Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow");
+            Logger.Warn(nameof(FSUtils), "AVX-512 is not supported media scanning will be very slow");
 
         MaxFastOffset = maxFastOffset;
         LutSize = MaxFastOffset * 256;
@@ -54,19 +54,19 @@ public unsafe class FileTypeScanner<TResult>
     {
         if(pattern.Length == 0)
         {
-            _ = Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
+            Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
             return;
         }
         
         if(offset + pattern.Length >= MaxFastOffset)
         {
-            _ = Logger.Error(nameof(FSUtils), $"Signature bounds extend past max offset of {MaxFastOffset}");
+            Logger.Error(nameof(FSUtils), $"Signature bounds extend past max offset of {MaxFastOffset}");
             return;
         }
 
         if(nextFastBitId >= MaxFastSignatures)
         {
-            _ = Logger.Error(nameof(FSUtils), $"Fast signature limit {MaxFastSignatures} exceeded");
+            Logger.Error(nameof(FSUtils), $"Fast signature limit {MaxFastSignatures} exceeded");
             return;
         }
 
@@ -114,7 +114,7 @@ public unsafe class FileTypeScanner<TResult>
     {
         if(pattern.Length == 0)
         {
-            _ = Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
+            Logger.Error(nameof(FSUtils), "Cannot add signature with empty pattern");
             return;
         }
 
@@ -166,7 +166,7 @@ public unsafe class FileTypeScanner<TResult>
             scanResultsCache.Add(entry.Path, returnValue);
 
         sw.Stop();
-        _ = Logger.Debug(nameof(FSUtils), $"Media type scan time {sw.Elapsed.TotalMicroseconds}us");
+        Logger.Debug(nameof(FSUtils), $"Media type scan time {sw.Elapsed.TotalMicroseconds}us");
 
         return returnValue;
     }

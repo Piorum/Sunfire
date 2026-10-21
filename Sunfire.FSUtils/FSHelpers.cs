@@ -27,7 +27,7 @@ internal static class FSHelpers
     {
         if (buffer.Length < length)
         {
-            Task.Run(async () => await Logger.Error(nameof(FSUtils), "Media scanner passed too small of a buffer for request segment read"));
+            Logger.Error(nameof(FSUtils), "Media scanner passed too small of a buffer for request segment read");
             return false;
         }
 

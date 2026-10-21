@@ -7,22 +7,22 @@ namespace Sunfire.FSUtils;
 
 public static class FSCache
 {
-    private static readonly ConcurrentDictionary<string, Lazy<Task<List<FSEntry>>>> _cache = [];
+    private static readonly ConcurrentDictionary<string, Lazy<List<FSEntry>>> _cache = [];
 
-    public static async Task<List<FSEntry>> GetEntries(string path)
+    public static List<FSEntry> GetEntries(string path)
     {
         if(!Directory.Exists(path))
             return [];
 
-        var lazyTask = GetOrAddEntries(path);
+        var lazy = GetOrAddEntries(path);
 
-        return await lazyTask.Value;
+        return lazy.Value;
     }
 
-    private static Lazy<Task<List<FSEntry>>> GetOrAddEntries(string path) =>
-        _cache.GetOrAdd(path, k => new Lazy<Task<List<FSEntry>>>(Task.Run(async () =>
+    private static Lazy<List<FSEntry>> GetOrAddEntries(string path) =>
+        _cache.GetOrAdd(path, k => new Lazy<List<FSEntry>>(() =>
             {
-                await Logger.Debug(nameof(FSUtils), $"Getting \"{k}\" Entries");
+                Logger.Debug(nameof(FSUtils), $"Getting \"{k}\" Entries");
 
                 var enumerator = new FileSystemEnumerable<FSEntry>(
                     k,
@@ -42,7 +42,7 @@ public static class FSCache
                 };
 
                 return tmp;
-            }))
+            })
         );
 
     public static void Invalidate(string path) =>

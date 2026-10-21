@@ -1,10 +1,9 @@
 using System.Diagnostics;
+using Moonfire.Logging;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
-using Moonfire.Logging;
 using Sunfire.Registries;
 using Sunfire.Views;
-using Sunfire.Views.Text;
 
 namespace Sunfire;
 
@@ -12,74 +11,72 @@ public static class ActionHandler
 {
     private static readonly TimeSpan errorTimeout = TimeSpan.FromSeconds(1);
 
-    private static readonly Dictionary<string, Func<string, Task<ActionResult>>> _actions = new() 
+    private static readonly Dictionary<string, Func<string, ActionResult>> _actions = new(StringComparer.OrdinalIgnoreCase)
     { 
-        { nameof(Copy).ToLower(), Copy },
-        { nameof(Cut).ToLower(), Cut },
-        { nameof(Delete).ToLower(), Delete },
+        { nameof(Copy), Copy },
+        { nameof(Cut), Cut },
+        { nameof(Delete), Delete },
     };
 
-    public static async Task Run(string action, string cwd)
+    public static void Run(string action, string cwd)
     {
         ActionResult result;
-        if(_actions.TryGetValue(action.ToLower(), out var task))
-            result = await task(cwd);
+        if (_actions.TryGetValue(action, out var actionFunc))
+            result = actionFunc(cwd);
         else
             result = new() { Success = false, errorMessage = "Invalid action." };
 
-        if(result.Success)
+        if (result.Success)
             return;
 
+        ShowErrorMessage(result.errorMessage);
+    }
+
+    private static void ShowErrorMessage(string message)
+    {
         var errorView = InfoView.New("");
+        errorView.UpdateInfo([new() { Text = $" {message}", Style = new() { ForegroundColor = ColorRegistry.Red } }]);
 
-        errorView.UpdateInfo([new() { Text = $" {result.errorMessage}", Style = new() { ForegroundColor = ColorRegistry.Red }}]);
-
-        await Program.App.Renderer.EnqueueAction(async () =>
+        Program.App.Renderer.EnqueueAction(() =>
         {
             SVRegistry.InfosView.SubViews.Add(errorView);
-            await SVRegistry.RootPane.Invalidate();
+            SVRegistry.RootPane.Invalidate();
 
-            _ = Task.Run(async () =>
+            // Replace Task.Delay with ThreadPool worker
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-               await Task.Delay(errorTimeout);
+                Thread.Sleep(errorTimeout);
 
-                await Program.App.Renderer.EnqueueAction(async () =>
+                Program.App.Renderer.EnqueueAction(() =>
                 {
-                   SVRegistry.InfosView.SubViews.Remove(errorView);
-                   await SVRegistry.RootPane.Invalidate(); 
+                    SVRegistry.InfosView.SubViews.Remove(errorView);
+                    SVRegistry.RootPane.Invalidate();
                 });
             });
         });
     }
 
-    private static async Task<ActionResult> Copy(string cwd)
+    private static ActionResult Copy(string cwd)
     {
-        await Logger.Debug(nameof(Sunfire), $"Trying {nameof(Copy)} Action");
+        Logger.Debug(nameof(Sunfire), $"Trying {nameof(Copy)} Action");
 
-        if(cwd is null || !Directory.Exists(cwd))
-            return new() { Success = false, errorMessage = "Current working directory is null or does not exist."};
+        if (cwd is null || !Directory.Exists(cwd))
+            return new() { Success = false, errorMessage = "Current working directory is null or does not exist." };
 
         List<FSEntry> entriesToCopy = [.. AppState.TaggedEntries];
-        if(entriesToCopy.Count == 0)
-            return new() { Success = false, errorMessage = "No tagged entries to perform action on."};
+        if (entriesToCopy.Count == 0)
+            return new() { Success = false, errorMessage = "No tagged entries to perform action on." };
 
-        var confirmed = await ConfirmationDialogue($"Copy {entriesToCopy.Count} Entries?");
+        var confirmed = ConfirmationDialogue($"Copy {entriesToCopy.Count} Entries?");
+        if (!confirmed)
+            return new() { Success = false, errorMessage = "Action was not confirmed." };
 
-        if(!confirmed)
-            return new() { Success = false, errorMessage = "Action was not confirmed."};
-
-        _ = Task.Run(async () =>
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            //Confirmed, cwd exists, and there are tagged entries
-            var psi = new ProcessStartInfo()
+            var psi = new ProcessStartInfo
             {
                 FileName = "cp",
-                ArgumentList = {
-                    "-a",
-                    "-t",
-                    ".",
-                    "--",
-                },
+                ArgumentList = { "-a", "-t", ".", "--" },
                 WorkingDirectory = cwd,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -87,57 +84,50 @@ public static class ActionHandler
                 CreateNoWindow = true,
             };
 
-            foreach(var entry in entriesToCopy)
+            foreach (var entry in entriesToCopy)
                 psi.ArgumentList.Add(entry.Path);
 
             var copy = Process.Start(psi);
-
             copy?.WaitForExit();
 
-            await AppState.ClearTags();
-
+            AppState.ClearTags();
             SVRegistry.CurrentList.SaveCurrentEntry();
 
             var directoriesToInvalidate = entriesToCopy.Select(e => e.Directory).Distinct().ToList();
             directoriesToInvalidate.Add(cwd);
-            foreach(var directory in directoriesToInvalidate)
+            foreach (var directory in directoriesToInvalidate)
             {
                 FSCache.Invalidate(directory);
                 EntriesListView.ClearCache(directory);
             }
 
-            await AppState.Refresh();
+            AppState.Refresh();
         });
 
         return new() { Success = true };
     }
-    private static async Task<ActionResult> Cut(string cwd)
-    {
-        await Logger.Debug(nameof(Sunfire), $"Trying {nameof(Cut)} Action");
 
-        if(cwd is null || !Directory.Exists(cwd))
-            return new() { Success = false, errorMessage = "Current working directory is null or does not exist."};
+    private static ActionResult Cut(string cwd)
+    {
+        Logger.Debug(nameof(Sunfire), $"Trying {nameof(Cut)} Action");
+
+        if (cwd is null || !Directory.Exists(cwd))
+            return new() { Success = false, errorMessage = "Current working directory is null or does not exist." };
 
         List<FSEntry> entriesToCut = [.. AppState.TaggedEntries];
-        if(entriesToCut.Count == 0)
-            return new() { Success = false, errorMessage = "No tagged entries to perform action on."};
+        if (entriesToCut.Count == 0)
+            return new() { Success = false, errorMessage = "No tagged entries to perform action on." };
 
-        var confirmed = await ConfirmationDialogue($"Cut {entriesToCut.Count}?");
+        var confirmed = ConfirmationDialogue($"Cut {entriesToCut.Count}?");
+        if (!confirmed)
+            return new() { Success = false, errorMessage = "Action was not confirmed." };
 
-        if(!confirmed)
-            return new() { Success = false, errorMessage = "Action was not confirmed."};
-
-        _ = Task.Run(async () =>
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            //Confirmed, cwd exists, and there are tagged entries
-            var psi = new ProcessStartInfo()
+            var psi = new ProcessStartInfo
             {
                 FileName = "mv",
-                ArgumentList = {
-                    "-t",
-                    ".",
-                    "--",
-                },
+                ArgumentList = { "-t", ".", "--" },
                 WorkingDirectory = cwd,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -145,42 +135,40 @@ public static class ActionHandler
                 CreateNoWindow = true,
             };
 
-            foreach(var entry in entriesToCut)
+            foreach (var entry in entriesToCut)
                 psi.ArgumentList.Add(entry.Path);
 
             var cut = Process.Start(psi);
-
             cut?.WaitForExit();
 
-            await AppState.ClearTags();
-
+            AppState.ClearTags();
             SVRegistry.CurrentList.SaveCurrentEntry();
 
             var directoriesToInvalidate = entriesToCut.Select(e => e.Directory).Distinct().ToList();
             directoriesToInvalidate.Add(cwd);
-            foreach(var directory in directoriesToInvalidate)
+            foreach (var directory in directoriesToInvalidate)
             {
                 FSCache.Invalidate(directory);
                 EntriesListView.ClearCache(directory);
             }
 
-            await AppState.Refresh();
+            AppState.Refresh();
         });
 
         return new() { Success = true };
     }
-    private static async Task<ActionResult> Delete(string cwd)
+
+    private static ActionResult Delete(string cwd)
     {
-        await Logger.Debug(nameof(Sunfire), $"Trying {nameof(Delete)} Action");
+        Logger.Debug(nameof(Sunfire), $"Trying {nameof(Delete)} Action");
 
         string dialogue;
         List<FSEntry> entriesToDelete = [.. AppState.TaggedEntries];
-        if(entriesToDelete.Count == 0)
+        if (entriesToDelete.Count == 0)
         {
             var entryToDelete = SVRegistry.CurrentList.GetCurrentEntry();
-
-            if(entryToDelete is null)
-                return new() { Success = false, errorMessage = "No entries to perform action on."};
+            if (entryToDelete is null)
+                return new() { Success = false, errorMessage = "No entries to perform action on." };
 
             entriesToDelete.Add(entryToDelete.Value);
             dialogue = $"Delete \"{entryToDelete.Value.Name}\"?";
@@ -190,89 +178,93 @@ public static class ActionHandler
             dialogue = $"Delete {entriesToDelete.Count} Entries?";
         }
 
-        var confirmed = await ConfirmationDialogue(dialogue);
+        var confirmed = ConfirmationDialogue(dialogue);
+        if (!confirmed)
+            return new() { Success = false, errorMessage = "Action was not confirmed." };
 
-        if(!confirmed)
-            return new() { Success = false, errorMessage = "Action was not confirmed."};
-
-        _ = Task.Run(async () =>
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            //Confirmed and there are tagged entries
-            var psi = new ProcessStartInfo()
+            var psi = new ProcessStartInfo
             {
                 FileName = "rm",
-                ArgumentList = {
-                    "-rf",
-                    "--",
-                },
+                ArgumentList = { "-rf", "--" },
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
 
-            foreach(var entry in entriesToDelete)
+            foreach (var entry in entriesToDelete)
                 psi.ArgumentList.Add(entry.Path);
 
             var delete = Process.Start(psi);
-
             delete?.WaitForExit();
 
-            await AppState.ClearTags();
-
+            AppState.ClearTags();
             SVRegistry.CurrentList.SaveCurrentEntry();
 
             var directoriesToInvalidate = entriesToDelete.Select(e => e.Directory).Distinct().ToList();
-            foreach(var directory in directoriesToInvalidate)
+            foreach (var directory in directoriesToInvalidate)
             {
                 FSCache.Invalidate(directory);
                 EntriesListView.ClearCache(directory);
             }
 
-            await AppState.Refresh();
+            AppState.Refresh();
         });
 
         return new() { Success = true };
     }
 
-    private static async Task<bool> ConfirmationDialogue(string dialogue)
+    private static bool ConfirmationDialogue(string dialogue)
     {
         var view = InfoView.New($" {dialogue} (Y/N)", null);
 
-        await Program.App.Renderer.EnqueueAction(async () => 
+        Program.App.Renderer.EnqueueAction(() => 
         {
             SVRegistry.InfosView.SubViews.Add(view);
-            await SVRegistry.RootPane.Invalidate();
-        });        
-        
-        TaskCompletionSource<bool> tcs = new();
-        bool result = false;
-        await Program.App.InputHandler.EnableInputMode(
-            textHandler: _ => { return Task.CompletedTask; },  
-            deletionHandler: () => { return Task.CompletedTask; },            
-            exitHandlers: 
-            [
-                (ConsoleKey.Escape, () => { return Task.CompletedTask; }),
-                (ConsoleKey.N, () => { return Task.CompletedTask; }),
-                (ConsoleKey.Y, () => { result = true; return Task.CompletedTask; }),
-            ],
-            specialHandlers: null
-        );
-
-        await Logger.Debug(nameof(Sunfire), $"Confirmation Result {result}");
-
-        await Program.App.Renderer.EnqueueAction(async () => 
-        {
-            SVRegistry.InfosView.SubViews.Remove(view);
-            await SVRegistry.RootPane.Invalidate();
+            SVRegistry.RootPane.Invalidate();
         });
 
+        using var rawInput = Program.App.InputHandler.OpenRaw();
+        bool result = false;
+
+        try
+        {
+            while (true)
+            {
+                var input = rawInput.Take();
+                var key = input.Key.KeyboardKey;
+
+                if (key == ConsoleKey.Y)
+                {
+                    result = true;
+                    break;
+                }
+
+                if (key is ConsoleKey.N or ConsoleKey.Escape)
+                {
+                    result = false;
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            Program.App.Renderer.EnqueueAction(() => 
+            {
+                SVRegistry.InfosView.SubViews.Remove(view);
+                SVRegistry.RootPane.Invalidate();
+            });
+        }
+
+        Logger.Debug(nameof(Sunfire), $"Confirmation Result: {result}");
         return result;
     }
 
     private struct ActionResult
     {
-        required public bool Success;
+        public required bool Success;
         public string errorMessage;
     }
 }

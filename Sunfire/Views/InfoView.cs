@@ -98,26 +98,26 @@ public class InfoView : IMoonfireView
         _label.Segments = segments;
     }
 
-    public async Task<bool> Arrange()
+    public bool Arrange()
     {
         if(!Dirty)
             return false;
 
         (_border.OriginX, _border.OriginY, _border.SizeX, _border.SizeY) = (OriginX, OriginY, SizeX, SizeY);
-        await _border.Arrange();
+        _border.Arrange();
 
         return true;
     }
 
-    public async Task Draw(TerminalContext context)
+    public void Draw(TerminalContext context)
     {
-        await _border.Draw(context);
+        _border.Draw(context);
     }
 
-    public async Task Invalidate()
+    public void Invalidate()
     {
         Dirty = true;
 
-        await _border.Invalidate();
+        _border.Invalidate();
     }
 }

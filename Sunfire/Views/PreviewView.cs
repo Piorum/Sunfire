@@ -41,7 +41,7 @@ public class PreviewView : IRelativeMoonfireView
 
     private readonly Lock gate = new();
 
-    public async Task Update(FSEntry? entry)
+    public void Update(FSEntry? entry)
     {
 
         IPreviewer? next = entry is null ? null : SelectPreviewer(entry);
@@ -60,20 +60,20 @@ public class PreviewView : IRelativeMoonfireView
         }
 
         if (previewerChanged && previous is not null)
-            await previous.CleanUp();
+            previous.CleanUp();
 
         if (next is null)
         {
-            await Program.App.Renderer.EnqueueAction(async () => 
+            Program.App.Renderer.EnqueueAction(async () => 
             {
                 activeView = null;
-                await Invalidate();
+                Invalidate();
             });
 
             return;
         }
 
-        var view = await next.Update(entry!.Value);
+        var view = next.Update(entry!.Value);
 
         lock(gate)
         {
@@ -83,7 +83,7 @@ public class PreviewView : IRelativeMoonfireView
             activeView = view;
         }
 
-        await Program.App.Renderer.EnqueueAction(Invalidate);
+        Program.App.Renderer.EnqueueAction(Invalidate);
     }
 
     public void Clear()
@@ -95,7 +95,7 @@ public class PreviewView : IRelativeMoonfireView
     public void AddPreviewer(MediaType mediaType, IPreviewer previewer) =>
         previewers.TryAdd(mediaType, previewer);
 
-    public Task<bool> Arrange()
+    public bool Arrange()
     {
         if(Dirty)
         {
@@ -108,27 +108,25 @@ public class PreviewView : IRelativeMoonfireView
 
             Dirty = false;
 
-            return Task.FromResult(true);
+            return true;
         }
 
-        return Task.FromResult(false);
+        return false;
 
     }
 
-    public async Task Draw(TerminalContext context)
+    public void Draw(TerminalContext context)
     {
         var view = activeView;
-        if(view is not null)
-            await view.Draw(context);
+        view?.Draw(context);
     }
 
-    public async Task Invalidate()
+    public void Invalidate()
     {
         Dirty = true;
 
         var view = activeView;
-        if(view is not null)
-            await view.Invalidate();
+        view?.Invalidate();
     }
 
     private IPreviewer? SelectPreviewer(FSEntry? entry) =>
@@ -142,8 +140,8 @@ public class PreviewView : IRelativeMoonfireView
 
     public interface IPreviewer
     {
-        Task<IRelativeMoonfireView?> Update(FSEntry entry);
-        Task CleanUp();
+        IRelativeMoonfireView? Update(FSEntry entry);
+        void CleanUp();
     }    
 }
 

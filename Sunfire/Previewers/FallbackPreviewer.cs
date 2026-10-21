@@ -11,19 +11,17 @@ public class FallbackPreviewer : PreviewView.IPreviewer
 {
     private BashPreviewView? view;
 
-    public Task<IRelativeMoonfireView?> Update(FSEntry entry)
+    public IRelativeMoonfireView? Update(FSEntry entry)
     {
         view ??= new();
         view.UpdateEntry(entry);
-        return Task.FromResult<IRelativeMoonfireView?>(view);
+        return view;
     }
 
-    public Task CleanUp()
+    public void CleanUp()
     {
         view?.Dispose();
         view = null;
-
-        return Task.CompletedTask;
     }
 
     private class BashPreviewView : IRelativeMoonfireView, IDisposable
@@ -65,7 +63,7 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             }
         }
 
-        public async Task<bool> Arrange()
+        public bool Arrange()
         {
             var layout = (OriginX, OriginY, SizeX, SizeY);
             bool layoutChanged = layout != lastLayout;
@@ -76,14 +74,12 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                 Dirty = false;
 
                 StopProcess();
-                await ClearRegion();
+                ClearRegion();
 
-                await Program.App.Renderer.EnqueueActionPostRender(() =>
+                Program.App.Renderer.EnqueueActionPostRender(() =>
                 {
                     if(!disposed)
                         StartProcess();
-                    
-                    return Task.CompletedTask;
                 });
 
                 return true;
@@ -92,14 +88,12 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             return false;
         }
 
-        public Task Draw(TerminalContext context) {
+        public void Draw(TerminalContext context) {
             foreach(ref var cell in context)
                 cell = TerminalCell.Blank;
-
-            return Task.CompletedTask;
         }
 
-        public Task Invalidate() => Task.CompletedTask;
+        public void Invalidate(){}
 
         public void Dispose()
         {
@@ -109,9 +103,9 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             RunCleaner();
         }
 
-        private async Task ClearRegion()
+        private void ClearRegion()
         {
-            await Program.App.Renderer.EnqueueActionClear(OriginX, OriginY, SizeX, SizeY);
+            Program.App.Renderer.EnqueueActionClear(OriginX, OriginY, SizeX, SizeY);
         }
 
         private void StartProcess()

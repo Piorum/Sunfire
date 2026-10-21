@@ -8,15 +8,15 @@ public class DirectoryPreviewer : PreviewView.IPreviewer
 {
     private readonly EntriesListView previewEntriesList = new();
 
-    public async Task<IRelativeMoonfireView?> Update(FSEntry entry)
+    public IRelativeMoonfireView? Update(FSEntry entry)
     {
-        await previewEntriesList.UpdateCurrentPath(entry.Path);
+        previewEntriesList.UpdateCurrentPath(entry.Path);
 
         return previewEntriesList;
     }
 
-    public Task CleanUp() => Task.CompletedTask;
+    public void CleanUp(){}
 
-    public async Task ToggleHidden() =>
-        await previewEntriesList.ToggleHidden();
+    public void ToggleHidden() =>
+        previewEntriesList.ToggleHidden();
 }

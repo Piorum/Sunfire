@@ -21,7 +21,7 @@ public class SelectionInfoView : Border
         SubView = subLabel;
     }
 
-    public async Task Update(FSEntry? entry)
+    public async void Update(FSEntry? entry)
     {
         var token = SecureSelectionInfoGenToken();
 
@@ -40,7 +40,7 @@ public class SelectionInfoView : Border
             {
                 try
                 {
-                    var entries = await FSCache.GetEntries(path);
+                    var entries = FSCache.GetEntries(path);
 
                     subLabelSegments = [new() { Text = $" Directory {entries.Count}" }];
                 }
@@ -59,16 +59,16 @@ public class SelectionInfoView : Border
             titleLabel = tmpTitleLabel;
             labelSegments = subLabelSegments;
 
-            await Program.App.Renderer.EnqueueAction(Invalidate);
+            Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
-    override protected async Task OnArrange()
+    override protected void OnArrange()
     {
         //TitleLabel = titleLabel;
         label.Segments = labelSegments;
 
-        await base.OnArrange();
+        base.OnArrange();
     }    
     
     private CancellationToken SecureSelectionInfoGenToken()

@@ -14,19 +14,19 @@ public static class AppState
     private static string currentPath = "";
     private static readonly InputModeHook inputModeHook = new();
 
-    public static async Task ToggleHidden()
+    public static void ToggleHidden()
     {
         SVRegistry.CurrentList.SaveCurrentEntry();
 
-        await SVRegistry.ContainerList.ToggleHidden();
-        await SVRegistry.CurrentList.ToggleHidden();
-        await SVRegistry.PreviewView.directoryPreviewer.ToggleHidden();
+        SVRegistry.ContainerList.ToggleHidden();
+        SVRegistry.CurrentList.ToggleHidden();
+        SVRegistry.PreviewView.directoryPreviewer.ToggleHidden();
 
-        await Refresh();
-        await Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
+        Refresh();
+        Logger.Info(nameof(Sunfire), "Toggled Hidden Entries");
     }
 
-    public static async Task Init()
+    public static void Init()
     {
         string basePath;
         if(Program.Options.UseUserProfileAsDefault)
@@ -38,22 +38,22 @@ public static class AppState
             throw new("basePath is invalid, Not a directory");
 
         //Populating Views && currentPath
-        await Refresh(basePath);
+        Refresh(basePath);
     }
 
-    public static async Task InvalidateState()
+    public static void InvalidateState()
     {
         SVRegistry.CurrentList.SaveCurrentEntry();
 
         FSCache.Clear();
         EntriesListView.ClearCache();
 
-        await Refresh();
+        Refresh();
     }
-    public static async Task Refresh() => 
-        await Refresh(currentPath);
+    public static void Refresh() => 
+        Refresh(currentPath);
 
-    private static async Task Refresh(string path)
+    private static void Refresh(string path)
     {
         currentPath = path;
         var containerPath = Directory.GetParent(currentPath) is var dirInfo && dirInfo is not null 
@@ -62,49 +62,59 @@ public static class AppState
 
         SVRegistry.CurrentList.SaveCurrentEntry();
 
-        var containerListTask = SVRegistry.ContainerList.UpdateCurrentPath(containerPath, Path.GetFileName(currentPath));
-        var currentListTask = SVRegistry.CurrentList.UpdateCurrentPath(currentPath);
-        await Task.WhenAll(containerListTask, currentListTask);
+        Parallel.Invoke(
+            () => SVRegistry.ContainerList.UpdateCurrentPath(containerPath, Path.GetFileName(currentPath)),
+            () => SVRegistry.CurrentList.UpdateCurrentPath(currentPath)
+        );
 
-        await RefreshPreviews();
+        RefreshPreviews();
     }
 
     //Refresh Helpers
     private static FSEntry? GetCurrentEntry() => 
         SVRegistry.CurrentList.GetCurrentEntry();
 
-    private static async Task RefreshPreviews()
+    private static void RefreshPreviews()
     {
         var currentEntry = GetCurrentEntry();
 
-        await SVRegistry.PreviewView.Update(currentEntry);
-        await SVRegistry.SelectionInfoView.Update(currentEntry);
+        SVRegistry.PreviewView.Update(currentEntry);
+        SVRegistry.SelectionInfoView.Update(currentEntry);
     }
 
     //Nav
-    public static async Task NavUp() => await NavList(-1);
-    public static async Task NavDown() => await NavList(1);
-    public static async Task NavOut() => 
-        await(Directory.GetParent(currentPath) is var dirInfo && dirInfo is not null 
-            ? Refresh(dirInfo.FullName) 
-            : Task.CompletedTask);
-    public static async Task NavIn() => 
-        await(GetCurrentEntry() is var currentEntry && currentEntry is not null && currentEntry.Value.IsDirectory 
-            ? Refresh(currentEntry.Value.Path) 
-            : HandleFile());
+    public static void NavUp() => NavList(-1);
+    public static void NavDown() => NavList(1);
+    public static void NavOut()
+    {
+        if (Directory.GetParent(currentPath) is { } dir)
+        {
+            Refresh(dir.FullName);
+        }
+    }
+    public static void NavIn()
+    {
+        if (GetCurrentEntry() is not { } currentEntry)
+            return;
+
+        if (currentEntry.IsDirectory)
+            Refresh(currentEntry.Path);
+        else
+            HandleFile();
+    }
 
     //Nav Helpers
-    public static async Task NavList(int delta)
+    public static void NavList(int delta)
     {
-        await SVRegistry.CurrentList.Nav(delta);
+        SVRegistry.CurrentList.Nav(delta);
 
-        await RefreshPreviews();
+        RefreshPreviews();
     }
 
     //Actions
-    public static async Task Tag()
+    public static void Tag()
     {
-        var (entry, enabled) = await SVRegistry.CurrentList.ToggleOrUpdateCurrentEntryTag(ColorRegistry.Yellow);
+        var (entry, enabled) = SVRegistry.CurrentList.ToggleOrUpdateCurrentEntryTag(ColorRegistry.Yellow);
 
         if(entry is not null)
         {
@@ -113,22 +123,22 @@ public static class AppState
             else
                 TaggedEntries.Remove(entry.Value);
 
-            await NavDown();
+            NavDown();
         }
     }
-    public static async Task ClearTags()
+    public static void ClearTags()
     {
         TaggedEntries.Clear();
         EntriesListView.ClearTags();
         
-        await Program.App.Renderer.EnqueueAction(async () =>
+        Program.App.Renderer.EnqueueAction(() =>
         {
-            await SVRegistry.ContainerList.Invalidate();
-            await SVRegistry.CurrentList.Invalidate();
-            await SVRegistry.PreviewView.Invalidate(); 
+            SVRegistry.ContainerList.Invalidate();
+            SVRegistry.CurrentList.Invalidate();
+            SVRegistry.PreviewView.Invalidate(); 
         });
     }
-    public static Task HandleFile()
+    public static void HandleFile()
     {
         if(GetCurrentEntry() is var currentEntry && currentEntry is not null && !currentEntry.Value.IsDirectory)
         {
@@ -154,112 +164,76 @@ public static class AppState
                 }
             );
         }
-
-        return Task.CompletedTask;
     }
-    public static async Task Search()
+    public static void Search()
     {
         FSEntry? startEntry = SVRegistry.CurrentList.GetCurrentEntry();
-        List<FSEntry> currentEntries = await FSCache.GetEntries(currentPath);
+        List<FSEntry> currentEntries = FSCache.GetEntries(currentPath);
         EntrySearcher searcher = new(currentEntries);
 
-        char preCharacter = '/';
-
-        FSEntry? bestMatch = null;
         bool invalidSearch = false;
 
-        async Task Search(string input)
-        {
-            bestMatch = searcher.GetBestMatch(input);
-            invalidSearch = bestMatch is null;
-
-            if(!invalidSearch)
-            {
-                await SVRegistry.CurrentList.Nav(bestMatch);
-                await RefreshPreviews();
-            }
-        }
-
-        await inputModeHook.EnableInputMode(
+        inputModeHook.Prompt(
             title: "Search",
-            preCharacter: preCharacter, 
-            warnSource: () => invalidSearch, 
-            onUpdate: Search, 
-            exitHandlers: [ 
-                (ConsoleKey.Escape, async () => {await SVRegistry.CurrentList.Nav(startEntry); await RefreshPreviews(); }), 
-                (ConsoleKey.Tab, () => Task.CompletedTask), 
-                (ConsoleKey.Enter, () => Task.CompletedTask)
-            ], 
-            specialHandlers: []
-        );
-    }
-    public static async Task Action()
-    {
-        char preCharacter = ':';
-        bool cancelled = false;
-
-        var action = await inputModeHook.EnableInputMode(
-            title: "Action",
-            preCharacter: preCharacter,
-            warnSource: () => false,
-            onUpdate: (_) => Task.CompletedTask,
-            exitHandlers:[
-                (ConsoleKey.Escape, () => { cancelled = true; return Task.CompletedTask; }), 
-                (ConsoleKey.Tab, () => Task.CompletedTask), 
-                (ConsoleKey.Enter, () => Task.CompletedTask)
-            ],
-            specialHandlers: []
-        );
-
-        if(cancelled)
-            return;
-
-        await Logger.Debug(nameof(Sunfire), $"Trying to parse action: \"{action}\"");
-
-        await ActionHandler.Run(action, currentPath);
-    }
-    public static async Task Sh()
-    {
-        char preCharacter = '$';
-        bool cancelled = false;
-
-        var cmd = await inputModeHook.EnableInputMode(
-            title: "Shell",
-            preCharacter: preCharacter,
-            warnSource: () => false,
-            onUpdate: (_) => Task.CompletedTask,
-            exitHandlers:[
-                (ConsoleKey.Escape, () => { cancelled = true; return Task.CompletedTask; }), 
-                (ConsoleKey.Tab, () => Task.CompletedTask), 
-                (ConsoleKey.Enter, () => Task.CompletedTask)
-            ], 
-            specialHandlers: []
-        );
-
-        if(cancelled)
-            return;
-
-        await Logger.Debug(nameof(Sunfire), $"Running shell command: \"{cmd}\" in \"{currentPath}\"");
-        var bash = Process.Start(
-            new ProcessStartInfo()
+            preCharacter: '/',
+            warnSource: () => invalidSearch,
+            onUpdate: input =>
             {
-                FileName = "sh",
-                ArgumentList = {
-                    "-c",
-                    $"{cmd}"
-                },
-                WorkingDirectory = currentPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
+                var bestMatch = searcher.GetBestMatch(input);
+                invalidSearch = bestMatch is null;
+
+                if (!invalidSearch)
+                {
+                    SVRegistry.CurrentList.Nav(bestMatch);
+                    RefreshPreviews();
+                }
+            },
+            onCancel: () =>
+            {
+                // Restore entry on Esc
+                SVRegistry.CurrentList.Nav(startEntry);
+                RefreshPreviews();
             }
         );
+    }
+    public static void Action()
+    {
+        inputModeHook.Prompt(
+            title: "Action",
+            preCharacter: ':',
+            onSubmit: action =>
+            {
+                Logger.Debug(nameof(Sunfire), $"Trying to parse action: \"{action}\"");
+                ActionHandler.Run(action, currentPath);
+            }
+        );
+    }
+    public static void Sh()
+    {
+        inputModeHook.Prompt(
+            title: "Shell",
+            preCharacter: '$',
+            onSubmit: cmd =>
+            {
+                Logger.Debug(nameof(Sunfire), $"Running shell command: \"{cmd}\" in \"{currentPath}\"");
 
-        _ = Task.Run(async () =>
-        {
-            bash?.WaitForExit();
-            await InvalidateState();
-        });
+                var bash = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "sh",
+                    ArgumentList = { "-c", cmd },
+                    WorkingDirectory = currentPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                });
+
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    bash?.WaitForExit();
+                    InvalidateState();
+                });
+            }
+        );
     }
 }

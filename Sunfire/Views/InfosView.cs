@@ -29,7 +29,7 @@ public class InfosView : IRelativeMoonfireView
 
     private bool Dirty;
 
-    public async Task<bool> Arrange()
+    public bool Arrange()
     {
         if(!Dirty)
             return false;
@@ -46,18 +46,23 @@ public class InfosView : IRelativeMoonfireView
             (view.OriginX, view.OriginY, view.SizeX, view.SizeY) = (OriginX, newOrigin, SizeX, 3);
         }
 
-        await Task.WhenAll(SubViews.Select(v => v.Arrange()));
+        foreach(var v in SubViews)
+            v.Arrange();
 
         return true;
     }    
 
-    public async Task Draw(TerminalContext context) =>
-        await Task.WhenAll(SubViews.Select(v => v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context))));
+    public void Draw(TerminalContext context)
+    {
+        foreach(var v in SubViews)
+            v.Draw(new(v.OriginX, v.OriginY, v.SizeX, v.SizeY, context));
+    }
 
-    public async Task Invalidate()
+    public void Invalidate()
     {
         Dirty = true;
 
-        await Task.WhenAll(SubViews.Select(v => v.Invalidate()));
+        foreach(var v in SubViews)
+            v.Invalidate();
     }
 }

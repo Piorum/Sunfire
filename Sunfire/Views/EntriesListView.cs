@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Moonfire.Rendering.Models;
 using Sunfire.FSUtils;
 using Sunfire.FSUtils.Models;
 using Moonfire.Logging;
@@ -24,7 +23,7 @@ public class EntriesListView : List
     private CancellationTokenSource? labelsGenCts;
 
     //Nav
-    public async Task Nav(int delta)
+    public async void Nav(int delta)
     {
         if(MaxIndex == -1)
             return; 
@@ -34,28 +33,28 @@ public class EntriesListView : List
 
         selectedIndex = targetIndex;
 
-        await Program.App.Renderer.EnqueueAction(Invalidate);
+        Program.App.Renderer.EnqueueAction(Invalidate);
     }
-    public async Task Nav(FSEntry? entry)
+    public void Nav(FSEntry? entry)
     {
-        var index = await SortedEntriesCache.GetIndexOfEntry((currentPath, sortOptions), entry);
+        var index = SortedEntriesCache.GetIndexOfEntry((currentPath, sortOptions), entry);
 
         if(index is not null && index != selectedIndex)
         {
             selectedIndex = index.Value;
-            await Program.App.Renderer.EnqueueAction(Invalidate);
+            Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
     //Tag Helpers
-    public async Task<(FSEntry? entry, bool enabled)> ToggleOrUpdateCurrentEntryTag(AnsiTruecolor color)
+    public (FSEntry? entry, bool enabled) ToggleOrUpdateCurrentEntryTag(AnsiTruecolor color)
     {
         var currentLabel = GetCurrentLabel();
         if(currentLabel is null)
             return (null, false);
 
         var enabled = TagCache.ToggleOrUpdateTag(currentLabel.Entry, color);
-        await Program.App.Renderer.EnqueueAction(currentLabel.Invalidate);
+        Program.App.Renderer.EnqueueAction(currentLabel.Invalidate);
 
         return (currentLabel.Entry, enabled);
     }
@@ -76,16 +75,16 @@ public class EntriesListView : List
     }
 
     //Update Helpers
-    public async Task UpdateCurrentPath(string path, string? overrideSelectedEntry = null)
+    public void UpdateCurrentPath(string path, string? overrideSelectedEntry = null)
     {
         currentPath = path;
         selectedIndex = 0;
-        await UpdateBackLabels(overrideSelectedEntry);
+        UpdateBackLabels(overrideSelectedEntry);
     }
-    public async Task ToggleHidden()
+    public void ToggleHidden()
     {
         sortOptions ^= SortedEntriesCache.LabelSortOptions.ShowHidden;
-        await UpdateBackLabels();
+        UpdateBackLabels();
     }
 
     //Helpers
@@ -107,7 +106,7 @@ public class EntriesListView : List
         return labelsGenCts.Token;
     }
 
-    private async Task UpdateBackLabels(string? overrideSelectedEntry = null)
+    private void UpdateBackLabels(string? overrideSelectedEntry = null)
     {
         var token = SecureLabelsGenToken();
 
@@ -118,7 +117,7 @@ public class EntriesListView : List
         if(!Directory.Exists(path))
             labels = [];
         else
-            labels = [.. await SortedEntriesCache.GetAsync((currentPath, sortOptions))];
+            labels = [.. SortedEntriesCache.Get((currentPath, sortOptions))];
 
         if(overrideSelectedEntry is not null)
         {
@@ -131,7 +130,7 @@ public class EntriesListView : List
         int index;
         int? previouslySelectedIndex = null;
             if(previouslySelectedEntries.TryGetValue(currentPath, out var previouslySelectedEntry))
-                previouslySelectedIndex = await SortedEntriesCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
+                previouslySelectedIndex = SortedEntriesCache.GetIndexOfEntry((path, sortOptions), previouslySelectedEntry);
 
         if(previouslySelectedIndex is not null)
             index = previouslySelectedIndex.Value;
@@ -143,23 +142,23 @@ public class EntriesListView : List
             backLabels = labels;
             selectedIndex = index;
             
-            await Program.App.Renderer.EnqueueAction(Invalidate);
+            Program.App.Renderer.EnqueueAction(Invalidate);
         }
     }
 
-    override protected async Task OnArrange()
+    override protected void OnArrange()
     {
         if(frontLabels != backLabels)
         {
             frontLabels = backLabels;
 
-            await Clear();
-            await AddLabels(frontLabels);
+            Clear();
+            AddLabels(frontLabels);
         }
 
         SelectedIndex = selectedIndex;
 
-        await base.OnArrange();
+        base.OnArrange();
     }
 
     private class EntryLabelView : LabelSVSlim
@@ -178,16 +177,14 @@ public class EntriesListView : List
         
         private bool built = false;
 
-        override protected Task OnArrange()
+        override protected void OnArrange()
         {
             CheckTag();
 
             if(built)
-                return Task.CompletedTask;
+                return;
 
             BuildSegments();
-
-            return Task.CompletedTask;
         }
 
         private void CheckTag()
@@ -265,35 +262,34 @@ public class EntriesListView : List
 
     private static class SortedEntriesCache
     {
-        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<(string path, LabelSortOptions options), Lazy<Task<List<EntryLabelView>>>>> sortedLabelsCache = [];
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<(string path, LabelSortOptions options), Lazy<List<EntryLabelView>>>> sortedLabelsCache = [];
 
-        public static async Task<List<EntryLabelView>> GetAsync((string path, LabelSortOptions options) key)
+        public static List<EntryLabelView> Get((string path, LabelSortOptions options) key)
         {
-            var lazyTask = GetOrAddSortedEntries(key);
+            var lazy = GetOrAddSortedEntries(key);
 
-            return await lazyTask.Value;
+            return lazy.Value;
         }
 
-        public static async Task<int?> GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
+        public static int? GetIndexOfEntry((string path, LabelSortOptions options) key, FSEntry? entry)
         {
-            var currentEntries = await GetAsync(key);
+            var currentEntries = Get(key);
             var indexOfEntry = currentEntries.FindIndex(e => e.Entry == entry);
 
-            if(indexOfEntry < 0)
-                return null;
-
-            return indexOfEntry;
+            return indexOfEntry < 0
+                ? null
+                : indexOfEntry;
         }
 
-        private static Lazy<Task<List<EntryLabelView>>> GetOrAddSortedEntries((string path, LabelSortOptions options) key)
+        private static Lazy<List<EntryLabelView>> GetOrAddSortedEntries((string path, LabelSortOptions options) key)
         {
             var perPath = sortedLabelsCache.GetOrAdd(key.path, _ => new());
 
-            return perPath.GetOrAdd(key, k => new Lazy<Task<List<EntryLabelView>>>(async () =>
+            return perPath.GetOrAdd(key, k => new Lazy<List<EntryLabelView>>(() =>
                 {
-                    await Logger.Debug(nameof(Sunfire), $"Sorting Labels for {k.path} | {(int)k.options}");
+                    Logger.Debug(nameof(Sunfire), $"Sorting Labels for {k.path} | {(int)k.options}");
                     
-                    var entries = await FSCache.GetEntries(k.path);
+                    var entries = FSCache.GetEntries(k.path);
                     var sortedEntries = SortEntries(entries, k.options);
                     var sortedLabels = sortedEntries.Select(e => new EntryLabelView() { Entry = e });
 
@@ -309,7 +305,7 @@ public class EntriesListView : List
             return entries
                 .OrderByDescending(e => e.IsDirectory)
                 .ThenByDescending(e => e.Attributes.HasFlag(FileAttributes.Hidden))
-                .ThenBy(e => e.Name.ToLowerInvariant());
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase);
         }
 
         public static void Clear(string directory) =>

@@ -44,9 +44,9 @@ public class LabelSVSlim : IMoonfireView
         readonly public AnsiStyleData Style { get; init; } = new();
     }
 
-    public async Task<bool> Arrange()
+    public bool Arrange()
     {
-        await OnArrange();
+        OnArrange();
 
         if (Dirty)
         {
@@ -90,12 +90,12 @@ public class LabelSVSlim : IMoonfireView
         return false;
     }   
 
-    protected virtual Task OnArrange() => Task.CompletedTask;
+    protected virtual void OnArrange(){}
 
-    public Task Draw(TerminalContext context)
+    public void Draw(TerminalContext context)
     {
         if(Segments is null || Segments.Length == 0)
-            return Task.CompletedTask;
+            return;
 
         var textLen = glyphs.Sum(g => g.width);
 
@@ -172,11 +172,11 @@ public class LabelSVSlim : IMoonfireView
                 context[0, 0] = tagCell;
         }
 
-        return Task.CompletedTask;
+        return;
     }
 
-    public Task Invalidate()
+    public void Invalidate()
     {
-        return Task.CompletedTask;
+        return;
     }
 }
