@@ -5,7 +5,7 @@
 #   $2 image id
 transmit_file_png() {
 	abspath_b64="$(printf -- "$(realpath -- "$1")" | base64 -w0)"
-	printf "\e_Gt=f,i=$2,f=100,q=1;$abspath_b64\e\\" >/dev/tty
+	printf "\e_Gt=f,i=$2,f=100,q=2;$abspath_b64\e\\" >/dev/tty
 }
 
 # Displays an already transferred image.

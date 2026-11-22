@@ -118,10 +118,14 @@ public class FallbackPreviewer : PreviewView.IPreviewer
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = previewerPath,
-                    Arguments = $"\"{_entry!.Value.Path}\" {SizeX} {SizeY} {OriginX} {OriginY}",
+                    ArgumentList = {
+                        _entry!.Value.Path, 
+                        SizeX.ToString(), 
+                        SizeY.ToString(), 
+                        OriginX.ToString(), 
+                        OriginY.ToString()
+                    },
                     UseShellExecute = false,
-                    //RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     CreateNoWindow = true
                 }
             };
@@ -152,8 +156,6 @@ public class FallbackPreviewer : PreviewView.IPreviewer
             {
                 FileName = cleanerPath,
                 UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             });
 
